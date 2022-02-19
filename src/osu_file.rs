@@ -10,3 +10,19 @@ pub struct OsuFile {
     colours: Colours,
     hitobjects: Vec<HitObject>,
 }
+
+pub struct General;
+
+pub struct Editor;
+
+pub struct Metadata;
+
+pub struct Difficulty;
+
+pub struct Events;
+
+pub struct TimingPoints;
+
+pub struct Colours;
+
+pub struct HitObject;
