@@ -3,7 +3,7 @@ name = "osu-file-parser"
 version = "0.1.0"
 edition = "2021"
 authors = [ "yuu0141 <eddio0141@gmail.com>" ]
-description = "Parser for .osu files in rust"
+description = "Parser for .osu files written in rust"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
