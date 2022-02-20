@@ -6,4 +6,4 @@
 //         assert_eq!(result, 4);
 //     }
 // }
-mod osu_file;
+pub mod osu_file;
