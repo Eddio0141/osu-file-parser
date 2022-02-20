@@ -1,22 +1,6 @@
 use std::{fmt::Display, str::FromStr};
 
-/// An .osu file represented as a struct
-pub struct OsuFile {
-    version: u64,
-    general: General,
-    editor: Editor,
-    metadata: Metadata,
-    difficulty: Difficulty,
-    events: Events,
-    timing_points: TimingPoints,
-    colours: Colours,
-    hitobjects: Vec<HitObject>,
-}
-
-pub const DELIMITER: char = ':';
-
-pub type Integer = i32;
-pub type Decimal = f32;
+use super::{Decimal, Integer, DELIMITER};
 
 /// A struct representing the general section of the .osu file
 pub struct General {
@@ -374,17 +358,3 @@ impl Display for OverlayPosition {
         write!(f, "Error trying to parse `value` as OverlayPosition")
     }
 }
-
-pub struct Editor;
-
-pub struct Metadata;
-
-pub struct Difficulty;
-
-pub struct Events;
-
-pub struct TimingPoints;
-
-pub struct Colours;
-
-pub struct HitObject;
