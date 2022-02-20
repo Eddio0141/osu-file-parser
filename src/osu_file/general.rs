@@ -138,9 +138,10 @@ impl FromStr for General {
 
 impl Display for General {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let header = "[General]";
+        // let header = "[General]";
 
-        writeln!(f, "{}r\n", header)
+        // writeln!(f, "{}r\n", header)
+        todo!();
     }
 }
 
