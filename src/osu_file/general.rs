@@ -1,4 +1,8 @@
-use std::{fmt::Display, str::FromStr};
+use std::{
+    error::Error,
+    fmt::{Debug, Display},
+    str::FromStr,
+};
 
 use super::{Decimal, Integer, DELIMITER};
 
@@ -86,7 +90,7 @@ impl Default for General {
 }
 
 impl FromStr for General {
-    type Err = GeneralParseError;
+    type Err = Box<dyn Error>;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut general = Self::default();
@@ -96,110 +100,35 @@ impl FromStr for General {
                 Some((key, mut value)) => {
                     value = value.trim();
 
+                    // TODO undo lower case
                     match key.trim().to_lowercase().as_str() {
                         "audiofilename" => general.audio_filename = value.to_owned(),
-                        "audioleadin" => match value.parse::<Integer>() {
-                            Ok(value) => general.audio_lead_in = value,
-                            Err(_) => return Err(GeneralParseError),
-                        },
+                        "audioleadin" => general.audio_lead_in = value.parse::<Integer>()?,
                         "audiohash" => general.audio_hash = value.to_owned(),
-                        "previewtime" => match value.parse::<Integer>() {
-                            Ok(value) => general.preview_time = value,
-                            Err(_) => return Err(GeneralParseError),
-                        },
-                        "countdown" => {
-                            general.countdown = match value.parse::<Integer>() {
-                                Ok(value) => match value.try_into() {
-                                    Ok(value) => value,
-                                    Err(_) => return Err(GeneralParseError),
-                                },
-                                Err(_) => return Err(GeneralParseError),
-                            }
-                        }
-                        "sampleset" => match SampleSet::from_str(value) {
-                            Ok(sample_set) => general.sample_set = sample_set,
-                            Err(_) => return Err(GeneralParseError),
-                        },
-                        "stackleniency" => {
-                            general.stack_leniency = match value.parse::<Decimal>() {
-                                Ok(value) => value,
-                                Err(_) => return Err(GeneralParseError),
-                            }
-                        }
-                        "mode" => {
-                            general.mode = match value.parse::<Integer>() {
-                                Ok(value) => match value.try_into() {
-                                    Ok(value) => value,
-                                    Err(_) => return Err(GeneralParseError),
-                                },
-                                Err(_) => return Err(GeneralParseError),
-                            }
-                        }
-                        "letterboxinbreaks" => {
-                            general.letterbox_in_breaks = match value.parse() {
-                                Ok(value) => value,
-                                Err(_) => return Err(GeneralParseError),
-                            }
-                        }
-                        "storyfireinfront" => {
-                            general.story_fire_in_front = match value.parse() {
-                                Ok(value) => value,
-                                Err(_) => return Err(GeneralParseError),
-                            }
-                        }
-                        "useskinsprites" => {
-                            general.use_skin_sprites = match value.parse() {
-                                Ok(value) => value,
-                                Err(_) => return Err(GeneralParseError),
-                            }
-                        }
-                        "alwaysshowplayfield" => {
-                            general.always_show_playfield = match value.parse() {
-                                Ok(value) => value,
-                                Err(_) => return Err(GeneralParseError),
-                            }
-                        }
+                        "previewtime" => general.preview_time = value.parse::<Integer>()?,
+                        "countdown" => general.countdown = value.parse::<Integer>()?.try_into()?,
+                        "sampleset" => general.sample_set = SampleSet::from_str(value)?,
+                        "stackleniency" => general.stack_leniency = value.parse::<Decimal>()?,
+                        "mode" => general.mode = value.parse::<Integer>()?.try_into()?,
+                        "letterboxinbreaks" => general.letterbox_in_breaks = value.parse()?,
+                        "storyfireinfront" => general.story_fire_in_front = value.parse()?,
+                        "useskinsprites" => general.use_skin_sprites = value.parse()?,
+                        "alwaysshowplayfield" => general.always_show_playfield = value.parse()?,
                         "overlayposition" => {
-                            general.overlay_position = match OverlayPosition::from_str(value) {
-                                Ok(value) => value,
-                                Err(_) => return Err(GeneralParseError),
-                            }
+                            general.overlay_position = OverlayPosition::from_str(value)?
                         }
                         "skinpreference" => general.skin_preference = value.to_owned(),
-                        "epilepsywarning" => {
-                            general.epilepsy_warning = match value.parse() {
-                                Ok(value) => value,
-                                Err(_) => return Err(GeneralParseError),
-                            }
-                        }
-                        "countdownoffset" => {
-                            general.countdown_offset = match value.parse() {
-                                Ok(value) => value,
-                                Err(_) => return Err(GeneralParseError),
-                            }
-                        }
-                        "specialstyle" => {
-                            general.special_style = match value.parse() {
-                                Ok(value) => value,
-                                Err(_) => return Err(GeneralParseError),
-                            }
-                        }
-                        "widescreenstoryboard" => {
-                            general.widescreen_storyboard = match value.parse() {
-                                Ok(value) => value,
-                                Err(_) => return Err(GeneralParseError),
-                            }
-                        }
+                        "epilepsywarning" => general.epilepsy_warning = value.parse()?,
+                        "countdownoffset" => general.countdown_offset = value.parse()?,
+                        "specialstyle" => general.special_style = value.parse()?,
+                        "widescreenstoryboard" => general.widescreen_storyboard = value.parse()?,
                         "samplesmatchplaybackrate" => {
-                            general.samples_match_playback_rate = match value.parse() {
-                                Ok(value) => value,
-                                Err(_) => return Err(GeneralParseError),
-                            }
+                            general.samples_match_playback_rate = value.parse()?
                         }
-                        _ => return Err(GeneralParseError),
+                        _ => return Err(Box::new(InvalidKey)),
                     }
                 }
-                None => return Err(GeneralParseError),
+                None => return Err(Box::new(MissingValue)),
             }
         }
 
@@ -207,12 +136,35 @@ impl FromStr for General {
     }
 }
 
-// TODO more specific info
-pub struct GeneralParseError;
-
-impl Display for GeneralParseError {
+impl Display for General {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "There was a problem parsing the General section")
+        let header = "[General]";
+
+        writeln!(f, "{}r\n", header)
+    }
+}
+
+// TODO more specific info
+#[derive(Debug)]
+pub struct InvalidKey;
+
+impl Error for InvalidKey {}
+
+impl Display for InvalidKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "The input has an invalid key")
+    }
+}
+
+// TODO more specific info
+#[derive(Debug)]
+pub struct MissingValue;
+
+impl Error for MissingValue {}
+
+impl Display for MissingValue {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "The key doesn't have a value")
     }
 }
 
@@ -238,6 +190,7 @@ impl TryFrom<i32> for CountdownSpeed {
     }
 }
 
+#[derive(Debug)]
 pub struct CountdownSpeedParseError;
 
 impl Display for CountdownSpeedParseError {
@@ -245,6 +198,8 @@ impl Display for CountdownSpeedParseError {
         write!(f, "Error trying to parse `value` as CountdownSpeed")
     }
 }
+
+impl Error for CountdownSpeedParseError {}
 
 impl Default for CountdownSpeed {
     fn default() -> Self {
@@ -278,6 +233,7 @@ impl FromStr for SampleSet {
     }
 }
 
+#[derive(Debug)]
 pub struct SampleSetParseError;
 
 impl Display for SampleSetParseError {
@@ -285,6 +241,8 @@ impl Display for SampleSetParseError {
         write!(f, "Error trying to parse `value` as SampleSet")
     }
 }
+
+impl Error for SampleSetParseError {}
 
 /// Game mode of the .osu file
 pub enum GameMode {
@@ -314,6 +272,7 @@ impl TryFrom<i32> for GameMode {
     }
 }
 
+#[derive(Debug)]
 pub struct GameModeParseError;
 
 impl Display for GameModeParseError {
@@ -321,6 +280,8 @@ impl Display for GameModeParseError {
         write!(f, "Error trying to parse `value` as GameMode")
     }
 }
+
+impl Error for GameModeParseError {}
 
 /// Draw order of hit circle overlays compared to hit numbers
 pub enum OverlayPosition {
@@ -351,10 +312,13 @@ impl FromStr for OverlayPosition {
     }
 }
 
+#[derive(Debug)]
 pub struct OverlayPositionParseError;
 
-impl Display for OverlayPosition {
+impl Display for OverlayPositionParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Error trying to parse `value` as OverlayPosition")
     }
 }
+
+impl Error for OverlayPositionParseError {}
