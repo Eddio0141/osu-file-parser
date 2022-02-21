@@ -2,6 +2,8 @@ pub mod general;
 
 use std::{error::Error, fmt::Display, str::FromStr};
 
+use regex::Regex;
+
 use self::general::General;
 
 /// An .osu file represented as a struct
@@ -43,8 +45,42 @@ impl FromStr for OsuFile {
             return Err(Box::new(OsuFileParseError::MultipleFileVersions));
         }
 
+        let (section_open, section_close) = ('[', ']');
+
+        let section_match = format!("\\{section_open}\\w*\\{section_close}[^{section_open}]*");
+        let section_match = Regex::new(&section_match).unwrap();
+
         // split sections
-        
+        // TODO are sections required
+        let section_names = match section_match.captures(&s) {
+            Some(section_match) => {
+                let section_name_match = format!(
+                    "(?!\\{section_open})[^\\{section_open}\\{section_close}]*(?={section_close})"
+                );
+                let section_name_match = Regex::new(&section_name_match).unwrap();
+
+                let names = section_match
+                    .iter()
+                    .filter_map(|section| {
+                        if let Some(section) = section {
+                            let name = section_name_match
+                                .captures(section.as_str().trim())
+                                .unwrap()
+                                .get(0)
+                                .unwrap()
+                                .as_str();
+
+                            Some(name)
+                        } else {
+                            None
+                        }
+                    })
+                    .collect::<Vec<_>>();
+
+                names
+            }
+            None => return Err(Box::new(OsuFileParseError::NoSectionsFound)),
+        };
 
         Ok(OsuFile {
             version: file_version,
@@ -81,6 +117,7 @@ pub enum OsuFileParseError {
     InvalidFileVersion,
     NoFileVersion,
     MultipleFileVersions,
+    NoSectionsFound,
 }
 
 impl Display for OsuFileParseError {
@@ -89,6 +126,7 @@ impl Display for OsuFileParseError {
             OsuFileParseError::InvalidFileVersion => "Invalid file version",
             OsuFileParseError::NoFileVersion => "No file version defined",
             OsuFileParseError::MultipleFileVersions => "Multiple file versions defined",
+            OsuFileParseError::NoSectionsFound => "No sections defined",
         };
 
         write!(f, "{}", error_text)
