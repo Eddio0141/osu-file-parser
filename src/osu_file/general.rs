@@ -10,6 +10,7 @@ use super::{
 };
 
 /// A struct representing the general section of the .osu file
+#[derive(PartialEq)]
 pub struct General {
     /// Location of the audio file relative to the current folder
     audio_filename: String,
@@ -149,16 +150,16 @@ impl FromStr for General {
                                 }
                         }
                         "LetterboxInBreaks" => {
-                            general.letterbox_in_breaks = parse_error_return(value, line)?
+                            general.letterbox_in_breaks = parse_zero_one_bool(value, line)?
                         }
                         "StoryFireInFront" => {
-                            general.story_fire_in_front = parse_error_return(value, line)?
+                            general.story_fire_in_front = parse_zero_one_bool(value, line)?
                         }
                         "UseSkinSprites" => {
-                            general.use_skin_sprites = parse_error_return(value, line)?
+                            general.use_skin_sprites = parse_zero_one_bool(value, line)?
                         }
                         "AlwaysShowPlayfield" => {
-                            general.always_show_playfield = parse_error_return(value, line)?
+                            general.always_show_playfield = parse_zero_one_bool(value, line)?
                         }
                         "OverlayPosition" => {
                             general.overlay_position = match OverlayPosition::from_str(value) {
@@ -173,17 +174,17 @@ impl FromStr for General {
                         }
                         "SkinPreference" => general.skin_preference = value.to_owned(),
                         "EpilepsyWarning" => {
-                            general.epilepsy_warning = parse_error_return(value, line)?
+                            general.epilepsy_warning = parse_zero_one_bool(value, line)?
                         }
                         "CountdownOffset" => {
                             general.countdown_offset = parse_error_return(value, line)?
                         }
-                        "SpecialStyle" => general.special_style = parse_error_return(value, line)?,
+                        "SpecialStyle" => general.special_style = parse_zero_one_bool(value, line)?,
                         "WidescreenStoryboard" => {
-                            general.widescreen_storyboard = parse_error_return(value, line)?
+                            general.widescreen_storyboard = parse_zero_one_bool(value, line)?
                         }
                         "SamplesMatchPlaybackRate" => {
-                            general.samples_match_playback_rate = parse_error_return(value, line)?
+                            general.samples_match_playback_rate = parse_zero_one_bool(value, line)?
                         }
                         _ => {
                             return Err(GeneralKeyParseError {
@@ -202,7 +203,7 @@ impl FromStr for General {
             }
         }
 
-        Ok(Self::default())
+        Ok(general)
     }
 }
 
@@ -220,6 +221,32 @@ where
     }
 }
 
+fn parse_zero_one_bool(value: &str, line: &str) -> Result<bool, GeneralKeyParseError> {
+    let value = parse_error_return(value, line)?;
+
+    match value {
+        0 => Ok(false),
+        1 => Ok(true),
+        _ => {
+            return Err(GeneralKeyParseError {
+                source: Box::new(ParseBoolError),
+                line: line.to_owned(),
+            })
+        }
+    }
+}
+
+#[derive(Debug)]
+struct ParseBoolError;
+
+impl Display for ParseBoolError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Error parsing integer as `true` or `false`")
+    }
+}
+
+impl Error for ParseBoolError {}
+
 impl Display for General {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut key_value = Vec::new();
@@ -232,25 +259,37 @@ impl Display for General {
         key_value.push(format!("SampleSet: {}", self.sample_set));
         key_value.push(format!("StackLeniency: {}", self.stack_leniency));
         key_value.push(format!("Mode: {}", self.mode));
-        key_value.push(format!("LetterboxInBreaks: {}", self.letterbox_in_breaks));
-        key_value.push(format!("StoryFireInFront: {}", self.story_fire_in_front));
-        key_value.push(format!("UseSkinSprites: {}", self.use_skin_sprites));
+        key_value.push(format!(
+            "LetterboxInBreaks: {}",
+            self.letterbox_in_breaks as Integer
+        ));
+        key_value.push(format!(
+            "StoryFireInFront: {}",
+            self.story_fire_in_front as Integer
+        ));
+        key_value.push(format!(
+            "UseSkinSprites: {}",
+            self.use_skin_sprites as Integer
+        ));
         key_value.push(format!(
             "AlwaysShowPlayfield: {}",
-            self.always_show_playfield
+            self.always_show_playfield as Integer
         ));
         key_value.push(format!("OverlayPosition: {}", self.overlay_position));
         key_value.push(format!("SkinPreference: {}", self.skin_preference));
-        key_value.push(format!("EpilepsyWarning: {}", self.epilepsy_warning));
+        key_value.push(format!(
+            "EpilepsyWarning: {}",
+            self.epilepsy_warning as Integer
+        ));
         key_value.push(format!("CountdownOffset: {}", self.countdown_offset));
-        key_value.push(format!("SpecialStyle: {}", self.special_style));
+        key_value.push(format!("SpecialStyle: {}", self.special_style as Integer));
         key_value.push(format!(
             "WidescreenStoryboard: {}",
-            self.widescreen_storyboard
+            self.widescreen_storyboard as Integer
         ));
         key_value.push(format!(
             "SamplesMatchPlaybackRate: {}",
-            self.samples_match_playback_rate
+            self.samples_match_playback_rate as Integer
         ));
 
         write!(f, "{}", key_value.join("\r\n"))
@@ -277,6 +316,7 @@ impl Error for GeneralKeyParseError {
 }
 
 /// Speed of the countdown before the first hit
+#[derive(PartialEq, Eq)]
 pub enum CountdownSpeed {
     NoCountdown,
     Normal,
@@ -329,6 +369,7 @@ impl Default for CountdownSpeed {
 }
 
 /// Sample set that will be used if timing points do not override it
+#[derive(PartialEq, Eq)]
 pub enum SampleSet {
     Normal,
     Soft,
@@ -378,6 +419,7 @@ impl Display for SampleSetParseError {
 impl Error for SampleSetParseError {}
 
 /// Game mode of the .osu file
+#[derive(PartialEq, Eq)]
 pub enum GameMode {
     Osu,
     Taiko,
@@ -430,6 +472,7 @@ impl Display for GameModeParseError {
 impl Error for GameModeParseError {}
 
 /// Draw order of hit circle overlays compared to hit numbers
+#[derive(PartialEq, Eq)]
 pub enum OverlayPosition {
     /// Use skin setting
     NoChange,
