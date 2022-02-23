@@ -1,10 +1,41 @@
+pub mod colours;
+pub mod difficulty;
+pub mod editor;
+pub mod events;
 pub mod general;
+pub mod hitobject;
+pub mod metadata;
+pub mod section_error;
+pub mod timingpoint;
 
-use std::{error::Error, fmt::Display, str::FromStr};
+// use core::hash::Hash;
+use std::hash::Hash;
+use std::{
+    collections::{HashMap, HashSet},
+    error::Error,
+    fmt::Display,
+    str::FromStr,
+};
 
 use regex::Regex;
 
+use self::colours::Colours;
+use self::difficulty::Difficulty;
+use self::editor::Editor;
+use self::events::Events;
 use self::general::General;
+use self::hitobject::HitObject;
+use self::metadata::Metadata;
+use self::timingpoint::TimingPoint;
+
+fn has_unique_elements<T>(iter: T) -> bool
+where
+    T: IntoIterator,
+    T::Item: Eq + Hash,
+{
+    let mut uniq = HashSet::new();
+    iter.into_iter().all(move |x| uniq.insert(x))
+}
 
 /// An .osu file represented as a struct
 pub struct OsuFile {
@@ -14,7 +45,7 @@ pub struct OsuFile {
     metadata: Metadata,
     difficulty: Difficulty,
     events: Events,
-    timing_points: TimingPoints,
+    timing_points: Vec<TimingPoint>,
     colours: Colours,
     hitobjects: Vec<HitObject>,
 }
@@ -52,14 +83,14 @@ impl FromStr for OsuFile {
 
         // split sections
         // TODO are sections required
-        let section_names = match section_match.captures(&s) {
+        let (section_names, sections) = match section_match.captures(&s) {
             Some(section_match) => {
                 let section_name_match = format!(
                     "(?!\\{section_open})[^\\{section_open}\\{section_close}]*(?={section_close})"
                 );
                 let section_name_match = Regex::new(&section_name_match).unwrap();
 
-                let names = section_match
+                let (names, sections): (Vec<_>, Vec<_>) = section_match
                     .iter()
                     .filter_map(|section| {
                         if let Some(section) = section {
@@ -70,28 +101,85 @@ impl FromStr for OsuFile {
                                 .unwrap()
                                 .as_str();
 
-                            Some(name)
+                            let section = section
+                                .as_str()
+                                .trim()
+                                .strip_prefix(&format!("[{name}]"))
+                                .unwrap();
+
+                            Some((name, section))
                         } else {
                             None
                         }
                     })
-                    .collect::<Vec<_>>();
+                    .unzip();
 
-                names
+                (names, sections)
             }
             None => return Err(Box::new(OsuFileParseError::NoSectionsFound)),
         };
 
+        if !has_unique_elements(&section_names) {
+            return Err(Box::new(OsuFileParseError::DuplicateSectionNames));
+        }
+
+        let section_map: HashMap<_, _> =
+            HashMap::from_iter(section_names.iter().zip(sections.iter()));
+
+        let (
+            mut general,
+            mut editor,
+            mut metadata,
+            mut difficulty,
+            mut events,
+            mut timing_points,
+            mut colours,
+            mut hitobjects,
+        ) = (
+            Default::default(),
+            Default::default(),
+            Default::default(),
+            Default::default(),
+            Default::default(),
+            Default::default(),
+            Default::default(),
+            Default::default(),
+        );
+
+        for (k, v) in section_map.iter() {
+            match **k {
+                "General" => general = v.parse()?,
+                "Editor" => editor = v.parse()?,
+                "Metadata" => metadata = v.parse()?,
+                "Difficulty" => difficulty = v.parse()?,
+                "Events" => events = v.parse()?,
+                "TimingPoints" => {
+                    timing_points = v
+                        .lines()
+                        .map(|line| line.parse::<TimingPoint>())
+                        .collect::<Result<Vec<_>, _>>()?
+                }
+                "Colours" => colours = v.parse()?,
+                "HitObjects" => {
+                    hitobjects = v
+                        .lines()
+                        .map(|line| line.parse::<HitObject>())
+                        .collect::<Result<Vec<_>, _>>()?
+                }
+                _ => return Err(Box::new(OsuFileParseError::InvalidSectionName)),
+            }
+        }
+
         Ok(OsuFile {
             version: file_version,
-            general: todo!(),
-            editor: todo!(),
-            metadata: todo!(),
-            difficulty: todo!(),
-            events: todo!(),
-            timing_points: todo!(),
-            colours: todo!(),
-            hitobjects: todo!(),
+            general,
+            editor,
+            metadata,
+            difficulty,
+            events,
+            timing_points,
+            colours,
+            hitobjects,
         })
     }
 }
@@ -118,6 +206,8 @@ pub enum OsuFileParseError {
     NoFileVersion,
     MultipleFileVersions,
     NoSectionsFound,
+    DuplicateSectionNames,
+    InvalidSectionName,
 }
 
 impl Display for OsuFileParseError {
@@ -127,6 +217,8 @@ impl Display for OsuFileParseError {
             OsuFileParseError::NoFileVersion => "No file version defined",
             OsuFileParseError::MultipleFileVersions => "Multiple file versions defined",
             OsuFileParseError::NoSectionsFound => "No sections defined",
+            OsuFileParseError::DuplicateSectionNames => "Duplicate sections defined",
+            OsuFileParseError::InvalidSectionName => "Invalid section name",
         };
 
         write!(f, "{}", error_text)
@@ -139,24 +231,3 @@ const DELIMITER: char = ':';
 
 type Integer = i32;
 type Decimal = f32;
-
-#[derive(Default)]
-pub struct Editor;
-
-#[derive(Default)]
-pub struct Metadata;
-
-#[derive(Default)]
-pub struct Difficulty;
-
-#[derive(Default)]
-pub struct Events;
-
-#[derive(Default)]
-pub struct TimingPoints;
-
-#[derive(Default)]
-pub struct Colours;
-
-#[derive(Default)]
-pub struct HitObject;

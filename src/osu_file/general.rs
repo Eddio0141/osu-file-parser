@@ -4,7 +4,7 @@ use std::{
     str::FromStr,
 };
 
-use super::{Decimal, Integer, DELIMITER};
+use super::{Decimal, Integer, DELIMITER, section_error::{InvalidKey, MissingValue}};
 
 /// A struct representing the general section of the .osu file
 pub struct General {
@@ -142,30 +142,6 @@ impl Display for General {
 
         // writeln!(f, "{}r\n", header)
         todo!();
-    }
-}
-
-// TODO more specific info
-#[derive(Debug)]
-pub struct InvalidKey;
-
-impl Error for InvalidKey {}
-
-impl Display for InvalidKey {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "The input has an invalid key")
-    }
-}
-
-// TODO more specific info
-#[derive(Debug)]
-pub struct MissingValue;
-
-impl Error for MissingValue {}
-
-impl Display for MissingValue {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "The key doesn't have a value")
     }
 }
 
