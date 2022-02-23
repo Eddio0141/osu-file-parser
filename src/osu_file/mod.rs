@@ -120,7 +120,7 @@ impl FromStr for OsuFile {
         };
 
         if !has_unique_elements(&section_names) {
-            return Err(Box::new(OsuFileParseError::DuplicateSectionNames));
+            return Err(Box::new(OsuFileParseError::DuplicateSections));
         }
 
         let section_map: HashMap<_, _> =
@@ -206,7 +206,7 @@ pub enum OsuFileParseError {
     NoFileVersion,
     MultipleFileVersions,
     NoSectionsFound,
-    DuplicateSectionNames,
+    DuplicateSections,
     InvalidSectionName,
 }
 
@@ -217,7 +217,7 @@ impl Display for OsuFileParseError {
             OsuFileParseError::NoFileVersion => "No file version defined",
             OsuFileParseError::MultipleFileVersions => "Multiple file versions defined",
             OsuFileParseError::NoSectionsFound => "No sections defined",
-            OsuFileParseError::DuplicateSectionNames => "Duplicate sections defined",
+            OsuFileParseError::DuplicateSections => "Duplicate sections defined",
             OsuFileParseError::InvalidSectionName => "Invalid section name",
         };
 

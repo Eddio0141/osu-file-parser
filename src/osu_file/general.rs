@@ -93,10 +93,12 @@ impl Default for General {
 }
 
 impl FromStr for General {
-    type Err = Box<dyn Error>;
+    type Err = GeneralKeyParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut general = Self::default();
+
+        let s = s.trim();
 
         for line in s.lines() {
             match line.split_once(DELIMITER) {
@@ -105,36 +107,116 @@ impl FromStr for General {
 
                     match key.trim() {
                         "AudioFilename" => general.audio_filename = value.to_owned(),
-                        "AudioLeadIn" => general.audio_lead_in = value.parse::<Integer>()?,
+                        "AudioLeadIn" => general.audio_lead_in = parse_error_return(value, line)?,
                         "AudioHash" => general.audio_hash = value.to_owned(),
-                        "PreviewTime" => general.preview_time = value.parse::<Integer>()?,
-                        "Countdown" => general.countdown = value.parse::<Integer>()?.try_into()?,
-                        "SampleSet" => general.sample_set = SampleSet::from_str(value)?,
-                        "StackLeniency" => general.stack_leniency = value.parse::<Decimal>()?,
-                        "Mode" => general.mode = value.parse::<Integer>()?.try_into()?,
-                        "LetterboxInBreaks" => general.letterbox_in_breaks = value.parse()?,
-                        "StoryFireInFront" => general.story_fire_in_front = value.parse()?,
-                        "UseSkinSprites" => general.use_skin_sprites = value.parse()?,
-                        "AlwaysShowPlayfield" => general.always_show_playfield = value.parse()?,
+                        "PreviewTime" => general.preview_time = parse_error_return(value, line)?,
+                        "Countdown" => {
+                            general.countdown =
+                                match parse_error_return::<Integer>(value, line)?.try_into() {
+                                    Ok(value) => value,
+                                    Err(err) => {
+                                        return Err(GeneralKeyParseError {
+                                            source: Box::new(err),
+                                            line: line.to_owned(),
+                                        })
+                                    }
+                                }
+                        }
+                        "SampleSet" => {
+                            general.sample_set = match SampleSet::from_str(value) {
+                                Ok(value) => value,
+                                Err(err) => {
+                                    return Err(GeneralKeyParseError {
+                                        source: Box::new(err),
+                                        line: line.to_owned(),
+                                    })
+                                }
+                            }
+                        }
+                        "StackLeniency" => {
+                            general.stack_leniency = parse_error_return(value, line)?
+                        }
+                        "Mode" => {
+                            general.mode =
+                                match parse_error_return::<Integer>(value, line)?.try_into() {
+                                    Ok(value) => value,
+                                    Err(err) => {
+                                        return Err(GeneralKeyParseError {
+                                            source: Box::new(err),
+                                            line: line.to_owned(),
+                                        })
+                                    }
+                                }
+                        }
+                        "LetterboxInBreaks" => {
+                            general.letterbox_in_breaks = parse_error_return(value, line)?
+                        }
+                        "StoryFireInFront" => {
+                            general.story_fire_in_front = parse_error_return(value, line)?
+                        }
+                        "UseSkinSprites" => {
+                            general.use_skin_sprites = parse_error_return(value, line)?
+                        }
+                        "AlwaysShowPlayfield" => {
+                            general.always_show_playfield = parse_error_return(value, line)?
+                        }
                         "OverlayPosition" => {
-                            general.overlay_position = OverlayPosition::from_str(value)?
+                            general.overlay_position = match OverlayPosition::from_str(value) {
+                                Ok(value) => value,
+                                Err(err) => {
+                                    return Err(GeneralKeyParseError {
+                                        source: Box::new(err),
+                                        line: line.to_owned(),
+                                    })
+                                }
+                            }
                         }
                         "SkinPreference" => general.skin_preference = value.to_owned(),
-                        "EpilepsyWarning" => general.epilepsy_warning = value.parse()?,
-                        "CountdownOffset" => general.countdown_offset = value.parse()?,
-                        "SpecialStyle" => general.special_style = value.parse()?,
-                        "WidescreenStoryboard" => general.widescreen_storyboard = value.parse()?,
-                        "SamplesMatchPlaybackRate" => {
-                            general.samples_match_playback_rate = value.parse()?
+                        "EpilepsyWarning" => {
+                            general.epilepsy_warning = parse_error_return(value, line)?
                         }
-                        _ => return Err(Box::new(InvalidKey)),
+                        "CountdownOffset" => {
+                            general.countdown_offset = parse_error_return(value, line)?
+                        }
+                        "SpecialStyle" => general.special_style = parse_error_return(value, line)?,
+                        "WidescreenStoryboard" => {
+                            general.widescreen_storyboard = parse_error_return(value, line)?
+                        }
+                        "SamplesMatchPlaybackRate" => {
+                            general.samples_match_playback_rate = parse_error_return(value, line)?
+                        }
+                        _ => {
+                            return Err(GeneralKeyParseError {
+                                source: Box::new(InvalidKey(key.to_owned())),
+                                line: line.to_owned(),
+                            })
+                        }
                     }
                 }
-                None => return Err(Box::new(MissingValue)),
+                None => {
+                    return Err(GeneralKeyParseError {
+                        source: Box::new(MissingValue(line.to_owned())),
+                        line: line.to_owned(),
+                    })
+                }
             }
         }
 
         Ok(Self::default())
+    }
+}
+
+fn parse_error_return<T>(value: &str, line: &str) -> Result<T, GeneralKeyParseError>
+where
+    T: FromStr,
+    <T as FromStr>::Err: Error + 'static,
+{
+    match value.parse::<T>() {
+        Ok(value) => Ok(value),
+        Err(err) => Err(GeneralKeyParseError {
+            source: Box::new(err),
+            line: line.to_owned(),
+        }),
     }
 }
 
@@ -172,6 +254,25 @@ impl Display for General {
         ));
 
         write!(f, "{}", key_value.join("\r\n"))
+    }
+}
+
+#[derive(Debug)]
+/// Error for when parsing a key: value line
+pub struct GeneralKeyParseError {
+    source: Box<dyn Error>,
+    pub line: String,
+}
+
+impl Display for GeneralKeyParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Error parsing a key: value line in General")
+    }
+}
+
+impl Error for GeneralKeyParseError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        Some(self.source.as_ref())
     }
 }
 

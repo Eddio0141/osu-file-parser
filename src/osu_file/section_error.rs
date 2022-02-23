@@ -1,25 +1,23 @@
 use std::{error::Error, fmt::Display};
 
-// TODO more specific info
 #[derive(Debug)]
-pub struct InvalidKey;
+pub struct InvalidKey(pub String);
 
 impl Error for InvalidKey {}
 
 impl Display for InvalidKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "The input has an invalid key")
+        write!(f, "The input has an invalid key: {}", self.0)
     }
 }
 
-// TODO more specific info
 #[derive(Debug)]
-pub struct MissingValue;
+pub struct MissingValue(pub String);
 
 impl Error for MissingValue {}
 
 impl Display for MissingValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "The key doesn't have a value")
+        write!(f, "The key doesn't have a value: {}", self.0)
     }
 }
