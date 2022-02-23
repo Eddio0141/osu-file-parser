@@ -236,6 +236,7 @@ fn parse_zero_one_bool(value: &str, line: &str) -> Result<bool, GeneralKeyParseE
     }
 }
 
+/// Error for when having a problem parsing 0 or 1 as a boolean
 #[derive(Debug)]
 struct ParseBoolError;
 
@@ -351,6 +352,7 @@ impl TryFrom<i32> for CountdownSpeed {
     }
 }
 
+/// Error used when there's an error parsing the string as enum
 #[derive(Debug)]
 pub struct CountdownSpeedParseError;
 
@@ -407,6 +409,7 @@ impl FromStr for SampleSet {
     }
 }
 
+/// Error used when there's an error parsing the string as enum
 #[derive(Debug)]
 pub struct SampleSetParseError;
 
@@ -460,6 +463,7 @@ impl TryFrom<i32> for GameMode {
     }
 }
 
+/// Error used when there's an error parsing the string as enum
 #[derive(Debug)]
 pub struct GameModeParseError;
 
@@ -513,6 +517,7 @@ impl FromStr for OverlayPosition {
     }
 }
 
+/// Error used when there's an error parsing the string as enum
 #[derive(Debug)]
 pub struct OverlayPositionParseError;
 
