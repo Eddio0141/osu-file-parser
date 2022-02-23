@@ -39,14 +39,31 @@ where
 
 /// An .osu file represented as a struct
 pub struct OsuFile {
+    /// Version of the file format
     pub version: u64,
+    /// General information about the beatmap
+    /// - `key`: `value` pairs
     pub general: General,
+    /// Saved settings for the beatmap editor
+    /// - `key`: `value` pairs
     pub editor: Editor,
+    /// Information used to identify the beatmap
+    /// - `key`:`value` pairs
     pub metadata: Metadata,
+    /// Difficulty settings
+    /// - `key`:`value` pairs
     pub difficulty: Difficulty,
+    /// Beatmap and storyboard graphic events
+    /// Comma-separated lists
     pub events: Events,
+    /// Timing and control points
+    /// Comma-separated lists
     pub timing_points: Vec<TimingPoint>,
+    /// Combo and skin colours
+    /// `key` : `value` pairs
     pub colours: Colours,
+    /// Hit objects
+    /// Comma-separated lists
     pub hitobjects: Vec<HitObject>,
 }
 
