@@ -10,61 +10,61 @@ use super::{
 };
 
 /// A struct representing the general section of the .osu file
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 pub struct General {
     /// Location of the audio file relative to the current folder
-    audio_filename: String,
+    pub audio_filename: String,
     /// Milliseconds of silence before the audio starts playing
-    audio_lead_in: Integer,
+    pub audio_lead_in: Integer,
     /// Deprecated
-    audio_hash: String,
+    pub audio_hash: String,
     /// Time in milliseconds when the audio preview should start
     /// - Defaults to `-1`
-    preview_time: Integer,
+    pub preview_time: Integer,
     /// Speed of the countdown before the first hit object
     /// - Defaults to `Normal`
-    countdown: CountdownSpeed,
+    pub countdown: CountdownSpeed,
     /// Sample set that will be used if timing points do not override it
     /// - Defaults to `Normal`
-    sample_set: SampleSet,
+    pub sample_set: SampleSet,
     /// Multiplier for the threshold in time where hit objects placed close together stack
     /// - Defaults to `0.7`
-    stack_leniency: Decimal,
+    pub stack_leniency: Decimal,
     /// Game mode
     /// - Defaults to `osu`
-    mode: GameMode,
+    pub mode: GameMode,
     /// Whether or not breaks have a letterboxing effect
     /// - Defaults to `false`
-    letterbox_in_breaks: bool,
+    pub letterbox_in_breaks: bool,
     /// Deprecated
     /// - Defaults to `true`
-    story_fire_in_front: bool,
+    pub story_fire_in_front: bool,
     /// Whether or not the storyboard can use the user's skin images
     /// - Defaults to `false`
-    use_skin_sprites: bool,
+    pub use_skin_sprites: bool,
     /// Deprecated
     /// - Defaults to `false`
-    always_show_playfield: bool,
+    pub always_show_playfield: bool,
     /// Draw order of hit circle overlays compared to hit numbers
     /// - Defaults to `NoChange`
-    overlay_position: OverlayPosition,
+    pub overlay_position: OverlayPosition,
     /// Preferred skin to use during gameplay
-    skin_preference: String,
+    pub skin_preference: String,
     /// Whether or not a warning about flashing colours should be shown at the beginning of the map
     /// - Defaults to `false`
-    epilepsy_warning: bool,
+    pub epilepsy_warning: bool,
     /// Time in beats that the countdown starts before the first hit object
     /// - Defaults to `false`
-    countdown_offset: Integer,
+    pub countdown_offset: Integer,
     /// Whether or not the "N+1" style key layout is used for osu!mania
     /// - Defaults to `false`
-    special_style: bool,
+    pub special_style: bool,
     /// Whether or not the storyboard allows widescreen viewing
     /// - Defaults to `false`
-    widescreen_storyboard: bool,
+    pub widescreen_storyboard: bool,
     /// Whether or not sound samples will change rate when playing with speed-changing mods
     /// - Defaults to `false`
-    samples_match_playback_rate: bool,
+    pub samples_match_playback_rate: bool,
 }
 
 impl Default for General {
@@ -316,7 +316,7 @@ impl Error for GeneralKeyParseError {
 }
 
 /// Speed of the countdown before the first hit
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Debug)]
 pub enum CountdownSpeed {
     NoCountdown,
     Normal,
@@ -369,7 +369,7 @@ impl Default for CountdownSpeed {
 }
 
 /// Sample set that will be used if timing points do not override it
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Debug)]
 pub enum SampleSet {
     Normal,
     Soft,
@@ -419,7 +419,7 @@ impl Display for SampleSetParseError {
 impl Error for SampleSetParseError {}
 
 /// Game mode of the .osu file
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Debug)]
 pub enum GameMode {
     Osu,
     Taiko,
@@ -472,7 +472,7 @@ impl Display for GameModeParseError {
 impl Error for GameModeParseError {}
 
 /// Draw order of hit circle overlays compared to hit numbers
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Debug)]
 pub enum OverlayPosition {
     /// Use skin setting
     NoChange,
