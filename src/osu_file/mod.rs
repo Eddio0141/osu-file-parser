@@ -39,15 +39,15 @@ where
 
 /// An .osu file represented as a struct
 pub struct OsuFile {
-    version: u64,
-    general: General,
-    editor: Editor,
-    metadata: Metadata,
-    difficulty: Difficulty,
-    events: Events,
-    timing_points: Vec<TimingPoint>,
-    colours: Colours,
-    hitobjects: Vec<HitObject>,
+    pub version: u64,
+    pub general: General,
+    pub editor: Editor,
+    pub metadata: Metadata,
+    pub difficulty: Difficulty,
+    pub events: Events,
+    pub timing_points: Vec<TimingPoint>,
+    pub colours: Colours,
+    pub hitobjects: Vec<HitObject>,
 }
 
 impl FromStr for OsuFile {
