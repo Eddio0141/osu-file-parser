@@ -140,8 +140,6 @@ impl FromStr for General {
 
 impl Display for General {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let header = "[General]";
-
         let mut key_value = Vec::new();
 
         key_value.push(format!("AudioFilename: {}", self.audio_filename));
@@ -173,7 +171,7 @@ impl Display for General {
             self.samples_match_playback_rate
         ));
 
-        write!(f, "{header}\r\n{}", key_value.join("\r\n"))
+        write!(f, "{}", key_value.join("\r\n"))
     }
 }
 
