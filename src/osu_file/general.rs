@@ -4,7 +4,10 @@ use std::{
     str::FromStr,
 };
 
-use super::{Decimal, Integer, DELIMITER, section_error::{InvalidKey, MissingValue}};
+use super::{
+    section_error::{InvalidKey, MissingValue},
+    Decimal, Integer, DELIMITER,
+};
 
 /// A struct representing the general section of the .osu file
 pub struct General {
@@ -100,29 +103,28 @@ impl FromStr for General {
                 Some((key, mut value)) => {
                     value = value.trim();
 
-                    // TODO undo lower case
-                    match key.trim().to_lowercase().as_str() {
-                        "audiofilename" => general.audio_filename = value.to_owned(),
-                        "audioleadin" => general.audio_lead_in = value.parse::<Integer>()?,
-                        "audiohash" => general.audio_hash = value.to_owned(),
-                        "previewtime" => general.preview_time = value.parse::<Integer>()?,
-                        "countdown" => general.countdown = value.parse::<Integer>()?.try_into()?,
-                        "sampleset" => general.sample_set = SampleSet::from_str(value)?,
-                        "stackleniency" => general.stack_leniency = value.parse::<Decimal>()?,
-                        "mode" => general.mode = value.parse::<Integer>()?.try_into()?,
-                        "letterboxinbreaks" => general.letterbox_in_breaks = value.parse()?,
-                        "storyfireinfront" => general.story_fire_in_front = value.parse()?,
-                        "useskinsprites" => general.use_skin_sprites = value.parse()?,
-                        "alwaysshowplayfield" => general.always_show_playfield = value.parse()?,
-                        "overlayposition" => {
+                    match key.trim() {
+                        "AudioFilename" => general.audio_filename = value.to_owned(),
+                        "AudioLeadIn" => general.audio_lead_in = value.parse::<Integer>()?,
+                        "AudioHash" => general.audio_hash = value.to_owned(),
+                        "PreviewTime" => general.preview_time = value.parse::<Integer>()?,
+                        "Countdown" => general.countdown = value.parse::<Integer>()?.try_into()?,
+                        "SampleSet" => general.sample_set = SampleSet::from_str(value)?,
+                        "StackLeniency" => general.stack_leniency = value.parse::<Decimal>()?,
+                        "Mode" => general.mode = value.parse::<Integer>()?.try_into()?,
+                        "LetterboxInBreaks" => general.letterbox_in_breaks = value.parse()?,
+                        "StoryFireInFront" => general.story_fire_in_front = value.parse()?,
+                        "UseSkinSprites" => general.use_skin_sprites = value.parse()?,
+                        "AlwaysShowPlayfield" => general.always_show_playfield = value.parse()?,
+                        "OverlayPosition" => {
                             general.overlay_position = OverlayPosition::from_str(value)?
                         }
-                        "skinpreference" => general.skin_preference = value.to_owned(),
-                        "epilepsywarning" => general.epilepsy_warning = value.parse()?,
-                        "countdownoffset" => general.countdown_offset = value.parse()?,
-                        "specialstyle" => general.special_style = value.parse()?,
-                        "widescreenstoryboard" => general.widescreen_storyboard = value.parse()?,
-                        "samplesmatchplaybackrate" => {
+                        "SkinPreference" => general.skin_preference = value.to_owned(),
+                        "EpilepsyWarning" => general.epilepsy_warning = value.parse()?,
+                        "CountdownOffset" => general.countdown_offset = value.parse()?,
+                        "SpecialStyle" => general.special_style = value.parse()?,
+                        "WidescreenStoryboard" => general.widescreen_storyboard = value.parse()?,
+                        "SamplesMatchPlaybackRate" => {
                             general.samples_match_playback_rate = value.parse()?
                         }
                         _ => return Err(Box::new(InvalidKey)),
@@ -138,10 +140,40 @@ impl FromStr for General {
 
 impl Display for General {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        // let header = "[General]";
+        let header = "[General]";
 
-        // writeln!(f, "{}r\n", header)
-        todo!();
+        let mut key_value = Vec::new();
+
+        key_value.push(format!("AudioFilename: {}", self.audio_filename));
+        key_value.push(format!("AudioLeadIn: {}", self.audio_lead_in));
+        key_value.push(format!("AudioHash: {}", self.audio_hash));
+        key_value.push(format!("PreviewTime: {}", self.preview_time));
+        key_value.push(format!("Countdown: {}", self.countdown));
+        key_value.push(format!("SampleSet: {}", self.sample_set));
+        key_value.push(format!("StackLeniency: {}", self.stack_leniency));
+        key_value.push(format!("Mode: {}", self.mode));
+        key_value.push(format!("LetterboxInBreaks: {}", self.letterbox_in_breaks));
+        key_value.push(format!("StoryFireInFront: {}", self.story_fire_in_front));
+        key_value.push(format!("UseSkinSprites: {}", self.use_skin_sprites));
+        key_value.push(format!(
+            "AlwaysShowPlayfield: {}",
+            self.always_show_playfield
+        ));
+        key_value.push(format!("OverlayPosition: {}", self.overlay_position));
+        key_value.push(format!("SkinPreference: {}", self.skin_preference));
+        key_value.push(format!("EpilepsyWarning: {}", self.epilepsy_warning));
+        key_value.push(format!("CountdownOffset: {}", self.countdown_offset));
+        key_value.push(format!("SpecialStyle: {}", self.special_style));
+        key_value.push(format!(
+            "WidescreenStoryboard: {}",
+            self.widescreen_storyboard
+        ));
+        key_value.push(format!(
+            "SamplesMatchPlaybackRate: {}",
+            self.samples_match_playback_rate
+        ));
+
+        write!(f, "{header}\r\n{}", key_value.join("\r\n"))
     }
 }
 
@@ -151,6 +183,19 @@ pub enum CountdownSpeed {
     Normal,
     Half,
     Double,
+}
+
+impl Display for CountdownSpeed {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let value = match self {
+            CountdownSpeed::NoCountdown => 0,
+            CountdownSpeed::Normal => 1,
+            CountdownSpeed::Half => 2,
+            CountdownSpeed::Double => 3,
+        };
+
+        write!(f, "{value}")
+    }
 }
 
 impl TryFrom<i32> for CountdownSpeed {
@@ -191,6 +236,18 @@ pub enum SampleSet {
     Drum,
 }
 
+impl Display for SampleSet {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let value = match self {
+            SampleSet::Normal => "Normal",
+            SampleSet::Soft => "Soft",
+            SampleSet::Drum => "Drum",
+        };
+
+        write!(f, "{value}")
+    }
+}
+
 impl Default for SampleSet {
     fn default() -> Self {
         SampleSet::Normal
@@ -201,10 +258,10 @@ impl FromStr for SampleSet {
     type Err = SampleSetParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.to_lowercase().as_str() {
-            "normal" => Ok(SampleSet::Normal),
-            "soft" => Ok(SampleSet::Soft),
-            "drum" => Ok(SampleSet::Drum),
+        match s {
+            "Normal" => Ok(SampleSet::Normal),
+            "Soft" => Ok(SampleSet::Soft),
+            "Drum" => Ok(SampleSet::Drum),
             _ => Err(SampleSetParseError),
         }
     }
@@ -227,6 +284,19 @@ pub enum GameMode {
     Taiko,
     Catch,
     Mania,
+}
+
+impl Display for GameMode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let value = match self {
+            GameMode::Osu => 0,
+            GameMode::Taiko => 1,
+            GameMode::Catch => 2,
+            GameMode::Mania => 3,
+        };
+
+        write!(f, "{value}")
+    }
 }
 
 impl Default for GameMode {
@@ -270,6 +340,18 @@ pub enum OverlayPosition {
     Above,
 }
 
+impl Display for OverlayPosition {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let value = match self {
+            OverlayPosition::NoChange => "NoChange",
+            OverlayPosition::Below => "Below",
+            OverlayPosition::Above => "Above",
+        };
+
+        write!(f, "{value}")
+    }
+}
+
 impl Default for OverlayPosition {
     fn default() -> Self {
         Self::NoChange
@@ -280,10 +362,10 @@ impl FromStr for OverlayPosition {
     type Err = OverlayPositionParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.to_lowercase().as_str() {
-            "nochange" => Ok(OverlayPosition::NoChange),
-            "below" => Ok(OverlayPosition::Below),
-            "above" => Ok(OverlayPosition::Above),
+        match s {
+            "NoChange" => Ok(OverlayPosition::NoChange),
+            "Below" => Ok(OverlayPosition::Below),
+            "Above" => Ok(OverlayPosition::Above),
             _ => Err(OverlayPositionParseError),
         }
     }
