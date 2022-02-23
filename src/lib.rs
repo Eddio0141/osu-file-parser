@@ -6,7 +6,7 @@ mod tests {
     fn general_match() {
         let input = "
 AudioFilename: test.mp3
-AudioLeadIn: asdf.mp3
+AudioLeadIn: 555
 AudioHash: no.mp3
 PreviewTime: 5
 Countdown: 3
