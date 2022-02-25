@@ -1,11 +1,12 @@
 use std::{
     error::Error,
     fmt::{Debug, Display},
+    num::ParseIntError,
     str::FromStr,
 };
 
 use super::{
-    section_error::{InvalidKey, MissingValue},
+    section_error::{InvalidKey, MissingValue, SectionParseError},
     Decimal, Integer, DELIMITER,
 };
 
@@ -94,7 +95,7 @@ impl Default for General {
 }
 
 impl FromStr for General {
-    type Err = GeneralKeyParseError;
+    type Err = SectionParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut general = Self::default();
@@ -107,8 +108,10 @@ impl FromStr for General {
                     value = value.trim();
 
                     match key.trim() {
-                        "AudioFilename" => general.audio_filename = value.to_owned(),
-                        "AudioLeadIn" => general.audio_lead_in = parse_error_return(value, line)?,
+                        "AudioFilename" => {
+                            general.audio_filename = value.to_owned();
+                        }
+                        "AudioLeadIn" => general.audio_lead_in = value.parse()?,
                         "AudioHash" => general.audio_hash = value.to_owned(),
                         "PreviewTime" => general.preview_time = parse_error_return(value, line)?,
                         "Countdown" => {
@@ -167,7 +170,6 @@ impl FromStr for General {
                                 Err(err) => {
                                     return Err(GeneralKeyParseError {
                                         source: Box::new(err),
-                                        line: line.to_owned(),
                                     })
                                 }
                             }
@@ -189,7 +191,6 @@ impl FromStr for General {
                         _ => {
                             return Err(GeneralKeyParseError {
                                 source: Box::new(InvalidKey(key.to_owned())),
-                                line: line.to_owned(),
                             })
                         }
                     }
@@ -197,7 +198,6 @@ impl FromStr for General {
                 None => {
                     return Err(GeneralKeyParseError {
                         source: Box::new(MissingValue(line.to_owned())),
-                        line: line.to_owned(),
                     })
                 }
             }
@@ -298,10 +298,40 @@ impl Display for General {
 }
 
 #[derive(Debug)]
+pub struct GeneralParseError {
+    source: GeneralKeyParseError,
+}
+
+impl Display for GeneralParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "There was a problem parsing the `General` section")
+    }
+}
+
+impl Error for GeneralParseError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        Some(&self.source)
+    }
+}
+
+impl From<GeneralKeyParseError> for GeneralParseError {
+    fn from(err: GeneralKeyParseError) -> Self {
+        GeneralParseError { source: err }
+    }
+}
+
+#[derive(Debug)]
 /// Error for when parsing a key: value line
 pub struct GeneralKeyParseError {
     source: Box<dyn Error>,
-    pub line: String,
+}
+
+impl From<ParseIntError> for GeneralKeyParseError {
+    fn from(err: ParseIntError) -> Self {
+        GeneralKeyParseError {
+            source: Box::new(err),
+        }
+    }
 }
 
 impl Display for GeneralKeyParseError {

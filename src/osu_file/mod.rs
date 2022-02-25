@@ -23,7 +23,7 @@ use self::colours::Colours;
 use self::difficulty::Difficulty;
 use self::editor::Editor;
 use self::events::Events;
-use self::general::General;
+use self::general::{General, GeneralKeyParseError, GeneralParseError};
 use self::hitobject::HitObject;
 use self::metadata::Metadata;
 use self::timingpoint::TimingPoint;
@@ -68,7 +68,7 @@ pub struct OsuFile {
 }
 
 impl FromStr for OsuFile {
-    type Err = Box<dyn Error>;
+    type Err = OsuFileParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let version_text = "osu file format v";
@@ -79,18 +79,18 @@ impl FromStr for OsuFile {
             Some(version) => match version.strip_prefix(version_text) {
                 Some(version) => match version.parse::<u64>() {
                     Ok(version) => version,
-                    Err(_) => return Err(Box::new(OsuFileParseError::InvalidFileVersion)),
+                    Err(_) => return Err(OsuFileParseError::InvalidFileVersion),
                 },
-                None => return Err(Box::new(OsuFileParseError::NoFileVersion)),
+                None => return Err(OsuFileParseError::NoFileVersion),
             },
-            None => return Err(Box::new(OsuFileParseError::NoFileVersion)),
+            None => return Err(OsuFileParseError::NoFileVersion),
         };
 
         let s = lines.collect::<String>();
 
         // no defining more than 1 file version
         if s.find(version_text).is_some() {
-            return Err(Box::new(OsuFileParseError::MultipleFileVersions));
+            return Err(OsuFileParseError::MultipleFileVersions);
         }
 
         let (section_open, section_close) = ('[', ']');
@@ -133,11 +133,11 @@ impl FromStr for OsuFile {
 
                 (names, sections)
             }
-            None => return Err(Box::new(OsuFileParseError::NoSectionsFound)),
+            None => return Err(OsuFileParseError::NoSectionsFound),
         };
 
         if !has_unique_elements(&section_names) {
-            return Err(Box::new(OsuFileParseError::DuplicateSections));
+            return Err(OsuFileParseError::DuplicateSections);
         }
 
         let section_map: HashMap<_, _> =
@@ -183,7 +183,7 @@ impl FromStr for OsuFile {
                         .map(|line| line.parse::<HitObject>())
                         .collect::<Result<Vec<_>, _>>()?
                 }
-                _ => return Err(Box::new(OsuFileParseError::InvalidSectionName)),
+                _ => return Err(OsuFileParseError::InvalidSectionName),
             }
         }
 
@@ -225,6 +225,15 @@ pub enum OsuFileParseError {
     NoSectionsFound,
     DuplicateSections,
     InvalidSectionName,
+    SectionParseError { source: Box<dyn Error> },
+}
+
+impl From<GeneralParseError> for OsuFileParseError {
+    fn from(err: GeneralParseError) -> Self {
+        OsuFileParseError::SectionParseError {
+            source: Box::new(err),
+            }
+    }
 }
 
 impl Display for OsuFileParseError {
@@ -236,13 +245,21 @@ impl Display for OsuFileParseError {
             OsuFileParseError::NoSectionsFound => "No sections defined",
             OsuFileParseError::DuplicateSections => "Duplicate sections defined",
             OsuFileParseError::InvalidSectionName => "Invalid section name",
+            OsuFileParseError::SectionParseError { .. } => "Error parsing a section",
         };
 
         write!(f, "{}", error_text)
     }
 }
 
-impl Error for OsuFileParseError {}
+impl Error for OsuFileParseError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            OsuFileParseError::SectionParseError { source } => Some(source.as_ref()),
+            _ => None,
+        }
+    }
+}
 
 const DELIMITER: char = ':';
 
