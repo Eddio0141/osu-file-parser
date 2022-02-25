@@ -6,7 +6,7 @@ use std::{
 };
 
 use super::{
-    section_error::{InvalidKey, MissingValue},
+    section_error::{InvalidKey, MissingValue, SectionParseError},
     Decimal, Integer, DELIMITER,
 };
 
@@ -95,7 +95,7 @@ impl Default for General {
 }
 
 impl FromStr for General {
-    type Err = GeneralParseError;
+    type Err = SectionParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut general = Self::default();
@@ -107,12 +107,11 @@ impl FromStr for General {
                 Some((key, mut value)) => {
                     value = value.trim();
 
-                    let parse_result = match key.trim() {
+                    match key.trim() {
                         "AudioFilename" => {
                             general.audio_filename = value.to_owned();
-                            Ok(())
                         }
-                        "AudioLeadIn" => general.audio_lead_in = value.parse().unwrap_err(),
+                        "AudioLeadIn" => general.audio_lead_in = value.parse()?,
                         "AudioHash" => general.audio_hash = value.to_owned(),
                         "PreviewTime" => general.preview_time = parse_error_return(value, line)?,
                         "Countdown" => {
@@ -171,7 +170,6 @@ impl FromStr for General {
                                 Err(err) => {
                                     return Err(GeneralKeyParseError {
                                         source: Box::new(err),
-                                        line: line.to_owned(),
                                     })
                                 }
                             }
@@ -193,15 +191,13 @@ impl FromStr for General {
                         _ => {
                             return Err(GeneralKeyParseError {
                                 source: Box::new(InvalidKey(key.to_owned())),
-                                line: line.to_owned(),
                             })
                         }
-                    };
+                    }
                 }
                 None => {
                     return Err(GeneralKeyParseError {
                         source: Box::new(MissingValue(line.to_owned())),
-                        line: line.to_owned(),
                     })
                 }
             }

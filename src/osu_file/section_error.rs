@@ -21,3 +21,17 @@ impl Display for MissingValue {
         write!(f, "The key doesn't have a value: {}", self.0)
     }
 }
+
+pub struct SectionParseError {
+    pub section_name: String,
+}
+
+impl Display for SectionParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "There was a problem parsing the `{}` section",
+            self.section_name
+        )
+    }
+}

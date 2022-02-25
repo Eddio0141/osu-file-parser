@@ -23,7 +23,7 @@ use self::colours::Colours;
 use self::difficulty::Difficulty;
 use self::editor::Editor;
 use self::events::Events;
-use self::general::{General, GeneralKeyParseError};
+use self::general::{General, GeneralKeyParseError, GeneralParseError};
 use self::hitobject::HitObject;
 use self::metadata::Metadata;
 use self::timingpoint::TimingPoint;
@@ -228,8 +228,8 @@ pub enum OsuFileParseError {
     SectionParseError { source: Box<dyn Error> },
 }
 
-impl From<GeneralKeyParseError> for OsuFileParseError {
-    fn from(err: GeneralKeyParseError) -> Self {
+impl From<GeneralParseError> for OsuFileParseError {
+    fn from(err: GeneralParseError) -> Self {
         OsuFileParseError::SectionParseError {
             source: Box::new(err),
             }
