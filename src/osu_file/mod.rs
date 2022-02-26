@@ -219,13 +219,21 @@ impl Default for OsuFile {
 }
 
 #[derive(Debug)]
+/// Error for when there's a problem parsing an .osu file
 pub enum OsuFileParseError {
+    /// File version is invalid
     InvalidFileVersion,
+    /// No file version defined
     NoFileVersion,
+    /// More than 1 file version defined
     MultipleFileVersions,
+    /// Missing section(s)
     NoSectionsFound,
+    /// Duplicate section names defined
     DuplicateSections,
+    /// Invalid section name defined
     InvalidSectionName,
+    /// Error parsing a section
     SectionParseError { source: Box<dyn Error> },
 }
 
