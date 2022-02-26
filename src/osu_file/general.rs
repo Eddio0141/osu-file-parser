@@ -167,9 +167,7 @@ fn parse_zero_one_bool(value: &str) -> Result<bool, SectionParseError> {
     match value {
         0 => Ok(false),
         1 => Ok(true),
-        _ => {
-            return Err(SectionParseError::new(Box::new(ParseBoolError)));
-        }
+        _ => Err(SectionParseError::new(Box::new(ParseBoolError))),
     }
 }
 

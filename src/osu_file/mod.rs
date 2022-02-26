@@ -90,7 +90,7 @@ impl FromStr for OsuFile {
         let s = lines.collect::<String>();
 
         // no defining more than 1 file version
-        if s.find(version_text).is_some() {
+        if s.contains(version_text) {
             return Err(OsuFileParseError::MultipleFileVersions);
         }
 
