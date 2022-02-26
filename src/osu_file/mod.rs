@@ -164,28 +164,110 @@ impl FromStr for OsuFile {
             Default::default(),
         );
 
+        // maybe temporary
+        // used to check what sections are missing
+        let mut sections_to_include = vec![
+            "General",
+            "Editor",
+            "Metadata",
+            "Difficulty",
+            "Events",
+            "TimingPoints",
+            "Colours",
+            "HitObjects",
+        ];
+
+        // TODO clean this up
         for (k, v) in section_map.iter() {
             match **k {
-                "General" => general = v.parse()?,
-                "Editor" => editor = v.parse()?,
-                "Metadata" => metadata = v.parse()?,
-                "Difficulty" => difficulty = v.parse()?,
-                "Events" => events = v.parse()?,
+                "General" => {
+                    general = v.parse()?;
+                    sections_to_include.remove(
+                        sections_to_include
+                            .iter()
+                            .position(|section| *section == "General")
+                            .unwrap(),
+                    );
+                }
+                "Editor" => {
+                    editor = v.parse()?;
+                    sections_to_include.remove(
+                        sections_to_include
+                            .iter()
+                            .position(|section| *section == "Editor")
+                            .unwrap(),
+                    );
+                }
+                "Metadata" => {
+                    metadata = v.parse()?;
+                    sections_to_include.remove(
+                        sections_to_include
+                            .iter()
+                            .position(|section| *section == "Metadata")
+                            .unwrap(),
+                    );
+                }
+                "Difficulty" => {
+                    difficulty = v.parse()?;
+                    sections_to_include.remove(
+                        sections_to_include
+                            .iter()
+                            .position(|section| *section == "Difficulty")
+                            .unwrap(),
+                    );
+                }
+                "Events" => {
+                    events = v.parse()?;
+                    sections_to_include.remove(
+                        sections_to_include
+                            .iter()
+                            .position(|section| *section == "Events")
+                            .unwrap(),
+                    );
+                }
                 "TimingPoints" => {
                     timing_points = v
                         .lines()
                         .map(|line| line.parse::<TimingPoint>())
-                        .collect::<Result<Vec<_>, _>>()?
+                        .collect::<Result<Vec<_>, _>>()?;
+
+                    sections_to_include.remove(
+                        sections_to_include
+                            .iter()
+                            .position(|section| *section == "TimingPoints")
+                            .unwrap(),
+                    );
                 }
-                "Colours" => colours = v.parse()?,
+                "Colours" => {
+                    colours = v.parse()?;
+                    sections_to_include.remove(
+                        sections_to_include
+                            .iter()
+                            .position(|section| *section == "Colours")
+                            .unwrap(),
+                    );
+                }
                 "HitObjects" => {
                     hitobjects = v
                         .lines()
                         .map(|line| line.parse::<HitObject>())
-                        .collect::<Result<Vec<_>, _>>()?
+                        .collect::<Result<Vec<_>, _>>()?;
+
+                    sections_to_include.remove(
+                        sections_to_include
+                            .iter()
+                            .position(|section| *section == "HitObjects")
+                            .unwrap(),
+                    );
                 }
                 _ => return Err(OsuFileParseError::InvalidSectionName),
             }
+        }
+
+        if !sections_to_include.is_empty() {
+            return Err(OsuFileParseError::MissingSections(
+                sections_to_include.iter().map(|s| s.to_string()).collect(),
+            ));
         }
 
         Ok(OsuFile {
@@ -227,8 +309,10 @@ pub enum OsuFileParseError {
     NoFileVersion,
     /// More than 1 file version defined
     MultipleFileVersions,
-    /// Missing section(s)
+    /// File contains no sections
     NoSectionsFound,
+    /// There are sections missing from the file
+    MissingSections(Vec<String>),
     /// Duplicate section names defined
     DuplicateSections,
     /// Invalid section name defined
@@ -248,13 +332,16 @@ impl From<SectionParseError> for OsuFileParseError {
 impl Display for OsuFileParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let error_text = match self {
-            OsuFileParseError::InvalidFileVersion => "Invalid file version",
-            OsuFileParseError::NoFileVersion => "No file version defined",
-            OsuFileParseError::MultipleFileVersions => "Multiple file versions defined",
-            OsuFileParseError::NoSectionsFound => "No sections defined",
-            OsuFileParseError::DuplicateSections => "Duplicate sections defined",
-            OsuFileParseError::InvalidSectionName => "Invalid section name",
-            OsuFileParseError::SectionParseError { .. } => "Error parsing a section",
+            OsuFileParseError::InvalidFileVersion => "Invalid file version".to_string(),
+            OsuFileParseError::NoFileVersion => "No file version defined".to_string(),
+            OsuFileParseError::MultipleFileVersions => "Multiple file versions defined".to_string(),
+            OsuFileParseError::NoSectionsFound => "No sections defined".to_string(),
+            OsuFileParseError::DuplicateSections => "Duplicate sections defined".to_string(),
+            OsuFileParseError::InvalidSectionName => "Invalid section name".to_string(),
+            OsuFileParseError::SectionParseError { .. } => "Error parsing a section".to_string(),
+            OsuFileParseError::MissingSections(sections) => {
+                format!("Missing sections: {}", sections.join(", "))
+            }
         };
 
         write!(f, "{}", error_text)
