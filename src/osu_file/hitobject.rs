@@ -1,4 +1,4 @@
-use super::Integer;
+use super::{Decimal, Integer};
 
 pub trait HitObject {
     fn x(&self) -> Integer;
@@ -165,4 +165,31 @@ impl HitCircle {
             new_combo,
         }
     }
+}
+
+pub struct Slider {
+    x: Integer,
+    y: Integer,
+    time: Integer,
+    obj_type: HitObjectType,
+    hitsound: HitSound,
+    hitsample: HitSample,
+
+    new_combo: bool,
+
+    curve_type: CurveType,
+    curve_points: Vec<(Integer, Integer)>,
+    slides: Integer,
+    length: Decimal,
+    // TODO
+    edge_sounds: Vec<Integer>,
+    // TODO
+    edge_sets: Vec<String>,
+}
+
+pub enum CurveType {
+    Bezier,
+    Centripetal,
+    Linear,
+    PerfectCircle,
 }
