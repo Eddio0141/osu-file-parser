@@ -65,7 +65,7 @@ pub struct OsuFile {
     pub colours: Colours,
     /// Hit objects
     /// Comma-separated lists
-    pub hitobjects: Vec<HitObject>,
+    pub hitobjects: Vec<Box<dyn HitObject>>,
 }
 
 impl FromStr for OsuFile {
