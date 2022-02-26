@@ -1,11 +1,12 @@
-use std::{str::FromStr, error::Error};
+use std::{error::Error, str::FromStr};
 
+use super::section_error::SectionParseError;
 
 #[derive(Default)]
 pub struct Colours;
 
 impl FromStr for Colours {
-    type Err = Box<dyn Error>;
+    type Err = SectionParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         todo!()

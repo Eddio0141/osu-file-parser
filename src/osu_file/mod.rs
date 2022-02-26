@@ -23,9 +23,10 @@ use self::colours::Colours;
 use self::difficulty::Difficulty;
 use self::editor::Editor;
 use self::events::Events;
-use self::general::{General, GeneralKeyParseError, GeneralParseError};
+use self::general::General;
 use self::hitobject::HitObject;
 use self::metadata::Metadata;
+use self::section_error::SectionParseError;
 use self::timingpoint::TimingPoint;
 
 fn has_unique_elements<T>(iter: T) -> bool
@@ -75,7 +76,7 @@ impl FromStr for OsuFile {
 
         let mut lines = s.lines();
 
-        let file_version = match lines.next() {
+        let version = match lines.next() {
             Some(version) => match version.strip_prefix(version_text) {
                 Some(version) => match version.parse::<u64>() {
                     Ok(version) => version,
@@ -188,7 +189,7 @@ impl FromStr for OsuFile {
         }
 
         Ok(OsuFile {
-            version: file_version,
+            version,
             general,
             editor,
             metadata,
@@ -228,11 +229,11 @@ pub enum OsuFileParseError {
     SectionParseError { source: Box<dyn Error> },
 }
 
-impl From<GeneralParseError> for OsuFileParseError {
-    fn from(err: GeneralParseError) -> Self {
+impl From<SectionParseError> for OsuFileParseError {
+    fn from(err: SectionParseError) -> Self {
         OsuFileParseError::SectionParseError {
             source: Box::new(err),
-            }
+        }
     }
 }
 

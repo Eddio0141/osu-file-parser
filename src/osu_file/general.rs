@@ -1,7 +1,6 @@
 use std::{
     error::Error,
     fmt::{Debug, Display},
-    num::ParseIntError,
     str::FromStr,
 };
 
@@ -113,92 +112,47 @@ impl FromStr for General {
                         }
                         "AudioLeadIn" => general.audio_lead_in = value.parse()?,
                         "AudioHash" => general.audio_hash = value.to_owned(),
-                        "PreviewTime" => general.preview_time = parse_error_return(value, line)?,
-                        "Countdown" => {
-                            general.countdown =
-                                match parse_error_return::<Integer>(value, line)?.try_into() {
-                                    Ok(value) => value,
-                                    Err(err) => {
-                                        return Err(GeneralKeyParseError {
-                                            source: Box::new(err),
-                                            line: line.to_owned(),
-                                        })
-                                    }
-                                }
-                        }
-                        "SampleSet" => {
-                            general.sample_set = match SampleSet::from_str(value) {
-                                Ok(value) => value,
-                                Err(err) => {
-                                    return Err(GeneralKeyParseError {
-                                        source: Box::new(err),
-                                        line: line.to_owned(),
-                                    })
-                                }
-                            }
-                        }
-                        "StackLeniency" => {
-                            general.stack_leniency = parse_error_return(value, line)?
-                        }
+                        "PreviewTime" => general.preview_time = value.parse()?,
+                        "Countdown" => general.countdown = value.parse::<Integer>()?.try_into()?,
+                        "SampleSet" => general.sample_set = SampleSet::from_str(value)?,
+                        "StackLeniency" => general.stack_leniency = value.parse()?,
                         "Mode" => {
-                            general.mode =
-                                match parse_error_return::<Integer>(value, line)?.try_into() {
-                                    Ok(value) => value,
-                                    Err(err) => {
-                                        return Err(GeneralKeyParseError {
-                                            source: Box::new(err),
-                                            line: line.to_owned(),
-                                        })
-                                    }
-                                }
+                            general.mode = value.parse::<Integer>()?.try_into()?;
                         }
                         "LetterboxInBreaks" => {
-                            general.letterbox_in_breaks = parse_zero_one_bool(value, line)?
+                            general.letterbox_in_breaks = parse_zero_one_bool(value)?
                         }
                         "StoryFireInFront" => {
-                            general.story_fire_in_front = parse_zero_one_bool(value, line)?
+                            general.story_fire_in_front = parse_zero_one_bool(value)?
                         }
-                        "UseSkinSprites" => {
-                            general.use_skin_sprites = parse_zero_one_bool(value, line)?
-                        }
+                        "UseSkinSprites" => general.use_skin_sprites = parse_zero_one_bool(value)?,
                         "AlwaysShowPlayfield" => {
-                            general.always_show_playfield = parse_zero_one_bool(value, line)?
+                            general.always_show_playfield = parse_zero_one_bool(value)?
                         }
                         "OverlayPosition" => {
-                            general.overlay_position = match OverlayPosition::from_str(value) {
-                                Ok(value) => value,
-                                Err(err) => {
-                                    return Err(GeneralKeyParseError {
-                                        source: Box::new(err),
-                                    })
-                                }
-                            }
+                            general.overlay_position = OverlayPosition::from_str(value)?
                         }
                         "SkinPreference" => general.skin_preference = value.to_owned(),
-                        "EpilepsyWarning" => {
-                            general.epilepsy_warning = parse_zero_one_bool(value, line)?
-                        }
-                        "CountdownOffset" => {
-                            general.countdown_offset = parse_error_return(value, line)?
-                        }
-                        "SpecialStyle" => general.special_style = parse_zero_one_bool(value, line)?,
+                        "EpilepsyWarning" => general.epilepsy_warning = parse_zero_one_bool(value)?,
+                        "CountdownOffset" => general.countdown_offset = value.parse()?,
+                        "SpecialStyle" => general.special_style = parse_zero_one_bool(value)?,
                         "WidescreenStoryboard" => {
-                            general.widescreen_storyboard = parse_zero_one_bool(value, line)?
+                            general.widescreen_storyboard = parse_zero_one_bool(value)?
                         }
                         "SamplesMatchPlaybackRate" => {
-                            general.samples_match_playback_rate = parse_zero_one_bool(value, line)?
+                            general.samples_match_playback_rate = parse_zero_one_bool(value)?
                         }
                         _ => {
-                            return Err(GeneralKeyParseError {
-                                source: Box::new(InvalidKey(key.to_owned())),
-                            })
+                            return Err(SectionParseError::new(Box::new(InvalidKey(
+                                key.to_owned(),
+                            ))))
                         }
                     }
                 }
                 None => {
-                    return Err(GeneralKeyParseError {
-                        source: Box::new(MissingValue(line.to_owned())),
-                    })
+                    return Err(SectionParseError::new(Box::new(MissingValue(
+                        line.to_owned(),
+                    ))))
                 }
             }
         }
@@ -207,31 +161,14 @@ impl FromStr for General {
     }
 }
 
-fn parse_error_return<T>(value: &str, line: &str) -> Result<T, GeneralKeyParseError>
-where
-    T: FromStr,
-    <T as FromStr>::Err: Error + 'static,
-{
-    match value.parse::<T>() {
-        Ok(value) => Ok(value),
-        Err(err) => Err(GeneralKeyParseError {
-            source: Box::new(err),
-            line: line.to_owned(),
-        }),
-    }
-}
-
-fn parse_zero_one_bool(value: &str, line: &str) -> Result<bool, GeneralKeyParseError> {
-    let value = parse_error_return(value, line)?;
+fn parse_zero_one_bool(value: &str) -> Result<bool, SectionParseError> {
+    let value = value.parse()?;
 
     match value {
         0 => Ok(false),
         1 => Ok(true),
         _ => {
-            return Err(GeneralKeyParseError {
-                source: Box::new(ParseBoolError),
-                line: line.to_owned(),
-            })
+            return Err(SectionParseError::new(Box::new(ParseBoolError)));
         }
     }
 }
@@ -297,55 +234,6 @@ impl Display for General {
     }
 }
 
-#[derive(Debug)]
-pub struct GeneralParseError {
-    source: GeneralKeyParseError,
-}
-
-impl Display for GeneralParseError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "There was a problem parsing the `General` section")
-    }
-}
-
-impl Error for GeneralParseError {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        Some(&self.source)
-    }
-}
-
-impl From<GeneralKeyParseError> for GeneralParseError {
-    fn from(err: GeneralKeyParseError) -> Self {
-        GeneralParseError { source: err }
-    }
-}
-
-#[derive(Debug)]
-/// Error for when parsing a key: value line
-pub struct GeneralKeyParseError {
-    source: Box<dyn Error>,
-}
-
-impl From<ParseIntError> for GeneralKeyParseError {
-    fn from(err: ParseIntError) -> Self {
-        GeneralKeyParseError {
-            source: Box::new(err),
-        }
-    }
-}
-
-impl Display for GeneralKeyParseError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Error parsing a key: value line in General")
-    }
-}
-
-impl Error for GeneralKeyParseError {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        Some(self.source.as_ref())
-    }
-}
-
 /// Speed of the countdown before the first hit
 #[derive(PartialEq, Eq, Debug)]
 pub enum CountdownSpeed {
@@ -393,6 +281,12 @@ impl Display for CountdownSpeedParseError {
 }
 
 impl Error for CountdownSpeedParseError {}
+
+impl From<CountdownSpeedParseError> for SectionParseError {
+    fn from(err: CountdownSpeedParseError) -> Self {
+        Self::new(Box::new(err))
+    }
+}
 
 impl Default for CountdownSpeed {
     fn default() -> Self {
@@ -451,6 +345,12 @@ impl Display for SampleSetParseError {
 
 impl Error for SampleSetParseError {}
 
+impl From<SampleSetParseError> for SectionParseError {
+    fn from(err: SampleSetParseError) -> Self {
+        Self::new(Box::new(err))
+    }
+}
+
 /// Game mode of the .osu file
 #[derive(PartialEq, Eq, Debug)]
 pub enum GameMode {
@@ -505,6 +405,12 @@ impl Display for GameModeParseError {
 
 impl Error for GameModeParseError {}
 
+impl From<GameModeParseError> for SectionParseError {
+    fn from(err: GameModeParseError) -> Self {
+        Self::new(Box::new(err))
+    }
+}
+
 /// Draw order of hit circle overlays compared to hit numbers
 #[derive(PartialEq, Eq, Debug)]
 pub enum OverlayPosition {
@@ -558,3 +464,9 @@ impl Display for OverlayPositionParseError {
 }
 
 impl Error for OverlayPositionParseError {}
+
+impl From<OverlayPositionParseError> for SectionParseError {
+    fn from(err: OverlayPositionParseError) -> Self {
+        Self::new(Box::new(err))
+    }
+}

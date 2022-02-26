@@ -1,6 +1,6 @@
 use std::{error::Error, fmt::Display, str::FromStr};
 
-use super::{Decimal, Integer};
+use super::{Decimal, Integer, section_error::SectionParseError};
 
 /// A struct representing the editor section of thye .osu file
 #[derive(Default, Debug, PartialEq)]
@@ -13,7 +13,7 @@ pub struct Editor {
 }
 
 impl FromStr for Editor {
-    type Err = EditorParseError;
+    type Err = SectionParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         todo!()

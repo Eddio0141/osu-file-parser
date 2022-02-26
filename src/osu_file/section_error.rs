@@ -1,4 +1,8 @@
-use std::{error::Error, fmt::Display};
+use std::{
+    error::Error,
+    fmt::Display,
+    num::{ParseFloatError, ParseIntError},
+};
 
 #[derive(Debug)]
 pub struct InvalidKey(pub String);
@@ -22,16 +26,41 @@ impl Display for MissingValue {
     }
 }
 
+#[derive(Debug)]
 pub struct SectionParseError {
-    pub section_name: String,
+    source: Box<dyn Error>,
+}
+
+impl SectionParseError {
+    pub fn new(err: Box<dyn Error>) -> Self {
+        Self { source: err }
+    }
 }
 
 impl Display for SectionParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "There was a problem parsing the `{}` section",
-            self.section_name
-        )
+        write!(f, "There was a problem parsing a section")
+    }
+}
+
+impl Error for SectionParseError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        Some(self.source.as_ref())
+    }
+}
+
+impl From<ParseIntError> for SectionParseError {
+    fn from(err: ParseIntError) -> Self {
+        Self {
+            source: Box::new(err),
+        }
+    }
+}
+
+impl From<ParseFloatError> for SectionParseError {
+    fn from(err: ParseFloatError) -> Self {
+        Self {
+            source: Box::new(err),
+        }
     }
 }
