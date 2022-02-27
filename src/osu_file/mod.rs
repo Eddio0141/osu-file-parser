@@ -250,7 +250,7 @@ impl FromStr for OsuFile {
                 "HitObjects" => {
                     hitobjects = v
                         .lines()
-                        .map(|line| parse_hitobject(line))
+                        .map(parse_hitobject)
                         .collect::<Result<Vec<_>, _>>()?;
 
                     sections_to_include.remove(
