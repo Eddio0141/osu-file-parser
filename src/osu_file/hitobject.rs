@@ -1,24 +1,49 @@
-use super::{Decimal, Integer};
+use std::{error::Error, fmt::Display, str::FromStr};
+
+use super::{Decimal, Integer, OsuFileParseError};
 
 pub trait HitObject {
     fn x(&self) -> Integer;
     fn y(&self) -> Integer;
-    fn set_x(&self, x: Integer);
-    fn set_y(&self, y: Integer);
+    fn set_x(&mut self, x: Integer);
+    fn set_y(&mut self, y: Integer);
 
     fn time(&self) -> Integer;
-    fn set_time(&self, time: Integer);
+    fn set_time(&mut self, time: Integer);
 
     fn obj_type(&self) -> &HitObjectType;
 
     fn newcombo(&self) -> bool;
-    fn set_newcombo(&self, value: bool);
+    fn set_newcombo(&mut self, value: bool);
 
     fn hitsound(&self) -> &HitSound;
-    fn set_hitsound(&self, hitsound: HitSound);
+    fn set_hitsound(&mut self, hitsound: HitSound);
 
     fn hitsample(&self) -> &HitSample;
     fn hitsample_mut(&mut self) -> &mut HitSample;
+}
+
+pub fn parse_hitobject(hitobject: &str) -> Result<Box<dyn HitObject>, HitObjectParseError> {
+    todo!()
+}
+
+#[derive(Debug)]
+pub struct HitObjectParseError;
+
+impl Display for HitObjectParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "There was a problem parsing a hitobject from a string")
+    }
+}
+
+impl Error for HitObjectParseError {}
+
+impl From<HitObjectParseError> for OsuFileParseError {
+    fn from(err: HitObjectParseError) -> Self {
+        Self::SectionParseError {
+            source: Box::new(err),
+        }
+    }
 }
 
 pub enum HitObjectType {
@@ -101,11 +126,11 @@ impl HitObject for HitCircle {
         self.y
     }
 
-    fn set_x(&self, x: Integer) {
+    fn set_x(&mut self, x: Integer) {
         self.x = x;
     }
 
-    fn set_y(&self, y: Integer) {
+    fn set_y(&mut self, y: Integer) {
         self.y = y;
     }
 
@@ -113,7 +138,7 @@ impl HitObject for HitCircle {
         self.time
     }
 
-    fn set_time(&self, time: Integer) {
+    fn set_time(&mut self, time: Integer) {
         self.time = time;
     }
 
@@ -125,7 +150,7 @@ impl HitObject for HitCircle {
         self.new_combo
     }
 
-    fn set_newcombo(&self, value: bool) {
+    fn set_newcombo(&mut self, value: bool) {
         self.new_combo = value;
     }
 
@@ -133,7 +158,7 @@ impl HitObject for HitCircle {
         &self.hitsound
     }
 
-    fn set_hitsound(&self, hitsound: HitSound) {
+    fn set_hitsound(&mut self, hitsound: HitSound) {
         self.hitsound = hitsound;
     }
 
@@ -193,3 +218,29 @@ pub enum CurveType {
     Linear,
     PerfectCircle,
 }
+
+pub struct PipeVec<T> {
+    vec: Vec<T>,
+}
+
+impl<T> FromStr for PipeVec<T> {
+    type Err = PipeVecParseErr;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
+    }
+}
+
+#[derive(Debug)]
+pub struct PipeVecParseErr;
+
+impl Display for PipeVecParseErr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "There was a problem parsing a pipe-separated list of values"
+        )
+    }
+}
+
+impl Error for PipeVecParseErr {}

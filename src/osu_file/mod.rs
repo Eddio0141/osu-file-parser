@@ -24,7 +24,7 @@ use self::difficulty::Difficulty;
 use self::editor::Editor;
 use self::events::Events;
 use self::general::General;
-use self::hitobject::HitObject;
+use self::hitobject::{parse_hitobject, HitObject};
 use self::metadata::Metadata;
 use self::section_error::SectionParseError;
 use self::timingpoint::TimingPoint;
@@ -250,7 +250,7 @@ impl FromStr for OsuFile {
                 "HitObjects" => {
                     hitobjects = v
                         .lines()
-                        .map(|line| line.parse::<HitObject>())
+                        .map(|line| parse_hitobject(line))
                         .collect::<Result<Vec<_>, _>>()?;
 
                     sections_to_include.remove(
