@@ -1,4 +1,4 @@
-use std::{error::Error, fmt::Display, num::ParseIntError, str::FromStr};
+use std::{error::Error, fmt::Display, num::{ParseIntError, TryFromIntError}, str::FromStr};
 
 use super::{Decimal, Integer, OsuFileParseError};
 
@@ -63,10 +63,8 @@ pub fn parse_hitobject(hitobject: &str) -> Result<Box<dyn HitObject>, HitObjectP
             properties[4],
         )
     };
-
-    // TODO
-    // what happens if hitsound is negative
-    let hitsound = HitSound::from(hitsound as u8);
+    
+    let hitsound = HitSound::from(u8::try_from(hitsound)?);
 
     // TODO
     // obj_type is u8 in the wiki
@@ -108,7 +106,8 @@ pub fn parse_hitobject(hitobject: &str) -> Result<Box<dyn HitObject>, HitObjectP
 
     let hitsample = obj_properties
         .last()
-        .ok_or(HitObjectParseError::MissingProperty)?;
+        .ok_or(HitObjectParseError::MissingProperty)?
+        .parse()?;
     obj_properties.remove(obj_properties.len() - 1);
 
     Ok(Box::new(match obj_type {
@@ -118,7 +117,7 @@ pub fn parse_hitobject(hitobject: &str) -> Result<Box<dyn HitObject>, HitObjectP
             time,
             obj_type,
             hitsound,
-            hitsample: todo!(),
+            hitsample,
             new_combo,
             combo_skip_count,
         },
@@ -126,6 +125,18 @@ pub fn parse_hitobject(hitobject: &str) -> Result<Box<dyn HitObject>, HitObjectP
         HitObjectType::Spinner => todo!(),
         HitObjectType::OsuManiaHold => todo!(),
     }))
+}
+
+impl From<TryFromIntError> for HitObjectParseError {
+    fn from(err: TryFromIntError) -> Self {
+        Self::ValueParseError(Box::new(err))
+    }
+}
+
+impl From<HitSampleParseError> for HitObjectParseError {
+    fn from(err: HitSampleParseError) -> Self {
+        Self::ValueParseError(Box::new(err))
+    }
 }
 
 fn nth_bit_state_i32(value: i32, nth_bit: u32) -> bool {
@@ -257,10 +268,55 @@ impl From<u8> for HitSound {
 pub struct HitSample {
     normal_set: SampleSet,
     addition_set: SampleSet,
-    // TODO check if the file format accepts negative index
-    index: Integer,
+    index: Option<usize>,
     volume: Volume,
     filename: String,
+}
+
+impl HitSample {
+    pub fn normal_set(&self) -> SampleSet {
+        self.normal_set
+    }
+
+    pub fn set_normal_set(&mut self, normal_set: SampleSet) {
+        self.normal_set = normal_set;
+    }
+
+    pub fn addition_set(&self) -> SampleSet {
+        self.addition_set
+    }
+
+    pub fn set_addition_set(&mut self, addition_set: SampleSet) {
+        self.addition_set = addition_set;
+    }
+
+    pub fn index(&self) -> Option<usize> {
+        self.index
+    }
+
+    pub fn set_index(&mut self, index: usize) {
+        if index == 0 {
+            self.index = None;
+        } else {
+            self.index = Some(index);
+        }
+    }
+
+    pub fn use_timing_point_index(&self) -> bool {
+        self.index.is_none()
+    }
+
+    pub fn set_use_timing_point_index(&mut self) {
+        self.index = None;
+    }
+
+    pub fn volume(&self) -> &Volume {
+        &self.volume
+    }
+
+    pub fn filename(&self) -> &str {
+        self.filename.as_ref()
+    }
 }
 
 impl FromStr for HitSample {
@@ -284,13 +340,33 @@ impl FromStr for HitSample {
             (sample_sets[0], sample_sets[1])
         };
 
+        let index = s
+            .next()
+            .ok_or(HitSampleParseError::MissingProperty)?
+            .parse::<usize>()?;
+        let index = if index == 0 { None } else { Some(index) };
+
+        let volume = s
+            .next()
+            .ok_or(HitSampleParseError::MissingProperty)?
+            .parse()?;
+
+        // filename is empty if not specified
+        let filename = s.next().unwrap_or_default();
+
         Ok(Self {
             normal_set,
             addition_set,
             index,
             volume,
-            filename,
+            filename: filename.to_owned(),
         })
+    }
+}
+
+impl From<VolumeParseError> for HitSampleParseError {
+    fn from(err: VolumeParseError) -> Self {
+        Self::ParseError(Box::new(err))
     }
 }
 
@@ -325,6 +401,7 @@ impl From<ParseIntError> for HitSampleParseError {
     }
 }
 
+#[derive(Clone, Copy)]
 pub enum SampleSet {
     NoCustomSampleSet,
     NormalSet,
@@ -361,8 +438,80 @@ impl Display for SampleSetParseError {
 
 impl Error for SampleSetParseError {}
 
-#[derive(Default)]
-pub struct Volume(Integer);
+#[derive(Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Volume(Option<u8>);
+
+impl Volume {
+    pub fn new(volume: u8) -> Result<Volume, VolumeParseError> {
+        // TODO what happens if volume is below 0 or above 100
+        match volume {
+            0 => Ok(Self(None)),
+            volume if volume <= 100 => Ok(Self(Some(volume))),
+            _ => Err(VolumeParseError::VolumeTooHigh),
+        }
+    }
+
+    pub fn volume(&self) -> Option<u8> {
+        self.0
+    }
+
+    pub fn set_volume(&mut self, volume: u8) {
+        self.0 = Some(volume);
+    }
+
+    pub fn use_timing_point_volume(&self) -> bool {
+        self.0.is_none()
+    }
+
+    pub fn set_use_timing_point_volume(&mut self) {
+        self.0 = None;
+    }
+}
+
+impl FromStr for Volume {
+    type Err = VolumeParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let volume = s.parse::<u8>()?;
+
+        Volume::new(volume)
+    }
+}
+
+#[derive(Debug)]
+pub enum VolumeParseError {
+    VolumeTooHigh,
+    InvalidString(Box<dyn Error>),
+}
+
+impl From<ParseIntError> for VolumeParseError {
+    fn from(err: ParseIntError) -> Self {
+        Self::InvalidString(Box::new(err))
+    }
+}
+
+impl Display for VolumeParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let err = match self {
+            VolumeParseError::VolumeTooHigh => {
+                "Volume is too high. Requires to be in the range of 0 ~ 100"
+            }
+            VolumeParseError::InvalidString(_) => "Invalid string",
+        };
+
+        write!(f, "{err}")
+    }
+}
+
+impl Error for VolumeParseError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        if let VolumeParseError::InvalidString(err) = self {
+            Some(err.as_ref())
+        } else {
+            None
+        }
+    }
+}
 
 pub struct HitCircle {
     x: Integer,
