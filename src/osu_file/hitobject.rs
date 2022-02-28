@@ -627,6 +627,7 @@ pub struct Slider {
     hitsample: HitSample,
 
     new_combo: bool,
+    combo_skip_count: ComboSkipCount,
 
     curve_type: CurveType,
     curve_points: Vec<(Integer, Integer)>,
@@ -636,6 +637,68 @@ pub struct Slider {
     edge_sounds: Vec<Integer>,
     // TODO
     edge_sets: Vec<String>,
+}
+
+impl HitObject for Slider {
+    fn x(&self) -> Integer {
+        self.x
+    }
+
+    fn y(&self) -> Integer {
+        self.y
+    }
+
+    fn set_x(&mut self, x: Integer) {
+        self.x = x;
+    }
+
+    fn set_y(&mut self, y: Integer) {
+        self.y = y;
+    }
+
+    fn time(&self) -> Integer {
+        self.time
+    }
+
+    fn set_time(&mut self, time: Integer) {
+        self.time = time;
+    }
+
+    fn obj_type(&self) -> &HitObjectType {
+        &self.obj_type
+    }
+
+    fn new_combo(&self) -> bool {
+        self.new_combo
+    }
+
+    fn set_new_combo(&mut self, value: bool) {
+        self.new_combo = value;
+    }
+
+    fn combo_skip_count(&self) -> ComboSkipCount {
+        self.combo_skip_count
+    }
+
+    fn set_combo_skip_count(&mut self, value: ComboSkipCount) {
+        self.combo_skip_count = value;
+    }
+
+    fn hitsound(&self) -> &HitSound {
+        &self.hitsound
+    }
+
+    fn set_hitsound(&mut self, hitsound: HitSound) {
+        self.hitsound = hitsound;
+    }
+
+    fn hitsample(&self) -> &HitSample {
+        &self.hitsample
+    }
+
+    fn hitsample_mut(&mut self) -> &mut HitSample {
+        &mut self.hitsample
+    }
 }
 
 pub enum CurveType {
