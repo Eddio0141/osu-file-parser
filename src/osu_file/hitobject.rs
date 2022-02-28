@@ -66,10 +66,6 @@ pub fn parse_hitobject(hitobject: &str) -> Result<Box<dyn HitObject>, HitObjectP
     
     let hitsound = HitSound::from(u8::try_from(hitsound)?);
 
-    // TODO
-    // obj_type is u8 in the wiki
-    // do we ignore the value above 255 or return an error?
-
     // type bit definition
     // 0: hitcircle, 1: slider, 2: newcombo, 3: spinner, 4 ~ 6: how many combo colours to skip, 7: osumania hold
     let (obj_type, new_combo, combo_skip_count) = {
@@ -77,8 +73,6 @@ pub fn parse_hitobject(hitobject: &str) -> Result<Box<dyn HitObject>, HitObjectP
 
         let combo_skip_count = (obj_type >> 4) & 7;
 
-        // TODO what happens if obj_type is set to 0?
-        // for now we make the type hitcircle with everything else false and 0
         let obj_type = if nth_bit_state_i32(obj_type, 1) {
             HitObjectType::HitCircle
         } else if nth_bit_state_i32(obj_type, 2) {
@@ -443,7 +437,6 @@ pub struct Volume(Option<u8>);
 
 impl Volume {
     pub fn new(volume: u8) -> Result<Volume, VolumeParseError> {
-        // TODO what happens if volume is below 0 or above 100
         match volume {
             0 => Ok(Self(None)),
             volume if volume <= 100 => Ok(Self(Some(volume))),
