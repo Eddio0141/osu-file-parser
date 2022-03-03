@@ -103,8 +103,6 @@ pub fn parse_hitobject(hitobject: &str) -> Result<Box<dyn HitObject>, HitObjectP
         )
     };
 
-    println!("{:?}", u8::try_from(hitsound));
-
     let hitsound = HitSound::from(u8::try_from(hitsound)?);
 
     // type bit definition
@@ -145,8 +143,8 @@ pub fn parse_hitobject(hitobject: &str) -> Result<Box<dyn HitObject>, HitObjectP
         .parse()?;
     obj_properties.remove(obj_properties.len() - 1);
 
-    Ok(Box::new(match obj_type {
-        HitObjectType::HitCircle => HitCircle {
+    Ok(match obj_type {
+        HitObjectType::HitCircle => Box::new(HitCircle {
             x,
             y,
             time,
@@ -155,11 +153,31 @@ pub fn parse_hitobject(hitobject: &str) -> Result<Box<dyn HitObject>, HitObjectP
             hitsample,
             new_combo,
             combo_skip_count,
-        },
-        HitObjectType::Slider => todo!(),
+        }),
+        HitObjectType::Slider => {
+            todo!();
+            let curve_type = ();
+
+            Box::new(Slider {
+                x,
+                y,
+                time,
+                obj_type,
+                hitsound,
+                hitsample,
+                new_combo,
+                combo_skip_count,
+                curve_type: todo!(),
+                curve_points: todo!(),
+                slides: todo!(),
+                length: todo!(),
+                edge_sounds: todo!(),
+                edge_sets: todo!(),
+            })
+        }
         HitObjectType::Spinner => todo!(),
         HitObjectType::OsuManiaHold => todo!(),
-    }))
+    })
 }
 
 impl From<TryFromIntError> for HitObjectParseError {
