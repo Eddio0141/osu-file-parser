@@ -1,4 +1,9 @@
-use std::{error::Error, fmt::Display, num::{ParseIntError, TryFromIntError}, str::FromStr};
+use std::{
+    error::Error,
+    fmt::Display,
+    num::{ParseIntError, TryFromIntError},
+    str::FromStr,
+};
 
 use super::{Decimal, Integer, OsuFileParseError};
 
@@ -63,7 +68,7 @@ pub fn parse_hitobject(hitobject: &str) -> Result<Box<dyn HitObject>, HitObjectP
             properties[4],
         )
     };
-    
+
     let hitsound = HitSound::from(u8::try_from(hitsound)?);
 
     // type bit definition
@@ -630,13 +635,11 @@ pub struct Slider {
     combo_skip_count: ComboSkipCount,
 
     curve_type: CurveType,
-    curve_points: Vec<(Integer, Integer)>,
+    curve_points: PipeVec<ColonSet<Integer, Integer>>,
     slides: Integer,
     length: Decimal,
-    // TODO
-    edge_sounds: Vec<Integer>,
-    // TODO
-    edge_sets: Vec<String>,
+    edge_sounds: PipeVec<HitSound>,
+    edge_sets: PipeVec<ColonSet<SampleSet, SampleSet>>,
 }
 
 impl HitObject for Slider {
@@ -708,17 +711,74 @@ pub enum CurveType {
     PerfectCircle,
 }
 
-pub struct PipeVec<T> {
-    vec: Vec<T>,
-}
+struct PipeVec<T>(pub Vec<T>);
 
-impl<T> FromStr for PipeVec<T> {
+impl<T> FromStr for PipeVec<T>
+where
+    T: FromStr,
+    PipeVecParseErr: From<<T as FromStr>::Err>,
+{
     type Err = PipeVecParseErr;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        todo!()
+        Ok(Self(
+            s.split('|')
+                .map(|s| s.parse())
+                .collect::<Result<Vec<_>, _>>()?,
+        ))
     }
 }
+
+struct ColonSet<F, S>(pub F, pub S);
+
+impl<F, S> FromStr for ColonSet<F, S>
+where
+    F: FromStr,
+    S: FromStr,
+    ColonSetParseError: From<<F as FromStr>::Err> + From<<S as FromStr>::Err>,
+{
+    type Err = ColonSetParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut s = s.split(':');
+
+        let first = s
+            .next()
+            .ok_or(ColonSetParseError::MissingFirstItem)?
+            .parse::<F>()?;
+        let second = s
+            .next()
+            .ok_or(ColonSetParseError::MissingSecondItem)?
+            .parse::<S>()?;
+
+        if s.count() > 0 {
+            Err(ColonSetParseError::MoreThanTwoItems)
+        } else {
+            Ok(ColonSet(first, second))
+        }
+    }
+}
+
+#[derive(Debug)]
+enum ColonSetParseError {
+    MissingFirstItem,
+    MissingSecondItem,
+    MoreThanTwoItems,
+}
+
+impl Display for ColonSetParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let err = match self {
+            ColonSetParseError::MissingFirstItem => "Missing the first item in the colon set",
+            ColonSetParseError::MissingSecondItem => "Missing the second item in the colon set",
+            ColonSetParseError::MoreThanTwoItems => "There is more than 2 items in the colon set",
+        };
+
+        write!(f, "{err}")
+    }
+}
+
+impl Error for ColonSetParseError {}
 
 #[derive(Debug)]
 pub struct PipeVecParseErr;
