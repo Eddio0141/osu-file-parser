@@ -79,20 +79,13 @@ impl Error for ComboSkipCountParseError {}
 /// assert_eq!(hitcircle_str, hitcircle.to_string());
 /// ```
 pub fn parse_hitobject(hitobject: &str) -> Result<Box<dyn HitObject>, HitObjectParseError> {
-    let obj_properties = hitobject.trim().split(',').collect::<Vec<_>>();
-
-    let initial_properties_count = 5;
+    let mut obj_properties = hitobject.trim().split(',');
 
     let (x, y, time, obj_type, hitsound) = {
-        let properties = obj_properties
-            .iter()
-            .take(initial_properties_count)
+        let properties = (&mut obj_properties)
+            .take(5)
             .map(|property| property.parse::<Integer>())
             .collect::<Result<Vec<_>, _>>()?;
-
-        if properties.len() < initial_properties_count {
-            return Err(HitObjectParseError::MissingProperty);
-        }
 
         (
             properties[0],
@@ -132,16 +125,10 @@ pub fn parse_hitobject(hitobject: &str) -> Result<Box<dyn HitObject>, HitObjectP
         )
     };
 
-    let mut obj_properties = obj_properties
-        .iter()
-        .skip(initial_properties_count)
-        .collect::<Vec<_>>();
-
-    let hitsample = obj_properties
+    let hitsample = (&mut obj_properties)
         .last()
         .ok_or(HitObjectParseError::MissingProperty)?
         .parse()?;
-    obj_properties.remove(obj_properties.len() - 1);
 
     Ok(match obj_type {
         HitObjectType::HitCircle => Box::new(HitCircle {
