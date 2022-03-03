@@ -9,7 +9,7 @@ use super::{Decimal, Integer, OsuFileParseError};
 
 type ComboSkipCount = u8;
 
-pub trait HitObject {
+pub trait HitObject: Display {
     fn x(&self) -> Integer;
     fn y(&self) -> Integer;
     fn set_x(&mut self, x: Integer);
@@ -31,6 +31,26 @@ pub trait HitObject {
 
     fn hitsample(&self) -> &HitSample;
     fn hitsample_mut(&mut self) -> &mut HitSample;
+
+    fn type_to_string(&self) -> String {
+        let mut bit_flag: u8 = 0;
+
+        bit_flag |= match self.obj_type() {
+            HitObjectType::HitCircle => 1,
+            HitObjectType::Slider => 2,
+            HitObjectType::Spinner => 8,
+            HitObjectType::OsuManiaHold => 128,
+        };
+
+        if self.new_combo() {
+            bit_flag |= 4;
+        }
+
+        // 3 bit value from 4th ~ 6th bits
+        bit_flag |= self.combo_skip_count() << 4;
+
+        bit_flag.to_string()
+    }
 }
 
 #[derive(Debug)]
@@ -193,6 +213,27 @@ pub struct HitSound {
     clap: bool,
 }
 
+impl Display for HitSound {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut bit_mask = 0;
+
+        if self.normal {
+            bit_mask |= 1;
+        }
+        if self.whistle {
+            bit_mask |= 2;
+        }
+        if self.finish {
+            bit_mask |= 4;
+        }
+        if self.clap {
+            bit_mask |= 8;
+        }
+
+        write!(f, "{bit_mask}")
+    }
+}
+
 impl Default for HitSound {
     fn default() -> Self {
         Self {
@@ -270,6 +311,21 @@ pub struct HitSample {
     index: Option<usize>,
     volume: Volume,
     filename: String,
+}
+
+impl Display for HitSample {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let normal_set: Integer = self.normal_set.into();
+        let addition_set: Integer = self.addition_set.into();
+        let index = match self.index {
+            Some(index) => index,
+            None => 0,
+        };
+        let volume: Integer = self.volume.into();
+        let filename = &self.filename;
+
+        write!(f, "{normal_set}:{addition_set}:{index}:{volume}:{filename}")
+    }
 }
 
 impl HitSample {
@@ -408,6 +464,17 @@ pub enum SampleSet {
     DrumSet,
 }
 
+impl From<SampleSet> for Integer {
+    fn from(sampleset: SampleSet) -> Self {
+        match sampleset {
+            SampleSet::NoCustomSampleSet => 0,
+            SampleSet::NormalSet => 1,
+            SampleSet::SoftSet => 2,
+            SampleSet::DrumSet => 3,
+        }
+    }
+}
+
 impl Default for SampleSet {
     fn default() -> Self {
         Self::NoCustomSampleSet
@@ -437,8 +504,17 @@ impl Display for SampleSetParseError {
 
 impl Error for SampleSetParseError {}
 
-#[derive(Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Default, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub struct Volume(Option<u8>);
+
+impl From<Volume> for Integer {
+    fn from(volume: Volume) -> Self {
+        match volume.0 {
+            Some(volume) => volume as Integer,
+            None => 0,
+        }
+    }
+}
 
 impl Volume {
     pub fn new(volume: u8) -> Result<Volume, VolumeParseError> {
@@ -535,6 +611,21 @@ impl Default for HitCircle {
             new_combo: Default::default(),
             combo_skip_count: Default::default(),
         }
+    }
+}
+
+impl Display for HitCircle {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let properties: Vec<String> = vec![
+            self.x.to_string(),
+            self.y.to_string(),
+            self.time.to_string(),
+            self.type_to_string(),
+            self.hitsound.to_string(),
+            self.hitsample.to_string(),
+        ];
+
+        write!(f, "{}", properties.join(","))
     }
 }
 
@@ -640,6 +731,16 @@ pub struct Slider {
     length: Decimal,
     edge_sounds: PipeVec<HitSound>,
     edge_sets: PipeVec<ColonSet<SampleSet, SampleSet>>,
+}
+
+impl Display for Slider {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let properties: Vec<String> = vec![self.x.to_string()];
+
+        todo!();
+
+        write!(f, "{}", properties.join(","))
+    }
 }
 
 impl HitObject for Slider {
