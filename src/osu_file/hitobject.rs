@@ -42,6 +42,8 @@ pub trait HitObject: Display {
             HitObjectType::OsuManiaHold => 128,
         };
 
+        println!("{}", bit_flag);
+
         if self.new_combo() {
             bit_flag |= 4;
         }
@@ -64,6 +66,18 @@ impl Display for ComboSkipCountParseError {
 
 impl Error for ComboSkipCountParseError {}
 
+/// Attempts to parse a `&str` into a `HitObject`.
+///
+/// # Example
+/// ```
+/// use osu_file_parser::osu_file::hitobject::parse_hitobject;
+///
+/// let hitcircle_str = "221,350,9780,1,0,0:0:0:0:";
+///
+/// let hitcircle = parse_hitobject(hitcircle_str).unwrap();
+///
+/// assert_eq!(hitcircle_str, hitcircle.to_string());
+/// ```
 pub fn parse_hitobject(hitobject: &str) -> Result<Box<dyn HitObject>, HitObjectParseError> {
     let obj_properties = hitobject.trim().split(',').collect::<Vec<_>>();
 
@@ -89,22 +103,24 @@ pub fn parse_hitobject(hitobject: &str) -> Result<Box<dyn HitObject>, HitObjectP
         )
     };
 
+    println!("{:?}", u8::try_from(hitsound));
+
     let hitsound = HitSound::from(u8::try_from(hitsound)?);
 
     // type bit definition
     // 0: hitcircle, 1: slider, 2: newcombo, 3: spinner, 4 ~ 6: how many combo colours to skip, 7: osumania hold
     let (obj_type, new_combo, combo_skip_count) = {
-        let new_combo = nth_bit_state_i32(obj_type, 2);
+        let new_combo = nth_bit_state_i64(obj_type as i64, 2);
 
         let combo_skip_count = (obj_type >> 4) & 7;
 
-        let obj_type = if nth_bit_state_i32(obj_type, 1) {
+        let obj_type = if nth_bit_state_i64(obj_type as i64, 0) {
             HitObjectType::HitCircle
-        } else if nth_bit_state_i32(obj_type, 2) {
+        } else if nth_bit_state_i64(obj_type as i64, 1) {
             HitObjectType::Slider
-        } else if nth_bit_state_i32(obj_type, 4) {
+        } else if nth_bit_state_i64(obj_type as i64, 3) {
             HitObjectType::Spinner
-        } else if nth_bit_state_i32(obj_type, 128) {
+        } else if nth_bit_state_i64(obj_type as i64, 7) {
             HitObjectType::OsuManiaHold
         } else {
             HitObjectType::HitCircle
@@ -158,12 +174,8 @@ impl From<HitSampleParseError> for HitObjectParseError {
     }
 }
 
-fn nth_bit_state_i32(value: i32, nth_bit: u32) -> bool {
-    value & 2i32.pow(nth_bit) == 1
-}
-
-fn nth_bit_state_u8(value: u8, nth_bit: u32) -> bool {
-    value & 2u8.pow(nth_bit) == 1
+fn nth_bit_state_i64(value: i64, nth_bit: u8) -> bool {
+    value >> nth_bit & 1 == 1
 }
 
 #[derive(Debug)]
@@ -247,7 +259,11 @@ impl Default for HitSound {
 
 impl HitSound {
     pub fn normal(&self) -> bool {
-        self.normal
+        if !(self.normal || self.whistle || self.finish || self.clap) {
+            true
+        } else {
+            self.normal
+        }
     }
     pub fn whistle(&self) -> bool {
         self.whistle
@@ -259,48 +275,35 @@ impl HitSound {
         self.clap
     }
 
-    fn validate_normal(&mut self) {
-        if !(self.normal && self.whistle && self.finish && self.clap) {
-            self.normal = true;
-        }
-    }
-
     pub fn set_normal(&mut self, normal: bool) {
         self.normal = normal;
-        self.validate_normal();
     }
     pub fn set_whistle(&mut self, whistle: bool) {
         self.whistle = whistle;
-        self.validate_normal();
     }
 
     pub fn set_finish(&mut self, finish: bool) {
         self.finish = finish;
-        self.validate_normal();
     }
 
     pub fn set_clap(&mut self, clap: bool) {
         self.clap = clap;
-        self.validate_normal();
     }
 }
 
 impl From<u8> for HitSound {
     fn from(value: u8) -> Self {
-        let normal = nth_bit_state_u8(value, 0);
-        let whistle = nth_bit_state_u8(value, 1);
-        let finish = nth_bit_state_u8(value, 2);
-        let clap = nth_bit_state_u8(value, 3);
+        let normal = nth_bit_state_i64(value as i64, 0);
+        let whistle = nth_bit_state_i64(value as i64, 1);
+        let finish = nth_bit_state_i64(value as i64, 2);
+        let clap = nth_bit_state_i64(value as i64, 3);
 
-        let mut hitsound = Self {
+        Self {
             normal,
             whistle,
             finish,
             clap,
-        };
-        hitsound.validate_normal();
-
-        hitsound
+        }
     }
 }
 
