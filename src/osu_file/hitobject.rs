@@ -552,6 +552,19 @@ pub enum SampleSet {
     DrumSet,
 }
 
+impl Display for SampleSet {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let err = match self {
+            SampleSet::NoCustomSampleSet => '0',
+            SampleSet::NormalSet => '1',
+            SampleSet::SoftSet => '2',
+            SampleSet::DrumSet => '3',
+        };
+
+        write!(f, "{err}")
+    }
+}
+
 impl FromStr for SampleSet {
     type Err = SampleSetParseError;
 
@@ -855,9 +868,20 @@ pub struct Slider {
 
 impl Display for Slider {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let properties: Vec<String> = vec![self.x.to_string()];
-
-        todo!();
+        let properties: Vec<String> = vec![
+            self.x.to_string(),
+            self.y.to_string(),
+            self.time.to_string(),
+            self.type_to_string(),
+            self.hitsound.to_string(),
+            self.curve_type.to_string(),
+            self.curve_points.to_string(),
+            self.slides.to_string(),
+            self.length.to_string(),
+            self.edge_sounds.to_string(),
+            self.edge_sets.to_string(),
+            self.hitsample.to_string(),
+        ];
 
         write!(f, "{}", properties.join(","))
     }
@@ -973,6 +997,23 @@ impl Display for CurveTypeParseError {
 
 struct PipeVec<T>(pub Vec<T>);
 
+impl<T> Display for PipeVec<T>
+where
+    T: Display,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            self.0
+                .iter()
+                .map(|s| s.to_string())
+                .collect::<Vec<_>>()
+                .join("|")
+        )
+    }
+}
+
 impl<T> FromStr for PipeVec<T>
 where
     T: FromStr,
@@ -990,6 +1031,16 @@ where
 }
 
 struct ColonSet<F, S>(pub F, pub S);
+
+impl<F, S> Display for ColonSet<F, S>
+where
+    F: Display,
+    S: Display,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}:{}", self.0, self.1)
+    }
+}
 
 impl<F, S> FromStr for ColonSet<F, S>
 where
