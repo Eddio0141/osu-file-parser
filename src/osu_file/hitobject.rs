@@ -1,7 +1,7 @@
 use std::{
     error::Error,
     fmt::Display,
-    num::{ParseIntError, TryFromIntError},
+    num::{ParseFloatError, ParseIntError, TryFromIntError},
     str::FromStr,
 };
 
@@ -73,10 +73,13 @@ impl Error for ComboSkipCountParseError {}
 /// use osu_file_parser::osu_file::hitobject::parse_hitobject;
 ///
 /// let hitcircle_str = "221,350,9780,1,0,0:0:0:0:";
+/// let slider_str = "31,85,3049,2,0,B|129:55|123:136|228:86,1,172.500006580353,2|0,3:2|0:2,0:2:0:0:";
 ///
 /// let hitcircle = parse_hitobject(hitcircle_str).unwrap();
+/// let slider = parse_hitobject(slider_str).unwrap();
 ///
 /// assert_eq!(hitcircle_str, hitcircle.to_string());
+/// assert_eq!(slider_str, slider.to_string());
 /// ```
 pub fn parse_hitobject(hitobject: &str) -> Result<Box<dyn HitObject>, HitObjectParseError> {
     let mut obj_properties = hitobject.trim().split(',');
@@ -142,8 +145,35 @@ pub fn parse_hitobject(hitobject: &str) -> Result<Box<dyn HitObject>, HitObjectP
             combo_skip_count,
         }),
         HitObjectType::Slider => {
-            todo!();
-            let curve_type = ();
+            let curve_type = obj_properties
+                .next()
+                .ok_or(HitObjectParseError::MissingProperty)?
+                .parse::<CurveType>()?;
+
+            let curve_points = obj_properties
+                .next()
+                .ok_or(HitObjectParseError::MissingProperty)?
+                .parse::<PipeVec<ColonSet<Integer, Integer>>>()?;
+
+            let slides = obj_properties
+                .next()
+                .ok_or(HitObjectParseError::MissingProperty)?
+                .parse()?;
+
+            let length = obj_properties
+                .next()
+                .ok_or(HitObjectParseError::MissingProperty)?
+                .parse()?;
+
+            let edge_sounds = obj_properties
+                .next()
+                .ok_or(HitObjectParseError::MissingProperty)?
+                .parse()?;
+
+            let edge_sets = obj_properties
+                .next()
+                .ok_or(HitObjectParseError::MissingProperty)?
+                .parse()?;
 
             Box::new(Slider {
                 x,
@@ -154,17 +184,58 @@ pub fn parse_hitobject(hitobject: &str) -> Result<Box<dyn HitObject>, HitObjectP
                 hitsample,
                 new_combo,
                 combo_skip_count,
-                curve_type: todo!(),
-                curve_points: todo!(),
-                slides: todo!(),
-                length: todo!(),
-                edge_sounds: todo!(),
-                edge_sets: todo!(),
+                curve_type,
+                curve_points,
+                slides,
+                length,
+                edge_sounds,
+                edge_sets,
             })
         }
         HitObjectType::Spinner => todo!(),
         HitObjectType::OsuManiaHold => todo!(),
     })
+}
+
+impl From<SampleSetParseError> for ColonSetParseError {
+    fn from(err: SampleSetParseError) -> Self {
+        ColonSetParseError::ValueParseError(Box::new(err))
+    }
+}
+
+impl From<ParseFloatError> for HitObjectParseError {
+    fn from(err: ParseFloatError) -> Self {
+        HitObjectParseError::ValueParseError(Box::new(err))
+    }
+}
+impl From<ParseIntError> for PipeVecParseErr {
+    fn from(err: ParseIntError) -> Self {
+        PipeVecParseErr(Box::new(err))
+    }
+}
+
+impl From<PipeVecParseErr> for HitObjectParseError {
+    fn from(err: PipeVecParseErr) -> Self {
+        HitObjectParseError::ValueParseError(Box::new(err))
+    }
+}
+
+impl From<ColonSetParseError> for PipeVecParseErr {
+    fn from(err: ColonSetParseError) -> Self {
+        PipeVecParseErr(Box::new(err))
+    }
+}
+
+impl From<ParseIntError> for ColonSetParseError {
+    fn from(err: ParseIntError) -> Self {
+        ColonSetParseError::ValueParseError(Box::new(err))
+    }
+}
+
+impl From<CurveTypeParseError> for HitObjectParseError {
+    fn from(err: CurveTypeParseError) -> Self {
+        Self::ValueParseError(Box::new(err))
+    }
 }
 
 impl From<TryFromIntError> for HitObjectParseError {
@@ -296,6 +367,14 @@ impl HitSound {
     }
 }
 
+impl FromStr for HitSound {
+    type Err = ParseIntError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(HitSound::from(s.parse::<u8>()?))
+    }
+}
+
 impl From<u8> for HitSound {
     fn from(value: u8) -> Self {
         let normal = nth_bit_state_i64(value as i64, 0);
@@ -390,11 +469,11 @@ impl FromStr for HitSample {
             let mut sample_sets = Vec::new();
 
             for _ in 0..sample_set_count {
-                sample_sets.push(SampleSet::new(
+                sample_sets.push(
                     s.next()
                         .ok_or(HitSampleParseError::MissingProperty)?
-                        .parse::<Integer>()?,
-                )?);
+                        .parse()?,
+                );
             }
 
             (sample_sets[0], sample_sets[1])
@@ -469,6 +548,20 @@ pub enum SampleSet {
     DrumSet,
 }
 
+impl FromStr for SampleSet {
+    type Err = SampleSetParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(SampleSet::try_from(s.parse::<Integer>()?)?)
+    }
+}
+
+impl From<ParseIntError> for SampleSetParseError {
+    fn from(err: ParseIntError) -> Self {
+        Self::ValueParseError(Box::new(err))
+    }
+}
+
 impl From<SampleSet> for Integer {
     fn from(sampleset: SampleSet) -> Self {
         match sampleset {
@@ -486,28 +579,46 @@ impl Default for SampleSet {
     }
 }
 
-impl SampleSet {
-    pub fn new(value: Integer) -> Result<SampleSet, SampleSetParseError> {
+impl TryFrom<Integer> for SampleSet {
+    type Error = SampleSetParseError;
+
+    fn try_from(value: Integer) -> Result<Self, Self::Error> {
         match value {
             0 => Ok(SampleSet::NoCustomSampleSet),
             1 => Ok(SampleSet::NormalSet),
             2 => Ok(SampleSet::SoftSet),
             3 => Ok(SampleSet::DrumSet),
-            _ => Err(SampleSetParseError),
+            _ => Err(SampleSetParseError::ValueHigherThanThree),
         }
     }
 }
 
 #[derive(Debug)]
-pub struct SampleSetParseError;
+pub enum SampleSetParseError {
+    ValueHigherThanThree,
+    ValueParseError(Box<dyn Error>),
+}
 
 impl Display for SampleSetParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "The value parsing is higher than 3")
+        let err = match self {
+            SampleSetParseError::ValueHigherThanThree => "The value parsing is higher than 3.",
+            SampleSetParseError::ValueParseError(_) => "There was a problem parsing the value.",
+        };
+
+        write!(f, "{err}")
     }
 }
 
-impl Error for SampleSetParseError {}
+impl Error for SampleSetParseError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        if let SampleSetParseError::ValueParseError(err) = self {
+            Some(err.as_ref())
+        } else {
+            None
+        }
+    }
+}
 
 #[derive(Default, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub struct Volume(Option<u8>);
@@ -810,11 +921,50 @@ impl HitObject for Slider {
     }
 }
 
+#[derive(PartialEq, Eq)]
 pub enum CurveType {
     Bezier,
     Centripetal,
     Linear,
     PerfectCircle,
+}
+
+impl Display for CurveType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let value = match self {
+            CurveType::Bezier => 'B',
+            CurveType::Centripetal => 'C',
+            CurveType::Linear => 'L',
+            CurveType::PerfectCircle => 'P',
+        };
+
+        write!(f, "{value}")
+    }
+}
+
+impl FromStr for CurveType {
+    type Err = CurveTypeParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "B" => Ok(Self::Bezier),
+            "C" => Ok(Self::Centripetal),
+            "L" => Ok(Self::Linear),
+            "P" => Ok(Self::PerfectCircle),
+            _ => Err(CurveTypeParseError),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct CurveTypeParseError;
+
+impl Error for CurveTypeParseError {}
+
+impl Display for CurveTypeParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Error, tried to parse an invalid string as curve type.")
+    }
 }
 
 struct PipeVec<T>(pub Vec<T>);
@@ -870,6 +1020,7 @@ enum ColonSetParseError {
     MissingFirstItem,
     MissingSecondItem,
     MoreThanTwoItems,
+    ValueParseError(Box<dyn Error>),
 }
 
 impl Display for ColonSetParseError {
@@ -878,16 +1029,27 @@ impl Display for ColonSetParseError {
             ColonSetParseError::MissingFirstItem => "Missing the first item in the colon set",
             ColonSetParseError::MissingSecondItem => "Missing the second item in the colon set",
             ColonSetParseError::MoreThanTwoItems => "There is more than 2 items in the colon set",
+            ColonSetParseError::ValueParseError(_) => {
+                "There is a problem parsing a value to a colon set"
+            }
         };
 
         write!(f, "{err}")
     }
 }
 
-impl Error for ColonSetParseError {}
+impl Error for ColonSetParseError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        if let ColonSetParseError::ValueParseError(err) = self {
+            Some(err.as_ref())
+        } else {
+            None
+        }
+    }
+}
 
 #[derive(Debug)]
-pub struct PipeVecParseErr;
+pub struct PipeVecParseErr(Box<dyn Error>);
 
 impl Display for PipeVecParseErr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -898,4 +1060,8 @@ impl Display for PipeVecParseErr {
     }
 }
 
-impl Error for PipeVecParseErr {}
+impl Error for PipeVecParseErr {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        Some(self.0.as_ref())
+    }
+}
