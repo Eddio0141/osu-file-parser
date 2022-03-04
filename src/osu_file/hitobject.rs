@@ -90,6 +90,10 @@ pub fn parse_hitobject(hitobject: &str) -> Result<Box<dyn HitObject>, HitObjectP
             .map(|property| property.parse::<Integer>())
             .collect::<Result<Vec<_>, _>>()?;
 
+        if properties.len() < 5 {
+            return Err(HitObjectParseError::MissingProperty);
+        }
+
         (
             properties[0],
             properties[1],
