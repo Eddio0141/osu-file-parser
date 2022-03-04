@@ -1,7 +1,6 @@
-use std::{str::FromStr, error::Error};
+use std::str::FromStr;
 
 use super::section_error::SectionParseError;
-
 
 #[derive(Default)]
 pub struct Events;
