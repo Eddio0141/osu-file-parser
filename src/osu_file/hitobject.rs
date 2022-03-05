@@ -69,12 +69,15 @@ impl Error for ComboSkipCountParseError {}
 ///
 /// let hitcircle_str = "221,350,9780,1,0,0:0:0:0:";
 /// let slider_str = "31,85,3049,2,0,B|129:55|123:136|228:86,1,172.500006580353,2|0,3:2|0:2,0:2:0:0:";
+/// let spinner_str = "256,192,33598,12,0,431279,0:0:0:0:";
 ///
 /// let hitcircle = parse_hitobject(hitcircle_str).unwrap();
 /// let slider = parse_hitobject(slider_str).unwrap();
+/// let spinner = parse_hitobject(spinner_str).unwrap();
 ///
 /// assert_eq!(hitcircle_str, hitcircle.to_string());
 /// assert_eq!(slider_str, slider.to_string());
+/// assert_eq!(spinner_str, spinner.to_string());
 /// ```
 pub fn parse_hitobject(hitobject: &str) -> Result<Box<dyn HitObject>, HitObjectParseError> {
     let mut obj_properties = hitobject.trim().split(',');
@@ -264,7 +267,30 @@ pub fn parse_hitobject(hitobject: &str) -> Result<Box<dyn HitObject>, HitObjectP
                 edge_sets,
             })
         }
-        HitObjectType::Spinner => todo!(),
+        HitObjectType::Spinner => {
+            let mut obj_properties = obj_properties.iter();
+
+            let end_time = obj_properties
+                .next()
+                .ok_or(HitObjectParseError::MissingProperty(5))?
+                .parse()
+                .map_err(|err| HitObjectParseError::ValueParseError {
+                    property_index: 5,
+                    err: Box::new(err),
+                })?;
+
+            Box::new(Spinner {
+                x,
+                y,
+                time,
+                obj_type,
+                hitsound,
+                hitsample,
+                new_combo,
+                combo_skip_count,
+                end_time,
+            })
+        }
         HitObjectType::OsuManiaHold => todo!(),
     })
 }
@@ -1177,5 +1203,150 @@ impl Display for PipeVecParseErr {
 impl Error for PipeVecParseErr {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         Some(self.0.as_ref())
+    }
+}
+
+pub struct Spinner {
+    x: Integer,
+    y: Integer,
+    time: Integer,
+    obj_type: HitObjectType,
+    hitsound: HitSound,
+    hitsample: HitSample,
+
+    new_combo: bool,
+    combo_skip_count: ComboSkipCount,
+
+    end_time: Integer,
+}
+
+impl HitObject for Spinner {
+    fn x(&self) -> Integer {
+        self.x
+    }
+
+    fn y(&self) -> Integer {
+        self.y
+    }
+
+    fn set_x(&mut self, x: Integer) {
+        self.x = x;
+    }
+
+    fn set_y(&mut self, y: Integer) {
+        self.y = y;
+    }
+
+    fn time(&self) -> Integer {
+        self.time
+    }
+
+    fn set_time(&mut self, time: Integer) {
+        self.time = time;
+    }
+
+    fn obj_type(&self) -> &HitObjectType {
+        &self.obj_type
+    }
+
+    fn new_combo(&self) -> bool {
+        self.new_combo
+    }
+
+    fn set_new_combo(&mut self, value: bool) {
+        self.new_combo = value;
+    }
+
+    fn combo_skip_count(&self) -> ComboSkipCount {
+        self.combo_skip_count
+    }
+
+    fn set_combo_skip_count(&mut self, value: ComboSkipCount) {
+        self.combo_skip_count = value;
+    }
+
+    fn hitsound(&self) -> &HitSound {
+        &self.hitsound
+    }
+
+    fn set_hitsound(&mut self, hitsound: HitSound) {
+        self.hitsound = hitsound;
+    }
+
+    fn hitsample(&self) -> &HitSample {
+        &self.hitsample
+    }
+
+    fn hitsample_mut(&mut self) -> &mut HitSample {
+        &mut self.hitsample
+    }
+}
+
+impl Display for Spinner {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let properties: Vec<String> = vec![
+            self.x.to_string(),
+            self.y.to_string(),
+            self.time.to_string(),
+            self.type_to_string(),
+            self.hitsound.to_string(),
+            self.end_time.to_string(),
+            self.hitsample.to_string(),
+        ];
+
+        write!(f, "{}", properties.join(","))
+    }
+}
+
+impl Default for Spinner {
+    fn default() -> Self {
+        Self {
+            // TODO make constant for "centre of the playfield"
+            // TODO check if 0ms spinner is valid
+            x: 256,
+            y: 192,
+            time: Default::default(),
+            obj_type: HitObjectType::Spinner,
+            hitsound: Default::default(),
+            hitsample: Default::default(),
+            new_combo: Default::default(),
+            combo_skip_count: Default::default(),
+            end_time: Default::default(),
+        }
+    }
+}
+
+impl Spinner {
+    pub fn new(
+        x: Integer,
+        y: Integer,
+        time: Integer,
+        obj_type: HitObjectType,
+        hitsound: HitSound,
+        hitsample: HitSample,
+        new_combo: bool,
+        combo_skip_count: ComboSkipCount,
+        end_time: Integer,
+    ) -> Self {
+        Self {
+            x,
+            y,
+            time,
+            obj_type,
+            hitsound,
+            hitsample,
+            new_combo,
+            combo_skip_count,
+            end_time,
+        }
+    }
+
+    pub fn end_time(&self) -> i32 {
+        self.end_time
+    }
+
+    // TODO is it valid if end_time is lower or equals to time
+    pub fn set_end_time(&mut self, end_time: Integer) {
+        self.end_time = end_time;
     }
 }
