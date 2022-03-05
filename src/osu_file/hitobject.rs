@@ -1,4 +1,9 @@
-use std::{error::Error, fmt::Display, num::ParseIntError, str::FromStr};
+use std::{
+    error::Error,
+    fmt::Display,
+    num::ParseIntError,
+    str::{FromStr, Split},
+};
 
 use rust_decimal::Decimal;
 
@@ -126,18 +131,6 @@ pub fn parse_hitobject(hitobject: &str) -> Result<Box<dyn HitObject>, HitObjectP
         )
     };
 
-    // we took basically the first required properties, so we just need the last
-    // and let other object parsing do whatever with the rest of the str
-    let mut obj_properties = obj_properties.collect::<Vec<_>>();
-
-    let hitsample = obj_properties
-        .last()
-        .ok_or(HitObjectParseError::MissingHitSample)?
-        .parse()
-        .map_err(|err| HitObjectParseError::HitSampleParseError(Box::new(err)))?;
-
-    obj_properties.remove(obj_properties.len() - 1);
-
     // TODO direct fromstr conversion
     let hitsound = HitSound::from(u8::try_from(hitsound).map_err(|err| {
         HitObjectParseError::ValueParseError {
@@ -173,46 +166,54 @@ pub fn parse_hitobject(hitobject: &str) -> Result<Box<dyn HitObject>, HitObjectP
         )
     };
 
+    let hitsample = |obj_properties: &mut dyn Iterator<Item = &str>, property_index| {
+        obj_properties
+            .next()
+            .ok_or(HitObjectParseError::MissingProperty(property_index))?
+            .parse()
+            .map_err(|err| HitObjectParseError::ValueParseError {
+                property_index,
+                err: Box::new(err),
+            })
+    };
+
     Ok(match obj_type {
-        HitObjectType::HitCircle => Box::new(HitCircle {
-            x,
-            y,
-            time,
-            obj_type,
-            hitsound,
-            hitsample,
-            new_combo,
-            combo_skip_count,
-        }),
+        HitObjectType::HitCircle => {
+            let hitsample = hitsample(&mut obj_properties, 5)?;
+            Box::new(HitCircle {
+                x,
+                y,
+                time,
+                obj_type,
+                hitsound,
+                hitsample,
+                new_combo,
+                combo_skip_count,
+            })
+        }
         HitObjectType::Slider => {
-            // idk why ppy decided to just put in curve type without the usual splitter but as a thing before the | which is a char
-            // we take just that thing before the first |
-            let curve_type = obj_properties
-                .get(0)
-                .ok_or(HitObjectParseError::MissingProperty(5))?
-                .split_once('|')
-                .ok_or(HitObjectParseError::MissingProperty(5))?
-                .0
-                .parse::<CurveType>()
-                .map_err(|err| HitObjectParseError::ValueParseError {
-                    property_index: 5,
-                    err: Box::new(err),
-                })?;
-
-            let mut obj_properties = obj_properties.iter();
-
-            // ignore that single char for curve type zz
-            let curve_points = obj_properties
+            // idk why ppy decided to just put in curve type without the usual , splitter
+            let (curve_type, curve_points) = obj_properties
                 .next()
-                .ok_or(HitObjectParseError::MissingProperty(6))?
+                .ok_or(HitObjectParseError::MissingProperty(5))?
                 .split_once('|')
-                .ok_or(HitObjectParseError::MissingProperty(6))?
-                .1
-                .parse::<PipeVec<ColonSet<Integer, Integer>>>()
-                .map_err(|err| HitObjectParseError::ValueParseError {
-                    property_index: 6,
-                    err: Box::new(err),
-                })?;
+                .ok_or(HitObjectParseError::MissingProperty(6))?;
+
+            let curve_type =
+                curve_type
+                    .parse()
+                    .map_err(|err| HitObjectParseError::ValueParseError {
+                        property_index: 5,
+                        err: Box::new(err),
+                    })?;
+
+            let curve_points =
+                curve_points
+                    .parse()
+                    .map_err(|err| HitObjectParseError::ValueParseError {
+                        property_index: 6,
+                        err: Box::new(err),
+                    })?;
 
             let slides = obj_properties
                 .next()
@@ -250,6 +251,8 @@ pub fn parse_hitobject(hitobject: &str) -> Result<Box<dyn HitObject>, HitObjectP
                     err: Box::new(err),
                 })?;
 
+            let hitsample = hitsample(&mut obj_properties, 11)?;
+
             Box::new(Slider {
                 x,
                 y,
@@ -268,8 +271,6 @@ pub fn parse_hitobject(hitobject: &str) -> Result<Box<dyn HitObject>, HitObjectP
             })
         }
         HitObjectType::Spinner => {
-            let mut obj_properties = obj_properties.iter();
-
             let end_time = obj_properties
                 .next()
                 .ok_or(HitObjectParseError::MissingProperty(5))?
@@ -278,6 +279,8 @@ pub fn parse_hitobject(hitobject: &str) -> Result<Box<dyn HitObject>, HitObjectP
                     property_index: 5,
                     err: Box::new(err),
                 })?;
+
+            let hitsample = hitsample(&mut obj_properties, 6)?;
 
             Box::new(Spinner {
                 x,
@@ -291,7 +294,16 @@ pub fn parse_hitobject(hitobject: &str) -> Result<Box<dyn HitObject>, HitObjectP
                 end_time,
             })
         }
-        HitObjectType::OsuManiaHold => todo!(),
+        HitObjectType::OsuManiaHold => {
+            // ppy has done it once again
+            let (end_time, hit_sample) = obj_properties
+                .next()
+                .ok_or(HitObjectParseError::MissingProperty(5))?
+                .split_once(':')
+                .ok_or(HitObjectParseError::MissingProperty(6))?;
+
+            todo!()
+        }
     })
 }
 
@@ -326,8 +338,6 @@ fn nth_bit_state_i64(value: i64, nth_bit: u8) -> bool {
 #[derive(Debug)]
 pub enum HitObjectParseError {
     MissingProperty(usize),
-    MissingHitSample,
-    HitSampleParseError(Box<dyn Error>),
     ValueParseError {
         property_index: usize,
         err: Box<dyn Error>,
@@ -340,14 +350,8 @@ impl Display for HitObjectParseError {
             HitObjectParseError::MissingProperty(ordinal_pos) => {
                 format!("The property for index {ordinal_pos} of the object is missing")
             }
-            HitObjectParseError::MissingHitSample => {
-                "The hitsample for the hitobject is missing from the last property".to_string()
-            }
             HitObjectParseError::ValueParseError { property_index, .. } => {
                 format!("There was a problem parsing the property for index {property_index}")
-            }
-            HitObjectParseError::HitSampleParseError(_) => {
-                "There was a problem parsing the hitsample property for the hitobject.".to_string()
             }
         };
 
@@ -357,10 +361,10 @@ impl Display for HitObjectParseError {
 
 impl Error for HitObjectParseError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
-        match self {
-            HitObjectParseError::HitSampleParseError(err) => Some(err.as_ref()),
-            HitObjectParseError::ValueParseError { err, .. } => Some(err.as_ref()),
-            _ => None,
+        if let HitObjectParseError::ValueParseError { err, .. } = self {
+            Some(err.as_ref())
+        } else {
+            None
         }
     }
 }
