@@ -6,29 +6,50 @@ use super::{Integer, OsuFileParseError};
 
 type ComboSkipCount = u8;
 
+/// An interface that represents a hitobject.
+///
+/// All hitobjects will have the properties: `x`, `y`, `time`, `type`, `hitsound`, `hitsample`.
+///
+/// The `type` property is a `u8` integer with each bit flags containing some information, which are split into the functions:
+/// [hitobject_type][Self::obj_type], [new_combo][Self::new_combo], [combo_skip_count][Self::combo_skip_count]
 pub trait HitObject: Display {
+    /// Returns the x coordinate of the hitobject.
     fn x(&self) -> Integer;
+    /// Returns the y coordinate of the hitobject.
     fn y(&self) -> Integer;
+    /// Sets the x coordinate of the hitobject.
     fn set_x(&mut self, x: Integer);
+    /// Sets the y coordinate of the hitobject.
     fn set_y(&mut self, y: Integer);
 
+    /// Returns the time when the object is to be hit, in milliseconds from the beginning of the beatmap's audio.
     fn time(&self) -> Integer;
+    /// Sets the time when the object is to be hit, in milliseconds from the beginning of the beatmap's audio.
     fn set_time(&mut self, time: Integer);
-
+    /// Returns the hitobject type.
     fn obj_type(&self) -> &HitObjectType;
 
+    /// Returns if the hitobject is a new combo.
     fn new_combo(&self) -> bool;
+    /// Sets if the hitobject is a new combo.;
     fn set_new_combo(&mut self, value: bool);
 
+    /// Returns a 3-bit integer specifying how many combo colours to skip, if this object starts a new combo.
     fn combo_skip_count(&self) -> ComboSkipCount;
+    /// Sets a 3-bit integer specifying how many combo colours to skip, if this object starts a new combo.
     fn set_combo_skip_count(&mut self, value: ComboSkipCount);
 
+    /// Returns the [hitsound][HitSound] property of the hitobject.
     fn hitsound(&self) -> &HitSound;
+    /// Sets the [hitsound][HitSound] property of the hitobject.
     fn set_hitsound(&mut self, hitsound: HitSound);
 
+    /// Returns the [hitsample][HitSample] property of the hitobject.
     fn hitsample(&self) -> &HitSample;
+    /// Mutably borrows the [hitsample][HitSample] property of the hitobject.
     fn hitsample_mut(&mut self) -> &mut HitSample;
 
+    /// Returns a `String` for the `type` property of the hitobject, which is a `u8` integer containing various bit flag infomation.
     fn type_to_string(&self) -> String {
         let mut bit_flag: u8 = 0;
 
