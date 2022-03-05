@@ -8,7 +8,6 @@ pub mod metadata;
 pub mod section_error;
 pub mod timingpoint;
 
-// use core::hash::Hash;
 use std::hash::Hash;
 use std::{
     collections::{HashMap, HashSet},
@@ -24,7 +23,7 @@ use self::difficulty::Difficulty;
 use self::editor::Editor;
 use self::events::Events;
 use self::general::General;
-use self::hitobject::{parse_hitobject, HitObject};
+use self::hitobject::{parse_hitobject, HitObjectWrapper};
 use self::metadata::Metadata;
 use self::section_error::SectionParseError;
 use self::timingpoint::TimingPoint;
@@ -65,7 +64,7 @@ pub struct OsuFile {
     pub colours: Colours,
     /// Hit objects
     /// Comma-separated lists
-    pub hitobjects: Vec<Box<dyn HitObject>>,
+    pub hitobjects: Vec<HitObjectWrapper>,
 }
 
 impl FromStr for OsuFile {

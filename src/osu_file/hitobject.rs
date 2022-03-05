@@ -103,7 +103,7 @@ impl Error for ComboSkipCountParseError {}
 /// assert_eq!(spinner_str, spinner.to_string());
 /// assert_eq!(osu_mania_hold_str, osu_mania_hold.to_string());
 /// ```
-pub fn parse_hitobject(hitobject: &str) -> Result<Box<dyn HitObject>, HitObjectParseError> {
+pub fn parse_hitobject(hitobject: &str) -> Result<HitObjectWrapper, HitObjectParseError> {
     let mut obj_properties = hitobject.trim().split(',');
 
     let (x, y, time, obj_type, hitsound) = {
@@ -199,7 +199,8 @@ pub fn parse_hitobject(hitobject: &str) -> Result<Box<dyn HitObject>, HitObjectP
     Ok(match obj_type {
         HitObjectType::HitCircle => {
             let hitsample = hitsample(&mut obj_properties, 5)?;
-            Box::new(HitCircle {
+
+            HitObjectWrapper::HitCircle(HitCircle {
                 x,
                 y,
                 time,
@@ -272,7 +273,7 @@ pub fn parse_hitobject(hitobject: &str) -> Result<Box<dyn HitObject>, HitObjectP
 
             let hitsample = hitsample(&mut obj_properties, 11)?;
 
-            Box::new(Slider {
+            HitObjectWrapper::Slider(Slider {
                 x,
                 y,
                 time,
@@ -301,7 +302,7 @@ pub fn parse_hitobject(hitobject: &str) -> Result<Box<dyn HitObject>, HitObjectP
 
             let hitsample = hitsample(&mut obj_properties, 6)?;
 
-            Box::new(Spinner {
+            HitObjectWrapper::Spinner(Spinner {
                 x,
                 y,
                 time,
@@ -337,7 +338,7 @@ pub fn parse_hitobject(hitobject: &str) -> Result<Box<dyn HitObject>, HitObjectP
                         err: Box::new(err),
                     })?;
 
-            Box::new(OsuManiaHold {
+            HitObjectWrapper::OsuManiaHold(OsuManiaHold {
                 x,
                 y,
                 time,
@@ -350,6 +351,39 @@ pub fn parse_hitobject(hitobject: &str) -> Result<Box<dyn HitObject>, HitObjectP
             })
         }
     })
+}
+
+/// Type contanining one of the hitobject types.
+pub enum HitObjectWrapper {
+    HitCircle(HitCircle),
+    Slider(Slider),
+    Spinner(Spinner),
+    OsuManiaHold(OsuManiaHold),
+}
+
+impl Display for HitObjectWrapper {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let hitobject = match self {
+            HitObjectWrapper::HitCircle(circle) => circle.to_string(),
+            HitObjectWrapper::Slider(slider) => slider.to_string(),
+            HitObjectWrapper::Spinner(spinner) => spinner.to_string(),
+            HitObjectWrapper::OsuManiaHold(hold) => hold.to_string(),
+        };
+
+        write!(f, "{hitobject}")
+    }
+}
+
+impl HitObjectWrapper {
+    /// Turns itself into a boxed [HitObject].
+    pub fn hitobject_trait_obj(&self) -> Box<dyn HitObject> {
+        match self {
+            HitObjectWrapper::HitCircle(circle) => Box::new(circle.clone()),
+            HitObjectWrapper::Slider(slider) => Box::new(slider.clone()),
+            HitObjectWrapper::Spinner(spinner) => Box::new(spinner.clone()),
+            HitObjectWrapper::OsuManiaHold(hold) => Box::new(hold.clone()),
+        }
+    }
 }
 
 impl From<SampleSetParseError> for ColonSetParseError {
@@ -422,6 +456,7 @@ impl From<HitObjectParseError> for OsuFileParseError {
     }
 }
 
+#[derive(Clone, Copy)]
 pub enum HitObjectType {
     HitCircle,
     Slider,
@@ -429,6 +464,7 @@ pub enum HitObjectType {
     OsuManiaHold,
 }
 
+#[derive(Clone, Copy)]
 pub struct HitSound {
     normal: bool,
     whistle: bool,
@@ -526,7 +562,7 @@ impl From<u8> for HitSound {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct HitSample {
     normal_set: SampleSet,
     addition_set: SampleSet,
@@ -851,6 +887,7 @@ impl Error for VolumeParseError {
     }
 }
 
+#[derive(Clone)]
 pub struct HitCircle {
     x: Integer,
     y: Integer,
@@ -978,6 +1015,7 @@ impl HitCircle {
     }
 }
 
+#[derive(Clone)]
 pub struct Slider {
     x: Integer,
     y: Integer,
@@ -1083,7 +1121,7 @@ impl HitObject for Slider {
     }
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Clone, Copy)]
 pub enum CurveType {
     Bezier,
     Centripetal,
@@ -1129,6 +1167,7 @@ impl Display for CurveTypeParseError {
     }
 }
 
+#[derive(Clone)]
 struct PipeVec<T>(pub Vec<T>);
 
 impl<T> Display for PipeVec<T>
@@ -1164,6 +1203,7 @@ where
     }
 }
 
+#[derive(Clone, Copy)]
 struct ColonSet<F, S>(pub F, pub S);
 
 impl<F, S> Display for ColonSet<F, S>
@@ -1255,6 +1295,7 @@ impl Error for PipeVecParseErr {
     }
 }
 
+#[derive(Clone)]
 pub struct Spinner {
     x: Integer,
     y: Integer,
@@ -1400,6 +1441,7 @@ impl Spinner {
     }
 }
 
+#[derive(Clone)]
 pub struct OsuManiaHold {
     x: Integer,
     y: Integer,
