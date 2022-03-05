@@ -122,12 +122,7 @@ pub fn try_parse_hitobject(hitobject: &str) -> Result<HitObjectWrapper, HitObjec
 
         if let Some(first_err) = first_err {
             // since the first_err is a valid index here
-            let err = properties
-                .iter()
-                .nth(first_err)
-                .unwrap()
-                .clone()
-                .unwrap_err();
+            let err = properties.get(first_err).unwrap().clone().unwrap_err();
 
             return Err(HitObjectParseError::ValueParseError {
                 property_index: first_err,
@@ -736,7 +731,7 @@ impl FromStr for SampleSet {
     type Err = SampleSetParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(SampleSet::try_from(s.parse::<Integer>()?)?)
+        SampleSet::try_from(s.parse::<Integer>()?)
     }
 }
 
@@ -1529,7 +1524,7 @@ impl Display for OsuManiaHold {
             self.end_time.to_string(),
         ];
 
-        write!(f, "{}:{}", properties.join(","), self.hitsample.to_string())
+        write!(f, "{}:{}", properties.join(","), self.hitsample)
     }
 }
 
