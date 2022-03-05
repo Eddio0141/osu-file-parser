@@ -1,9 +1,14 @@
-use std::{error::Error, fmt::Display, num::ParseIntError, str::FromStr};
+pub mod error;
+
+use std::{fmt::Display, num::ParseIntError, str::FromStr};
 
 use rust_decimal::Decimal;
 
-use super::{Integer, OsuFileParseError};
+use self::error::*;
 
+use super::Integer;
+
+// TODO look into some crate that allows for a 3 bit value
 type ComboSkipCount = u8;
 
 /// An interface that represents a hitobject.
@@ -71,32 +76,21 @@ pub trait HitObject: Display {
     }
 }
 
-#[derive(Debug)]
-pub struct ComboSkipCountParseError;
-
-impl Display for ComboSkipCountParseError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "There was a problem parsing a value to a 3 bit value")
-    }
-}
-
-impl Error for ComboSkipCountParseError {}
-
 /// Attempts to parse a `&str` into a [HitObjectWrapper].
 ///
 /// # Example
 /// ```
-/// use osu_file_parser::osu_file::hitobject::parse_hitobject;
+/// use osu_file_parser::osu_file::hitobject::try_parse_hitobject;
 ///
 /// let hitcircle_str = "221,350,9780,1,0,0:0:0:0:";
 /// let slider_str = "31,85,3049,2,0,B|129:55|123:136|228:86,1,172.51,2|0,3:2|0:2,0:2:0:0:";
 /// let spinner_str = "256,192,33598,12,0,431279,0:0:0:0:";
 /// let osu_mania_hold_str = "51,192,350,128,2,849:0:0:0:0:";
 ///
-/// let hitcircle = parse_hitobject(hitcircle_str).unwrap();
-/// let slider = parse_hitobject(slider_str).unwrap();
-/// let spinner = parse_hitobject(spinner_str).unwrap();
-/// let osu_mania_hold = parse_hitobject(osu_mania_hold_str).unwrap();
+/// let hitcircle = try_parse_hitobject(hitcircle_str).unwrap();
+/// let slider = try_parse_hitobject(slider_str).unwrap();
+/// let spinner = try_parse_hitobject(spinner_str).unwrap();
+/// let osu_mania_hold = try_parse_hitobject(osu_mania_hold_str).unwrap();
 ///
 /// assert_eq!(hitcircle_str, hitcircle.to_string());
 /// assert_eq!(slider_str, slider.to_string());
@@ -381,74 +375,8 @@ impl HitObjectWrapper {
     }
 }
 
-impl From<SampleSetParseError> for ColonSetParseError {
-    fn from(err: SampleSetParseError) -> Self {
-        ColonSetParseError::ValueParseError(Box::new(err))
-    }
-}
-
-impl From<ParseIntError> for PipeVecParseErr {
-    fn from(err: ParseIntError) -> Self {
-        PipeVecParseErr(Box::new(err))
-    }
-}
-
-impl From<ColonSetParseError> for PipeVecParseErr {
-    fn from(err: ColonSetParseError) -> Self {
-        PipeVecParseErr(Box::new(err))
-    }
-}
-
-impl From<ParseIntError> for ColonSetParseError {
-    fn from(err: ParseIntError) -> Self {
-        ColonSetParseError::ValueParseError(Box::new(err))
-    }
-}
-
 fn nth_bit_state_i64(value: i64, nth_bit: u8) -> bool {
     value >> nth_bit & 1 == 1
-}
-
-#[derive(Debug)]
-pub enum HitObjectParseError {
-    MissingProperty(usize),
-    ValueParseError {
-        property_index: usize,
-        err: Box<dyn Error>,
-    },
-}
-
-impl Display for HitObjectParseError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let err = match self {
-            HitObjectParseError::MissingProperty(ordinal_pos) => {
-                format!("The property for index {ordinal_pos} of the object is missing")
-            }
-            HitObjectParseError::ValueParseError { property_index, .. } => {
-                format!("There was a problem parsing the property for index {property_index}")
-            }
-        };
-
-        write!(f, "{err}")
-    }
-}
-
-impl Error for HitObjectParseError {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        if let HitObjectParseError::ValueParseError { err, .. } = self {
-            Some(err.as_ref())
-        } else {
-            None
-        }
-    }
-}
-
-impl From<HitObjectParseError> for OsuFileParseError {
-    fn from(err: HitObjectParseError) -> Self {
-        Self::SectionParseError {
-            source: Box::new(err),
-        }
-    }
 }
 
 #[derive(Clone, Copy)]
@@ -669,43 +597,6 @@ impl FromStr for HitSample {
     }
 }
 
-impl From<VolumeParseError> for HitSampleParseError {
-    fn from(err: VolumeParseError) -> Self {
-        Self::ParseError(Box::new(err))
-    }
-}
-
-impl From<SampleSetParseError> for HitSampleParseError {
-    fn from(err: SampleSetParseError) -> Self {
-        Self::ParseError(Box::new(err))
-    }
-}
-
-#[derive(Debug)]
-pub enum HitSampleParseError {
-    MissingProperty,
-    ParseError(Box<dyn Error>),
-}
-
-impl Error for HitSampleParseError {}
-
-impl Display for HitSampleParseError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let err = match self {
-            HitSampleParseError::MissingProperty => "A property is missing",
-            HitSampleParseError::ParseError(_) => "There was a problem parsing a value",
-        };
-
-        write!(f, "{err}")
-    }
-}
-
-impl From<ParseIntError> for HitSampleParseError {
-    fn from(err: ParseIntError) -> Self {
-        Self::ParseError(Box::new(err))
-    }
-}
-
 #[derive(Clone, Copy)]
 pub enum SampleSet {
     NoCustomSampleSet,
@@ -732,12 +623,6 @@ impl FromStr for SampleSet {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         SampleSet::try_from(s.parse::<Integer>()?)
-    }
-}
-
-impl From<ParseIntError> for SampleSetParseError {
-    fn from(err: ParseIntError) -> Self {
-        Self::ValueParseError(Box::new(err))
     }
 }
 
@@ -768,33 +653,6 @@ impl TryFrom<Integer> for SampleSet {
             2 => Ok(SampleSet::SoftSet),
             3 => Ok(SampleSet::DrumSet),
             _ => Err(SampleSetParseError::ValueHigherThanThree),
-        }
-    }
-}
-
-#[derive(Debug)]
-pub enum SampleSetParseError {
-    ValueHigherThanThree,
-    ValueParseError(Box<dyn Error>),
-}
-
-impl Display for SampleSetParseError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let err = match self {
-            SampleSetParseError::ValueHigherThanThree => "The value parsing is higher than 3.",
-            SampleSetParseError::ValueParseError(_) => "There was a problem parsing the value.",
-        };
-
-        write!(f, "{err}")
-    }
-}
-
-impl Error for SampleSetParseError {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        if let SampleSetParseError::ValueParseError(err) = self {
-            Some(err.as_ref())
-        } else {
-            None
         }
     }
 }
@@ -844,41 +702,6 @@ impl FromStr for Volume {
         let volume = s.parse::<u8>()?;
 
         Volume::new(volume)
-    }
-}
-
-#[derive(Debug)]
-pub enum VolumeParseError {
-    VolumeTooHigh,
-    InvalidString(Box<dyn Error>),
-}
-
-impl From<ParseIntError> for VolumeParseError {
-    fn from(err: ParseIntError) -> Self {
-        Self::InvalidString(Box::new(err))
-    }
-}
-
-impl Display for VolumeParseError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let err = match self {
-            VolumeParseError::VolumeTooHigh => {
-                "Volume is too high. Requires to be in the range of 0 ~ 100"
-            }
-            VolumeParseError::InvalidString(_) => "Invalid string",
-        };
-
-        write!(f, "{err}")
-    }
-}
-
-impl Error for VolumeParseError {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        if let VolumeParseError::InvalidString(err) = self {
-            Some(err.as_ref())
-        } else {
-            None
-        }
     }
 }
 
@@ -1151,17 +974,6 @@ impl FromStr for CurveType {
     }
 }
 
-#[derive(Debug)]
-pub struct CurveTypeParseError;
-
-impl Error for CurveTypeParseError {}
-
-impl Display for CurveTypeParseError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Error, tried to parse an invalid string as curve type.")
-    }
-}
-
 #[derive(Clone)]
 struct PipeVec<T>(pub Vec<T>);
 
@@ -1236,57 +1048,6 @@ where
         } else {
             Ok(ColonSet(first, second))
         }
-    }
-}
-
-#[derive(Debug)]
-enum ColonSetParseError {
-    MissingFirstItem,
-    MissingSecondItem,
-    MoreThanTwoItems,
-    ValueParseError(Box<dyn Error>),
-}
-
-impl Display for ColonSetParseError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let err = match self {
-            ColonSetParseError::MissingFirstItem => "Missing the first item in the colon set",
-            ColonSetParseError::MissingSecondItem => "Missing the second item in the colon set",
-            ColonSetParseError::MoreThanTwoItems => "There is more than 2 items in the colon set",
-            ColonSetParseError::ValueParseError(_) => {
-                "There is a problem parsing a value to a colon set"
-            }
-        };
-
-        write!(f, "{err}")
-    }
-}
-
-impl Error for ColonSetParseError {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        if let ColonSetParseError::ValueParseError(err) = self {
-            Some(err.as_ref())
-        } else {
-            None
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct PipeVecParseErr(Box<dyn Error>);
-
-impl Display for PipeVecParseErr {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "There was a problem parsing a pipe-separated list of values"
-        )
-    }
-}
-
-impl Error for PipeVecParseErr {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        Some(self.0.as_ref())
     }
 }
 
@@ -1406,7 +1167,6 @@ impl Spinner {
         x: Integer,
         y: Integer,
         time: Integer,
-        obj_type: HitObjectType,
         hitsound: HitSound,
         hitsample: HitSample,
         new_combo: bool,
@@ -1417,7 +1177,7 @@ impl Spinner {
             x,
             y,
             time,
-            obj_type,
+            obj_type: HitObjectType::Spinner,
             hitsound,
             hitsample,
             new_combo,
@@ -1551,7 +1311,6 @@ impl OsuManiaHold {
         x: Integer,
         y: Integer,
         time: Integer,
-        obj_type: HitObjectType,
         hitsound: HitSound,
         hitsample: HitSample,
         new_combo: bool,
@@ -1562,7 +1321,7 @@ impl OsuManiaHold {
             x,
             y,
             time,
-            obj_type,
+            obj_type: HitObjectType::OsuManiaHold,
             hitsound,
             hitsample,
             new_combo,
