@@ -82,7 +82,7 @@ impl Display for ComboSkipCountParseError {
 
 impl Error for ComboSkipCountParseError {}
 
-/// Attempts to parse a `&str` into a `HitObject`.
+/// Attempts to parse a `&str` into a [HitObjectWrapper].
 ///
 /// # Example
 /// ```
@@ -103,7 +103,7 @@ impl Error for ComboSkipCountParseError {}
 /// assert_eq!(spinner_str, spinner.to_string());
 /// assert_eq!(osu_mania_hold_str, osu_mania_hold.to_string());
 /// ```
-pub fn parse_hitobject(hitobject: &str) -> Result<HitObjectWrapper, HitObjectParseError> {
+pub fn try_parse_hitobject(hitobject: &str) -> Result<HitObjectWrapper, HitObjectParseError> {
     let mut obj_properties = hitobject.trim().split(',');
 
     let (x, y, time, obj_type, hitsound) = {
