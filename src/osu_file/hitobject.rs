@@ -68,7 +68,7 @@ impl Error for ComboSkipCountParseError {}
 /// use osu_file_parser::osu_file::hitobject::parse_hitobject;
 ///
 /// let hitcircle_str = "221,350,9780,1,0,0:0:0:0:";
-/// let slider_str = "31,85,3049,2,0,B|129:55|123:136|228:86,1,172.500006580353,2|0,3:2|0:2,0:2:0:0:";
+/// let slider_str = "31,85,3049,2,0,B|129:55|123:136|228:86,1,172.51,2|0,3:2|0:2,0:2:0:0:";
 /// let spinner_str = "256,192,33598,12,0,431279,0:0:0:0:";
 /// let osu_mania_hold_str = "51,192,350,128,2,849:0:0:0:0:";
 ///
