@@ -4,9 +4,12 @@ use std::{
     str::FromStr,
 };
 
+use rust_decimal::Decimal;
+use rust_decimal_macros::dec;
+
 use super::{
     section_error::{InvalidKey, MissingValue, SectionParseError},
-    Decimal, Integer, DELIMITER,
+    Integer, DELIMITER,
 };
 
 /// A struct representing the general section of the .osu file
@@ -76,7 +79,7 @@ impl Default for General {
             preview_time: -1,
             countdown: Default::default(),
             sample_set: Default::default(),
-            stack_leniency: 0.7,
+            stack_leniency: dec!(0.7),
             mode: Default::default(),
             letterbox_in_breaks: Default::default(),
             story_fire_in_front: true,
@@ -158,6 +161,12 @@ impl FromStr for General {
         }
 
         Ok(general)
+    }
+}
+
+impl From<rust_decimal::Error> for SectionParseError {
+    fn from(err: rust_decimal::Error) -> Self {
+        SectionParseError::new(Box::new(err))
     }
 }
 

@@ -1,5 +1,7 @@
 #[cfg(test)]
 mod tests {
+    use rust_decimal_macros::dec;
+
     use crate::osu_file::general::{CountdownSpeed, GameMode, General, OverlayPosition, SampleSet};
 
     #[test]
@@ -33,7 +35,7 @@ SamplesMatchPlaybackRate: 1"
             preview_time: 5,
             countdown: CountdownSpeed::Double,
             sample_set: SampleSet::Soft,
-            stack_leniency: 0.9,
+            stack_leniency: dec!(0.9),
             mode: GameMode::Taiko,
             letterbox_in_breaks: true,
             story_fire_in_front: false,

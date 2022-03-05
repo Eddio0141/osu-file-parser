@@ -1,11 +1,8 @@
-use std::{
-    error::Error,
-    fmt::Display,
-    num::{ParseFloatError, ParseIntError, TryFromIntError},
-    str::FromStr,
-};
+use std::{error::Error, fmt::Display, num::ParseIntError, str::FromStr};
 
-use super::{Decimal, Integer, OsuFileParseError};
+use rust_decimal::Decimal;
+
+use super::{Integer, OsuFileParseError};
 
 type ComboSkipCount = u8;
 

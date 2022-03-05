@@ -360,4 +360,3 @@ impl Error for OsuFileParseError {
 const DELIMITER: char = ':';
 
 type Integer = i32;
-type Decimal = f32;

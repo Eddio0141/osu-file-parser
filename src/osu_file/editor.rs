@@ -1,6 +1,8 @@
 use std::{error::Error, fmt::Display, str::FromStr};
 
-use super::{Decimal, Integer, section_error::SectionParseError};
+use rust_decimal::Decimal;
+
+use super::{section_error::SectionParseError, Integer};
 
 /// A struct representing the editor section of thye .osu file
 #[derive(Default, Debug, PartialEq)]
