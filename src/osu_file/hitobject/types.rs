@@ -1,13 +1,16 @@
+//! Module defining misc types used for different hitobjects, such as [CurveType] used for [Slider][super::Slider] curve types.
+
 use std::{fmt::Display, num::ParseIntError, str::FromStr};
 
 use crate::osu_file::Integer;
 
 use super::{error::*, helper::nth_bit_state_i64};
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default, Hash)]
+/// Sample sets used for the edgeSounds.
 pub struct EdgeSet {
-    normal_set: SampleSet,
-    addition_set: SampleSet,
+    pub normal_set: SampleSet,
+    pub addition_set: SampleSet,
 }
 
 impl FromStr for EdgeSet {
@@ -39,7 +42,8 @@ impl Display for EdgeSet {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+/// A coordinate on the screen, represented in the form `x:y` as a `str`.
 pub struct CurvePoint {
     pub x: Integer,
     pub y: Integer,
@@ -71,12 +75,18 @@ impl Display for CurvePoint {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum SampleSet {
     NoCustomSampleSet,
     NormalSet,
     SoftSet,
     DrumSet,
+}
+
+impl Default for SampleSet {
+    fn default() -> Self {
+        Self::NoCustomSampleSet
+    }
 }
 
 impl Display for SampleSet {
@@ -111,12 +121,6 @@ impl From<SampleSet> for Integer {
     }
 }
 
-impl Default for SampleSet {
-    fn default() -> Self {
-        Self::NoCustomSampleSet
-    }
-}
-
 impl TryFrom<Integer> for SampleSet {
     type Error = SampleSetParseError;
 
@@ -131,7 +135,8 @@ impl TryFrom<Integer> for SampleSet {
     }
 }
 
-#[derive(Default, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+#[derive(Default, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash)]
+/// Volume of the sample from `1` to `100`. If [volume][Self::volume] returns `None`, the timing point's volume will be used instead.
 pub struct Volume(Option<u8>);
 
 impl From<Volume> for Integer {
@@ -144,26 +149,47 @@ impl From<Volume> for Integer {
 }
 
 impl Volume {
-    pub fn new(volume: u8) -> Result<Volume, VolumeParseError> {
-        match volume {
-            0 => Ok(Self(None)),
-            volume if volume <= 100 => Ok(Self(Some(volume))),
-            _ => Err(VolumeParseError::VolumeTooHigh),
+    /// Creates a new instance of `Volume`.
+    /// - Requires the `volume` to be in range of `1` ~ `100`.
+    /// - Setting the `volume` to be `None` will use the timingpoint's volume instead.
+    pub fn new(volume: Option<u8>) -> Result<Volume, VolumeParseError> {
+        if let Some(volume) = volume {
+            if volume == 0 {
+                Err(VolumeParseError::VolumeTooLow)
+            } else if volume > 100 {
+                Err(VolumeParseError::VolumeTooHigh)
+            } else {
+                Ok(Volume(Some(volume)))
+            }
+        } else {
+            Ok(Volume(volume))
         }
     }
 
+    /// Returns the `volume`.
     pub fn volume(&self) -> Option<u8> {
         self.0
     }
 
-    pub fn set_volume(&mut self, volume: u8) {
-        self.0 = Some(volume);
+    /// Sets the `volume`.
+    /// Requires to be in the boundary of `1` ~ `100`
+    pub fn set_volume(&mut self, volume: u8) -> Result<(), VolumeSetError> {
+        if volume == 0 {
+            Err(VolumeSetError::VolumeTooLow)
+        } else if volume > 100 {
+            Err(VolumeSetError::VolumeTooHigh(volume))
+        } else {
+            self.0 = Some(volume);
+            Ok(())
+        }
     }
 
+    /// Returns `true` if the timingpoint volume is used instead.
     pub fn use_timing_point_volume(&self) -> bool {
         self.0.is_none()
     }
 
+    /// Sets if to use the timingpoint volume instead.
     pub fn set_use_timing_point_volume(&mut self) {
         self.0 = None;
     }
@@ -175,11 +201,18 @@ impl FromStr for Volume {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let volume = s.parse::<u8>()?;
 
+        let volume = if volume == 0 { None } else { Some(volume) };
+
         Volume::new(volume)
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, Default, Hash, PartialEq, Eq)]
+/// Flags that determine which sounds will play when the object is hit.
+/// # Possible sounds
+/// [`normal`][Self::normal] [`whistle`][Self::whistle] [`finish`][Self::finish] [`clap`][Self::clap]
+/// - If no flags are set, it will default to using the `normal` sound.
+/// - In every mode except osu!mania, the `LayeredHitSounds` skin property forces the `normal` sound to be used, and ignores those flags.
 pub struct HitSound {
     normal: bool,
     whistle: bool,
@@ -208,46 +241,41 @@ impl Display for HitSound {
     }
 }
 
-impl Default for HitSound {
-    fn default() -> Self {
-        Self {
-            normal: true,
-            whistle: false,
-            finish: false,
-            clap: false,
-        }
-    }
-}
-
 impl HitSound {
+    /// Returns the `normal` flag. Also will return `true` if no sound flags are set.
     pub fn normal(&self) -> bool {
-        if !(self.normal || self.whistle || self.finish || self.clap) {
+        if !self.normal && !self.whistle && !self.finish && !self.clap {
             true
         } else {
             self.normal
         }
     }
+    /// Returns the `whistle` flag.
     pub fn whistle(&self) -> bool {
         self.whistle
     }
+    /// Returns the `finish` flag.
     pub fn finish(&self) -> bool {
         self.finish
     }
+    /// Returns the `clap` flag.
     pub fn clap(&self) -> bool {
         self.clap
     }
 
+    /// Sets the `normal` flag.
     pub fn set_normal(&mut self, normal: bool) {
         self.normal = normal;
     }
+    /// Sets the `whistle` flag.
     pub fn set_whistle(&mut self, whistle: bool) {
         self.whistle = whistle;
     }
-
+    /// Sets the `finish` flag.
     pub fn set_finish(&mut self, finish: bool) {
         self.finish = finish;
     }
-
+    /// Sets the `clap` flag.
     pub fn set_clap(&mut self, clap: bool) {
         self.clap = clap;
     }
@@ -277,7 +305,8 @@ impl From<u8> for HitSound {
     }
 }
 
-#[derive(PartialEq, Eq, Clone, Copy)]
+// TODO finish documenting and check type methods, derive, interface, etc
+#[derive(PartialEq, Eq, Clone, Copy, Debug, Hash)]
 pub enum CurveType {
     Bezier,
     Centripetal,

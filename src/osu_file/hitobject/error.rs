@@ -150,8 +150,28 @@ impl Error for SampleSetParseError {
 }
 
 #[derive(Debug)]
+pub enum VolumeSetError {
+    VolumeTooHigh(u8),
+    VolumeTooLow,
+}
+
+impl Display for VolumeSetError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let err = match self {
+            VolumeSetError::VolumeTooHigh(got) => format!("Volume too high, got {got}."),
+            VolumeSetError::VolumeTooLow => "Volume too low, got 0.".to_string(),
+        };
+
+        write!(f, "{err} Expected volume to be in between `1` ~ `100`.")
+    }
+}
+
+impl Error for VolumeSetError {}
+
+#[derive(Debug)]
 pub enum VolumeParseError {
     VolumeTooHigh,
+    VolumeTooLow,
     InvalidString(Box<dyn Error>),
 }
 
@@ -165,7 +185,10 @@ impl Display for VolumeParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let err = match self {
             VolumeParseError::VolumeTooHigh => {
-                "Volume is too high. Requires to be in the range of 0 ~ 100"
+                "Volume is too high. Requires to be in the range of 1 ~ 100"
+            }
+            VolumeParseError::VolumeTooLow => {
+                "Volume is too low. Requires to be in the range of 1 ~ 100"
             }
             VolumeParseError::InvalidString(_) => "Invalid string",
         };
