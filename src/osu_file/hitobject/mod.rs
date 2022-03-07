@@ -537,6 +537,20 @@ pub struct Slider {
     edge_sets: PipeVec<ColonSet<SampleSet, SampleSet>>,
 }
 
+impl Slider {
+    pub fn curve_type(&self) -> CurveType {
+        self.curve_type
+    }
+
+    pub fn set_curve_type(&mut self, curve_type: CurveType) {
+        self.curve_type = curve_type;
+    }
+
+    pub fn curve_points(&self) -> &PipeVec<ColonSet<Integer, Integer>> {
+        &self.curve_points
+    }
+}
+
 impl Display for Slider {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let properties = vec![
