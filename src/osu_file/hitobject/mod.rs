@@ -1,12 +1,14 @@
 pub mod error;
-pub mod misc_types;
+pub mod types;
+mod helper;
 
 use std::fmt::Display;
 
 use rust_decimal::Decimal;
 
 use self::error::*;
-use self::misc_types::*;
+use self::types::*;
+use self::helper::*;
 
 use super::Integer;
 
@@ -343,10 +345,6 @@ pub fn try_parse_hitobject(hitobject: &str) -> Result<HitObjectWrapper, HitObjec
             })
         }
     })
-}
-
-fn nth_bit_state_i64(value: i64, nth_bit: u8) -> bool {
-    value >> nth_bit & 1 == 1
 }
 
 /// Type contanining one of the hitobject types.

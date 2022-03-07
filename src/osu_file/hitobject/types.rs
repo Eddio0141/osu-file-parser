@@ -1,8 +1,8 @@
-use std::{error::Error, fmt::Display, num::ParseIntError, str::FromStr};
+use std::{fmt::Display, num::ParseIntError, str::FromStr};
 
 use crate::osu_file::Integer;
 
-use super::error::*;
+use super::{error::*, helper::nth_bit_state_i64};
 
 #[derive(Clone, Copy)]
 pub struct EdgeSet {
@@ -69,27 +69,6 @@ impl Display for CurvePoint {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}:{}", self.x, self.y)
     }
-}
-
-pub fn pipe_vec_to_string<T>(vec: &Vec<T>) -> String
-where
-    T: ToString,
-{
-    vec.iter()
-        .map(|s| s.to_string())
-        .collect::<Vec<_>>()
-        .join("|")
-}
-
-pub fn str_to_pipe_vec<T>(s: &str) -> Result<Vec<T>, PipeVecParseErr>
-where
-    T: FromStr,
-    <T as FromStr>::Err: Error + 'static,
-{
-    s.split('|')
-        .map(|s| s.parse())
-        .collect::<Result<Vec<T>, _>>()
-        .map_err(|err| PipeVecParseErr::new(Box::new(err)))
 }
 
 #[derive(Clone, Copy)]
@@ -296,10 +275,6 @@ impl From<u8> for HitSound {
             clap,
         }
     }
-}
-
-fn nth_bit_state_i64(value: i64, nth_bit: u8) -> bool {
-    value >> nth_bit & 1 == 1
 }
 
 #[derive(PartialEq, Eq, Clone, Copy)]
