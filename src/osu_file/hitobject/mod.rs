@@ -218,13 +218,12 @@ pub fn try_parse_hitobject(hitobject: &str) -> Result<HitObjectWrapper, HitObjec
                         err: Box::new(err),
                     })?;
 
-            let curve_points =
-                curve_points
-                    .parse()
-                    .map_err(|err| HitObjectParseError::ValueParseError {
-                        property_index: 6,
-                        err: Box::new(err),
-                    })?;
+            let curve_points = str_to_pipe_vec(curve_points).map_err(|err| {
+                HitObjectParseError::ValueParseError {
+                    property_index: 6,
+                    err: Box::new(err),
+                }
+            })?;
 
             let slides = obj_properties
                 .next()
@@ -244,23 +243,25 @@ pub fn try_parse_hitobject(hitobject: &str) -> Result<HitObjectWrapper, HitObjec
                     err: Box::new(err),
                 })?;
 
-            let edge_sounds = obj_properties
-                .next()
-                .ok_or(HitObjectParseError::MissingProperty(9))?
-                .parse()
-                .map_err(|err| HitObjectParseError::ValueParseError {
-                    property_index: 9,
-                    err: Box::new(err),
-                })?;
+            let edge_sounds = str_to_pipe_vec(
+                obj_properties
+                    .next()
+                    .ok_or(HitObjectParseError::MissingProperty(9))?,
+            )
+            .map_err(|err| HitObjectParseError::ValueParseError {
+                property_index: 9,
+                err: Box::new(err),
+            })?;
 
-            let edge_sets = obj_properties
-                .next()
-                .ok_or(HitObjectParseError::MissingProperty(10))?
-                .parse()
-                .map_err(|err| HitObjectParseError::ValueParseError {
-                    property_index: 10,
-                    err: Box::new(err),
-                })?;
+            let edge_sets = str_to_pipe_vec(
+                obj_properties
+                    .next()
+                    .ok_or(HitObjectParseError::MissingProperty(10))?,
+            )
+            .map_err(|err| HitObjectParseError::ValueParseError {
+                property_index: 10,
+                err: Box::new(err),
+            })?;
 
             let hitsample = hitsample(&mut obj_properties, 11)?;
 
@@ -530,11 +531,11 @@ pub struct Slider {
     combo_skip_count: ComboSkipCount,
 
     curve_type: CurveType,
-    curve_points: PipeVec<ColonSet<Integer, Integer>>,
+    curve_points: Vec<CurvePoint>,
     slides: Integer,
     length: Decimal,
-    edge_sounds: PipeVec<HitSound>,
-    edge_sets: PipeVec<ColonSet<SampleSet, SampleSet>>,
+    edge_sounds: Vec<HitSound>,
+    edge_sets: Vec<EdgeSet>,
 }
 
 impl Slider {
@@ -546,8 +547,20 @@ impl Slider {
         self.curve_type = curve_type;
     }
 
-    pub fn curve_points(&self) -> &PipeVec<ColonSet<Integer, Integer>> {
+    pub fn curve_points(&self) -> &[CurvePoint] {
         &self.curve_points
+    }
+
+    pub fn curve_points_mut(&mut self) -> &mut Vec<CurvePoint> {
+        &mut self.curve_points
+    }
+
+    pub fn edge_sets(&self) -> &[EdgeSet] {
+        &self.edge_sets
+    }
+
+    pub fn edge_sets_mut(&mut self) -> &mut Vec<EdgeSet> {
+        &mut self.edge_sets
     }
 }
 
@@ -563,11 +576,11 @@ impl Display for Slider {
         ];
 
         let properties_2 = vec![
-            self.curve_points.to_string(),
+            pipe_vec_to_string(&self.curve_points),
             self.slides.to_string(),
             self.length.to_string(),
-            self.edge_sounds.to_string(),
-            self.edge_sets.to_string(),
+            pipe_vec_to_string(&self.edge_sounds),
+            pipe_vec_to_string(&self.edge_sets),
             self.hitsample.to_string(),
         ];
 

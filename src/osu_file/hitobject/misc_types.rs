@@ -1,48 +1,95 @@
-use std::{fmt::Display, num::ParseIntError, str::FromStr};
+use std::{error::Error, fmt::Display, num::ParseIntError, str::FromStr};
 
 use crate::osu_file::Integer;
 
 use super::error::*;
 
 #[derive(Clone, Copy)]
-pub struct ColonSet<F, S>(pub F, pub S);
-
-impl<F, S> Display for ColonSet<F, S>
-where
-    F: Display,
-    S: Display,
-{
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}:{}", self.0, self.1)
-    }
+pub struct EdgeSet {
+    normal_set: SampleSet,
+    addition_set: SampleSet,
 }
 
-impl<F, S> FromStr for ColonSet<F, S>
-where
-    F: FromStr,
-    S: FromStr,
-    ColonSetParseError: From<<F as FromStr>::Err> + From<<S as FromStr>::Err>,
-{
+impl FromStr for EdgeSet {
     type Err = ColonSetParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut s = s.split(':');
+        let s = s.split(':').collect::<Vec<_>>();
 
-        let first = s
-            .next()
-            .ok_or(ColonSetParseError::MissingFirstItem)?
-            .parse::<F>()?;
-        let second = s
-            .next()
-            .ok_or(ColonSetParseError::MissingSecondItem)?
-            .parse::<S>()?;
-
-        if s.count() > 0 {
-            Err(ColonSetParseError::MoreThanTwoItems)
-        } else {
-            Ok(ColonSet(first, second))
+        if s.len() > 2 {
+            return Err(ColonSetParseError::MoreThanTwoItems);
         }
+
+        let normal_set = s.get(0).ok_or(ColonSetParseError::MissingFirstItem)?;
+        let addition_set = s.get(1).ok_or(ColonSetParseError::MissingSecondItem)?;
+
+        let normal_set = normal_set.parse()?;
+        let addition_set = addition_set.parse()?;
+
+        Ok(Self {
+            normal_set,
+            addition_set,
+        })
     }
+}
+
+impl Display for EdgeSet {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}:{}", self.normal_set, self.addition_set)
+    }
+}
+
+#[derive(Clone, Copy)]
+pub struct CurvePoint {
+    pub x: Integer,
+    pub y: Integer,
+}
+
+impl FromStr for CurvePoint {
+    type Err = ColonSetParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let s = s.split(':').collect::<Vec<_>>();
+
+        if s.len() > 2 {
+            return Err(ColonSetParseError::MoreThanTwoItems);
+        }
+
+        let x = s.get(0).ok_or(ColonSetParseError::MissingFirstItem)?;
+        let y = s.get(1).ok_or(ColonSetParseError::MissingSecondItem)?;
+
+        let x = x.parse()?;
+        let y = y.parse()?;
+
+        Ok(Self { x, y })
+    }
+}
+
+impl Display for CurvePoint {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}:{}", self.x, self.y)
+    }
+}
+
+pub fn pipe_vec_to_string<T>(vec: &Vec<T>) -> String
+where
+    T: ToString,
+{
+    vec.iter()
+        .map(|s| s.to_string())
+        .collect::<Vec<_>>()
+        .join("|")
+}
+
+pub fn str_to_pipe_vec<T>(s: &str) -> Result<Vec<T>, PipeVecParseErr>
+where
+    T: FromStr,
+    <T as FromStr>::Err: Error + 'static,
+{
+    s.split('|')
+        .map(|s| s.parse())
+        .collect::<Result<Vec<T>, _>>()
+        .map_err(|err| PipeVecParseErr::new(Box::new(err)))
 }
 
 #[derive(Clone, Copy)]
@@ -253,42 +300,6 @@ impl From<u8> for HitSound {
 
 fn nth_bit_state_i64(value: i64, nth_bit: u8) -> bool {
     value >> nth_bit & 1 == 1
-}
-
-#[derive(Clone)]
-pub struct PipeVec<T>(pub Vec<T>);
-
-impl<T> Display for PipeVec<T>
-where
-    T: Display,
-{
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            self.0
-                .iter()
-                .map(|s| s.to_string())
-                .collect::<Vec<_>>()
-                .join("|")
-        )
-    }
-}
-
-impl<T> FromStr for PipeVec<T>
-where
-    T: FromStr,
-    PipeVecParseErr: From<<T as FromStr>::Err>,
-{
-    type Err = PipeVecParseErr;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Self(
-            s.split('|')
-                .map(|s| s.parse())
-                .collect::<Result<Vec<_>, _>>()?,
-        ))
-    }
 }
 
 #[derive(PartialEq, Eq, Clone, Copy)]

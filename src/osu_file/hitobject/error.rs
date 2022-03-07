@@ -210,7 +210,7 @@ impl Display for ColonSetParseError {
             ColonSetParseError::MissingSecondItem => "Missing the second item in the colon set",
             ColonSetParseError::MoreThanTwoItems => "There is more than 2 items in the colon set",
             ColonSetParseError::ValueParseError(_) => {
-                "There is a problem parsing a value to a colon set"
+                "There is a problem parsing a value to a colon set item"
             }
         };
 
@@ -230,6 +230,12 @@ impl Error for ColonSetParseError {
 
 #[derive(Debug)]
 pub struct PipeVecParseErr(Box<dyn Error>);
+
+impl PipeVecParseErr {
+    pub fn new(err: Box<dyn Error>) -> Self {
+        Self(err)
+    }
+}
 
 impl Display for PipeVecParseErr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
