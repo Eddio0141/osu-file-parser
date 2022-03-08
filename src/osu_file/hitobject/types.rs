@@ -1,6 +1,10 @@
 //! Module defining misc types used for different hitobjects, such as [CurveType] used for [Slider][super::Slider] curve types.
 
-use std::{fmt::Display, num::ParseIntError, str::FromStr};
+use std::{
+    fmt::Display,
+    num::{NonZeroUsize, ParseIntError},
+    str::FromStr,
+};
 
 use crate::osu_file::Integer;
 
@@ -9,7 +13,9 @@ use super::{error::*, helper::nth_bit_state_i64};
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default, Hash)]
 /// Sample sets used for the edgeSounds.
 pub struct EdgeSet {
+    /// Sample set of the normal sound.
     pub normal_set: SampleSet,
+    /// Sample set of the whistle, finish, and clap sounds.
     pub addition_set: SampleSet,
 }
 
@@ -45,7 +51,9 @@ impl Display for EdgeSet {
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 /// A coordinate on the screen, represented in the form `x:y` as a `str`.
 pub struct CurvePoint {
+    /// x position of the point in `osu!pixels`.
     pub x: Integer,
+    /// y position of the point in `osu!pixels`.
     pub y: Integer,
 }
 
@@ -75,11 +83,16 @@ impl Display for CurvePoint {
     }
 }
 
+/// Used for `normal_set` and `addition_set` for the `[hitobject]`[super::HitObject].
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum SampleSet {
+    /// No custom sample set.
     NoCustomSampleSet,
+    /// Normal set.
     NormalSet,
+    /// Soft set.
     SoftSet,
+    /// Drum set.
     DrumSet,
 }
 
@@ -135,7 +148,7 @@ impl TryFrom<Integer> for SampleSet {
     }
 }
 
-#[derive(Default, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash)]
+#[derive(Default, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, Debug)]
 /// Volume of the sample from `1` to `100`. If [volume][Self::volume] returns `None`, the timing point's volume will be used instead.
 pub struct Volume(Option<u8>);
 
@@ -305,12 +318,16 @@ impl From<u8> for HitSound {
     }
 }
 
-// TODO finish documenting and check type methods, derive, interface, etc
 #[derive(PartialEq, Eq, Clone, Copy, Debug, Hash)]
+/// Type of curve used to construct the [`slider`][super::Slider]
 pub enum CurveType {
+    /// Bézier curve.
     Bezier,
+    /// Centripetal catmull-rom curve.
     Centripetal,
+    /// Linear curve.
     Linear,
+    /// Perfect circle curve.
     PerfectCircle,
 }
 
@@ -341,11 +358,13 @@ impl FromStr for CurveType {
     }
 }
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug, Hash, PartialEq, Eq)]
+/// Information about which samples are played when the object is hit.
+/// It is closely related to [`hitSound`][HitSound].
 pub struct HitSample {
     normal_set: SampleSet,
     addition_set: SampleSet,
-    index: Option<usize>,
+    index: Option<NonZeroUsize>,
     volume: Volume,
     filename: String,
 }
@@ -354,7 +373,7 @@ impl Display for HitSample {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let normal_set: Integer = self.normal_set.into();
         let addition_set: Integer = self.addition_set.into();
-        let index = self.index.unwrap_or(0);
+        let index = self.index.unwrap_or(NonZeroUsize::new(1).unwrap());
         let volume: Integer = self.volume.into();
         let filename = &self.filename;
 
@@ -363,48 +382,66 @@ impl Display for HitSample {
 }
 
 impl HitSample {
+    /// Returns the sample set of the normal sound.
     pub fn normal_set(&self) -> SampleSet {
         self.normal_set
     }
 
+    /// Sets the sample set of the normal sound.
     pub fn set_normal_set(&mut self, normal_set: SampleSet) {
         self.normal_set = normal_set;
     }
 
+    /// Returns the sample set of the whistle, finish, and clap sounds.
     pub fn addition_set(&self) -> SampleSet {
         self.addition_set
     }
 
+    /// Sets the sample set of the whistle, finish, and clap sounds.
     pub fn set_addition_set(&mut self, addition_set: SampleSet) {
         self.addition_set = addition_set;
     }
 
-    pub fn index(&self) -> Option<usize> {
+    /// Index of the sample.
+    /// - If this returns `None`, the timing point's sample index will be used instead.
+    pub fn index(&self) -> Option<NonZeroUsize> {
         self.index
     }
 
-    pub fn set_index(&mut self, index: usize) {
-        if index == 0 {
-            self.index = None;
-        } else {
-            self.index = Some(index);
-        }
+    /// Sets the index of the sample.
+    /// - If this returns `None`, the timing point's sample index will be used instead.
+    pub fn set_index(&mut self, index: NonZeroUsize) {
+        self.index = Some(index);
     }
 
+    /// Returns `true` if the timing point index is used instead.
     pub fn use_timing_point_index(&self) -> bool {
         self.index.is_none()
     }
 
+    /// Sets if the timing point index is to be used.
     pub fn set_use_timing_point_index(&mut self) {
         self.index = None;
     }
 
+    /// Returns the reference to the hit sample's `volume`.
     pub fn volume(&self) -> &Volume {
         &self.volume
     }
 
+    /// Get a mutable reference to the hit sample's `volume`.
+    pub fn volume_mut(&mut self) -> &mut Volume {
+        &mut self.volume
+    }
+
+    /// Returns the reference to the custom filename of the addition sound.
     pub fn filename(&self) -> &str {
         self.filename.as_ref()
+    }
+
+    /// Sets the custom filename of the addition sound.
+    pub fn set_filename(&mut self, filename: &str) {
+        self.filename = filename.to_owned();
     }
 }
 
@@ -433,7 +470,12 @@ impl FromStr for HitSample {
             .next()
             .ok_or(HitSampleParseError::MissingProperty)?
             .parse::<usize>()?;
-        let index = if index == 0 { None } else { Some(index) };
+        let index = if index == 0 {
+            None
+        } else {
+            // safe to unwrap since the 0 check is done before hand
+            Some(NonZeroUsize::new(index).unwrap())
+        };
 
         let volume = s
             .next()
