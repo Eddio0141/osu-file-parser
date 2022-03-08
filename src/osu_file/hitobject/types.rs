@@ -373,7 +373,10 @@ impl Display for HitSample {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let normal_set: Integer = self.normal_set.into();
         let addition_set: Integer = self.addition_set.into();
-        let index = self.index.unwrap_or(NonZeroUsize::new(1).unwrap());
+        let index = match self.index {
+            Some(index) => index.into(),
+            None => 0,
+        };
         let volume: Integer = self.volume.into();
         let filename = &self.filename;
 

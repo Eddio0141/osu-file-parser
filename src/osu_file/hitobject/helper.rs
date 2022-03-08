@@ -2,7 +2,7 @@ use std::{error::Error, str::FromStr};
 
 use super::error::PipeVecParseErr;
 
-pub fn pipe_vec_to_string<T>(vec: &Vec<T>) -> String
+pub fn pipe_vec_to_string<T>(vec: &[T]) -> String
 where
     T: ToString,
 {
