@@ -4,9 +4,6 @@ use std::{error::Error, num::ParseIntError};
 
 use thiserror::Error;
 
-// TODO finish doc
-// TODO parse error containing attempt value
-
 #[derive(Debug, Error)]
 /// Error used when there was a problem parsing a `str` having a `F:S` format.
 pub enum ColonSetParseError {
