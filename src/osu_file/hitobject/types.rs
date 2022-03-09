@@ -26,7 +26,9 @@ impl FromStr for EdgeSet {
         let s = s.split(':').collect::<Vec<_>>();
 
         if s.len() > 2 {
-            return Err(ColonSetParseError::MoreThanTwoItems);
+            return Err(ColonSetParseError::MoreThanTwoItems(
+                format!("{}:{}", s[0], s[1]).len(),
+            ));
         }
 
         let normal_set = s.get(0).ok_or(ColonSetParseError::MissingFirstItem)?;
@@ -77,7 +79,9 @@ impl FromStr for CurvePoint {
         let s = s.split(':').collect::<Vec<_>>();
 
         if s.len() > 2 {
-            return Err(ColonSetParseError::MoreThanTwoItems);
+            return Err(ColonSetParseError::MoreThanTwoItems(
+                format!("{}:{}", s[0], s[1]).len(),
+            ));
         }
 
         let x = s.get(0).ok_or(ColonSetParseError::MissingFirstItem)?;

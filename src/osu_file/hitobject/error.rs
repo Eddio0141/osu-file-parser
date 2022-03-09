@@ -5,13 +5,14 @@ use std::{error::Error, fmt::Display, num::ParseIntError};
 use crate::osu_file::OsuFileParseError;
 
 #[derive(Debug)]
+/// Error used when there is a problem parsing a str having a `F:S` format.
 pub enum ColonSetParseError {
     /// When the first item is missing.
     MissingFirstItem,
     /// When the second item is missing.
     MissingSecondItem,
     /// There are more than 2 items defined.
-    MoreThanTwoItems,
+    MoreThanTwoItems(usize),
     /// There was some problem parsing the value.
     ValueParseError {
         source: Box<dyn Error>,
@@ -28,8 +29,10 @@ impl Display for ColonSetParseError {
             ColonSetParseError::MissingSecondItem => {
                 "Missing the second item in the colon set.".to_string()
             }
-            ColonSetParseError::MoreThanTwoItems => {
-                "There is more than 2 items in the colon set.".to_string()
+            ColonSetParseError::MoreThanTwoItems(index) => {
+                format!(
+                    "There is more than 2 items in the colon set, another defined at index {index}"
+                )
             }
             ColonSetParseError::ValueParseError { index, .. } => {
                 format!("There was a problem parsing a value to a colon set item at index {index}.")
@@ -50,35 +53,23 @@ impl Error for ColonSetParseError {
     }
 }
 
-impl From<ParseIntError> for PipeVecParseErr {
-    fn from(err: ParseIntError) -> Self {
-        PipeVecParseErr(Box::new(err))
-    }
-}
-
-impl From<ColonSetParseError> for PipeVecParseErr {
-    fn from(err: ColonSetParseError) -> Self {
-        PipeVecParseErr(Box::new(err))
-    }
-}
-
 #[derive(Debug)]
 pub enum HitObjectParseError {
     MissingProperty(usize),
-    ValueParseError {
-        property_index: usize,
-        err: Box<dyn Error>,
-    },
+    ValueParseError { index: usize, err: Box<dyn Error> },
 }
 
 impl Display for HitObjectParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let err = match self {
             HitObjectParseError::MissingProperty(ordinal_pos) => {
-                format!("The property for index {ordinal_pos} of the object is missing")
+                format!("The property for index {ordinal_pos} of the object is missing.")
             }
-            HitObjectParseError::ValueParseError { property_index, .. } => {
-                format!("There was a problem parsing the property for index {property_index}")
+            HitObjectParseError::ValueParseError {
+                index: property_index,
+                ..
+            } => {
+                format!("There was a problem parsing the property for index {property_index}.")
             }
         };
 
@@ -264,5 +255,17 @@ impl Display for PipeVecParseErr {
 impl Error for PipeVecParseErr {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         Some(self.0.as_ref())
+    }
+}
+
+impl From<ParseIntError> for PipeVecParseErr {
+    fn from(err: ParseIntError) -> Self {
+        PipeVecParseErr(Box::new(err))
+    }
+}
+
+impl From<ColonSetParseError> for PipeVecParseErr {
+    fn from(err: ColonSetParseError) -> Self {
+        PipeVecParseErr(Box::new(err))
     }
 }

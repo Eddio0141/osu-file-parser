@@ -123,7 +123,7 @@ pub fn try_parse_hitobject(hitobject: &str) -> Result<HitObjectWrapper, HitObjec
             let err = properties.get(first_err).unwrap().clone().unwrap_err();
 
             return Err(HitObjectParseError::ValueParseError {
-                property_index: first_err,
+                index: first_err,
                 err: Box::new(err),
             });
         }
@@ -146,7 +146,7 @@ pub fn try_parse_hitobject(hitobject: &str) -> Result<HitObjectWrapper, HitObjec
     // TODO direct fromstr conversion
     let hitsound = HitSound::from(u8::try_from(hitsound).map_err(|err| {
         HitObjectParseError::ValueParseError {
-            property_index: 4,
+            index: 4,
             err: Box::new(err),
         }
     })?);
@@ -184,7 +184,7 @@ pub fn try_parse_hitobject(hitobject: &str) -> Result<HitObjectWrapper, HitObjec
             .ok_or(HitObjectParseError::MissingProperty(property_index))?
             .parse()
             .map_err(|err| HitObjectParseError::ValueParseError {
-                property_index,
+                index: property_index,
                 err: Box::new(err),
             })
     };
@@ -216,13 +216,13 @@ pub fn try_parse_hitobject(hitobject: &str) -> Result<HitObjectWrapper, HitObjec
                 curve_type
                     .parse()
                     .map_err(|err| HitObjectParseError::ValueParseError {
-                        property_index: 5,
+                        index: 5,
                         err: Box::new(err),
                     })?;
 
             let curve_points = str_to_pipe_vec(curve_points).map_err(|err| {
                 HitObjectParseError::ValueParseError {
-                    property_index: 6,
+                    index: 6,
                     err: Box::new(err),
                 }
             })?;
@@ -232,7 +232,7 @@ pub fn try_parse_hitobject(hitobject: &str) -> Result<HitObjectWrapper, HitObjec
                 .ok_or(HitObjectParseError::MissingProperty(7))?
                 .parse()
                 .map_err(|err| HitObjectParseError::ValueParseError {
-                    property_index: 7,
+                    index: 7,
                     err: Box::new(err),
                 })?;
 
@@ -241,7 +241,7 @@ pub fn try_parse_hitobject(hitobject: &str) -> Result<HitObjectWrapper, HitObjec
                 .ok_or(HitObjectParseError::MissingProperty(8))?
                 .parse()
                 .map_err(|err| HitObjectParseError::ValueParseError {
-                    property_index: 8,
+                    index: 8,
                     err: Box::new(err),
                 })?;
 
@@ -251,7 +251,7 @@ pub fn try_parse_hitobject(hitobject: &str) -> Result<HitObjectWrapper, HitObjec
                     .ok_or(HitObjectParseError::MissingProperty(9))?,
             )
             .map_err(|err| HitObjectParseError::ValueParseError {
-                property_index: 9,
+                index: 9,
                 err: Box::new(err),
             })?;
 
@@ -261,7 +261,7 @@ pub fn try_parse_hitobject(hitobject: &str) -> Result<HitObjectWrapper, HitObjec
                     .ok_or(HitObjectParseError::MissingProperty(10))?,
             )
             .map_err(|err| HitObjectParseError::ValueParseError {
-                property_index: 10,
+                index: 10,
                 err: Box::new(err),
             })?;
 
@@ -290,7 +290,7 @@ pub fn try_parse_hitobject(hitobject: &str) -> Result<HitObjectWrapper, HitObjec
                 .ok_or(HitObjectParseError::MissingProperty(5))?
                 .parse()
                 .map_err(|err| HitObjectParseError::ValueParseError {
-                    property_index: 5,
+                    index: 5,
                     err: Box::new(err),
                 })?;
 
@@ -320,7 +320,7 @@ pub fn try_parse_hitobject(hitobject: &str) -> Result<HitObjectWrapper, HitObjec
                 end_time
                     .parse()
                     .map_err(|err| HitObjectParseError::ValueParseError {
-                        property_index: 5,
+                        index: 5,
                         err: Box::new(err),
                     })?;
 
@@ -328,7 +328,7 @@ pub fn try_parse_hitobject(hitobject: &str) -> Result<HitObjectWrapper, HitObjec
                 hitsample
                     .parse()
                     .map_err(|err| HitObjectParseError::ValueParseError {
-                        property_index: 5,
+                        index: 5,
                         err: Box::new(err),
                     })?;
 
