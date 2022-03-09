@@ -487,12 +487,13 @@ impl FromStr for HitSample {
         let (normal_set, addition_set) = {
             let mut sample_sets = Vec::new();
 
-            for _ in 0..sample_set_count {
-                sample_sets.push(
-                    s.next()
-                        .ok_or(HitSampleParseError::MissingProperty)?
-                        .parse()?,
-                );
+            for i in 0..sample_set_count {
+                let s = s.next().ok_or(HitSampleParseError::MissingProperty(i))?;
+
+                sample_sets.push(s.parse().map_err(|err| HitSampleParseError::ParseError {
+                    source: Box::new(err),
+                    range: i..i + s.len() + 1,
+                })?);
             }
 
             (sample_sets[0], sample_sets[1])

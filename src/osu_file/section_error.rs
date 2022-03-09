@@ -4,6 +4,10 @@ use std::{
     num::{ParseFloatError, ParseIntError},
 };
 
+// TODO doc
+// TODO error boilerplate reduction
+// TODO better error
+
 #[derive(Debug)]
 pub struct InvalidKey(pub String);
 
