@@ -32,8 +32,21 @@ impl FromStr for EdgeSet {
         let normal_set = s.get(0).ok_or(ColonSetParseError::MissingFirstItem)?;
         let addition_set = s.get(1).ok_or(ColonSetParseError::MissingSecondItem)?;
 
-        let normal_set = normal_set.parse()?;
-        let addition_set = addition_set.parse()?;
+        let normal_set_len = normal_set.len();
+
+        let normal_set = normal_set
+            .parse()
+            .map_err(|err| ColonSetParseError::ValueParseError {
+                source: Box::new(err),
+                index: 0,
+            })?;
+        let addition_set =
+            addition_set
+                .parse()
+                .map_err(|err| ColonSetParseError::ValueParseError {
+                    source: Box::new(err),
+                    index: normal_set_len,
+                })?;
 
         Ok(Self {
             normal_set,
@@ -70,8 +83,20 @@ impl FromStr for CurvePoint {
         let x = s.get(0).ok_or(ColonSetParseError::MissingFirstItem)?;
         let y = s.get(1).ok_or(ColonSetParseError::MissingSecondItem)?;
 
-        let x = x.parse()?;
-        let y = y.parse()?;
+        let x_len = x.len();
+
+        let x = x
+            .parse()
+            .map_err(|err| ColonSetParseError::ValueParseError {
+                source: Box::new(err),
+                index: 0,
+            })?;
+        let y = y
+            .parse()
+            .map_err(|err| ColonSetParseError::ValueParseError {
+                source: Box::new(err),
+                index: x_len,
+            })?;
 
         Ok(Self { x, y })
     }

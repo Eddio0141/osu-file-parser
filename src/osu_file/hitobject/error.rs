@@ -1,21 +1,52 @@
+//! Module defining `error` types that's used for the `hitobject` related modules.
+
 use std::{error::Error, fmt::Display, num::ParseIntError};
 
 use crate::osu_file::OsuFileParseError;
 
 #[derive(Debug)]
-pub struct ComboSkipCountParseError;
+pub enum ColonSetParseError {
+    /// When the first item is missing.
+    MissingFirstItem,
+    /// When the second item is missing.
+    MissingSecondItem,
+    /// There are more than 2 items defined.
+    MoreThanTwoItems,
+    /// There was some problem parsing the value.
+    ValueParseError {
+        source: Box<dyn Error>,
+        index: usize,
+    },
+}
 
-impl Display for ComboSkipCountParseError {
+impl Display for ColonSetParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "There was a problem parsing a value to a 3 bit value")
+        let err = match self {
+            ColonSetParseError::MissingFirstItem => {
+                "Missing the first item in the colon set.".to_string()
+            }
+            ColonSetParseError::MissingSecondItem => {
+                "Missing the second item in the colon set.".to_string()
+            }
+            ColonSetParseError::MoreThanTwoItems => {
+                "There is more than 2 items in the colon set.".to_string()
+            }
+            ColonSetParseError::ValueParseError { index, .. } => {
+                format!("There was a problem parsing a value to a colon set item at index {index}.")
+            }
+        };
+
+        write!(f, "{err}")
     }
 }
 
-impl Error for ComboSkipCountParseError {}
-
-impl From<SampleSetParseError> for ColonSetParseError {
-    fn from(err: SampleSetParseError) -> Self {
-        ColonSetParseError::ValueParseError(Box::new(err))
+impl Error for ColonSetParseError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        if let ColonSetParseError::ValueParseError { source, .. } = self {
+            Some(source.as_ref())
+        } else {
+            None
+        }
     }
 }
 
@@ -28,12 +59,6 @@ impl From<ParseIntError> for PipeVecParseErr {
 impl From<ColonSetParseError> for PipeVecParseErr {
     fn from(err: ColonSetParseError) -> Self {
         PipeVecParseErr(Box::new(err))
-    }
-}
-
-impl From<ParseIntError> for ColonSetParseError {
-    fn from(err: ParseIntError) -> Self {
-        ColonSetParseError::ValueParseError(Box::new(err))
     }
 }
 
@@ -215,39 +240,6 @@ impl Error for CurveTypeParseError {}
 impl Display for CurveTypeParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Error, tried to parse an invalid string as curve type.")
-    }
-}
-
-#[derive(Debug)]
-pub enum ColonSetParseError {
-    MissingFirstItem,
-    MissingSecondItem,
-    MoreThanTwoItems,
-    ValueParseError(Box<dyn Error>),
-}
-
-impl Display for ColonSetParseError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let err = match self {
-            ColonSetParseError::MissingFirstItem => "Missing the first item in the colon set",
-            ColonSetParseError::MissingSecondItem => "Missing the second item in the colon set",
-            ColonSetParseError::MoreThanTwoItems => "There is more than 2 items in the colon set",
-            ColonSetParseError::ValueParseError(_) => {
-                "There is a problem parsing a value to a colon set item"
-            }
-        };
-
-        write!(f, "{err}")
-    }
-}
-
-impl Error for ColonSetParseError {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        if let ColonSetParseError::ValueParseError(err) = self {
-            Some(err.as_ref())
-        } else {
-            None
-        }
     }
 }
 
