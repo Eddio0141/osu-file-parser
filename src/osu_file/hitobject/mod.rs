@@ -780,7 +780,6 @@ impl Display for Spinner {
 impl Default for Spinner {
     fn default() -> Self {
         Self {
-            // TODO check if 0ms spinner is valid
             position: Default::default(),
             time: Default::default(),
             obj_type: HitObjectType::Spinner,
@@ -821,7 +820,6 @@ impl Spinner {
         self.end_time
     }
 
-    // TODO is it valid if end_time is lower or equals to time
     /// Sets the `end_time` of the Spinner.
     pub fn set_end_time(&mut self, end_time: Integer) {
         self.end_time = end_time;
@@ -923,7 +921,6 @@ impl Display for OsuManiaHold {
 impl Default for OsuManiaHold {
     fn default() -> Self {
         Self {
-            // TODO check if 0ms hold is valid
             position: Position {
                 x: Default::default(),
                 ..Default::default()
@@ -967,7 +964,6 @@ impl OsuManiaHold {
         self.end_time
     }
 
-    // TODO is it valid if end_time is lower or equals to time
     /// Sets the `end_time` for the `OsuManiaHold`.
     pub fn set_end_time(&mut self, end_time: Integer) {
         self.end_time = end_time;
