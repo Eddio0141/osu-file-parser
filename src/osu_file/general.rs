@@ -167,7 +167,7 @@ impl FromStr for General {
                             general.letterbox_in_breaks =
                                 parse_zero_one_bool(value).map_err(|err| {
                                     GeneralParseError::SectionParseError {
-                                        source: err,
+                                        source: Box::new(err),
                                         name: "LetterboxInBreaks",
                                     }
                                 })?
@@ -176,7 +176,7 @@ impl FromStr for General {
                             general.story_fire_in_front =
                                 parse_zero_one_bool(value).map_err(|err| {
                                     GeneralParseError::SectionParseError {
-                                        source: err,
+                                        source: Box::new(err),
                                         name: "StoryFireInFront",
                                     }
                                 })?
@@ -185,7 +185,7 @@ impl FromStr for General {
                             general.use_skin_sprites =
                                 parse_zero_one_bool(value).map_err(|err| {
                                     GeneralParseError::SectionParseError {
-                                        source: err,
+                                        source: Box::new(err),
                                         name: "UseSkinSprites",
                                     }
                                 })?
@@ -194,7 +194,7 @@ impl FromStr for General {
                             general.always_show_playfield =
                                 parse_zero_one_bool(value).map_err(|err| {
                                     GeneralParseError::SectionParseError {
-                                        source: err,
+                                        source: Box::new(err),
                                         name: "AlwaysShowPlayfield",
                                     }
                                 })?
@@ -212,7 +212,7 @@ impl FromStr for General {
                             general.epilepsy_warning =
                                 parse_zero_one_bool(value).map_err(|err| {
                                     GeneralParseError::SectionParseError {
-                                        source: err,
+                                        source: Box::new(err),
                                         name: "EpilepsyWarning",
                                     }
                                 })?
@@ -228,7 +228,7 @@ impl FromStr for General {
                         "SpecialStyle" => {
                             general.special_style = parse_zero_one_bool(value).map_err(|err| {
                                 GeneralParseError::SectionParseError {
-                                    source: err,
+                                    source: Box::new(err),
                                     name: "SpecialStyle",
                                 }
                             })?
@@ -237,7 +237,7 @@ impl FromStr for General {
                             general.widescreen_storyboard =
                                 parse_zero_one_bool(value).map_err(|err| {
                                     GeneralParseError::SectionParseError {
-                                        source: err,
+                                        source: Box::new(err),
                                         name: "WidescreenStoryboard",
                                     }
                                 })?
@@ -245,7 +245,7 @@ impl FromStr for General {
                         "SamplesMatchPlaybackRate" => {
                             general.samples_match_playback_rate = parse_zero_one_bool(value)
                                 .map_err(|err| GeneralParseError::SectionParseError {
-                                    source: err,
+                                    source: Box::new(err),
                                     name: "SamplesMatchPlaybackRate",
                                 })?
                         }
@@ -260,27 +260,33 @@ impl FromStr for General {
     }
 }
 
-fn parse_zero_one_bool(value: &str) -> Result<bool, Box<dyn Error>> {
-    let value = value.parse()?;
+fn parse_zero_one_bool(value: &str) -> Result<bool, ParseBoolError> {
+    let value = value
+        .parse()
+        .map_err(|err| ParseBoolError::ValueParseError {
+            source: err,
+            value: value.to_string(),
+        })?;
 
     match value {
         0 => Ok(false),
         1 => Ok(true),
-        _ => Err(Box::new(ParseBoolError)),
+        _ => Err(ParseBoolError::InvalidValue(value)),
     }
 }
 
 /// Error for when having a problem parsing 0 or 1 as a boolean
-#[derive(Debug)]
-struct ParseBoolError;
-
-impl Display for ParseBoolError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Error parsing integer as `true` or `false`")
-    }
+#[derive(Debug, Error)]
+pub enum ParseBoolError {
+    #[error("Error parsing {value} as an Integer")]
+    ValueParseError {
+        #[source]
+        source: ParseIntError,
+        value: String,
+    },
+    #[error("Error parsing {0} as `true` or `false`, expected value of 0 or 1")]
+    InvalidValue(Integer),
 }
-
-impl Error for ParseBoolError {}
 
 impl Display for General {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
