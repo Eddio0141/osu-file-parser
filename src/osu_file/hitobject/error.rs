@@ -7,6 +7,8 @@ use std::{
 
 use thiserror::Error;
 
+use super::ComboSkipCount;
+
 #[derive(Debug, Error)]
 /// Error used when there was a problem parsing a `str` having a `F:S` format.
 pub enum ColonSetParseError {
@@ -127,3 +129,8 @@ impl From<TryFromIntError> for HitSoundParseError {
         HitSoundParseError(Box::new(err))
     }
 }
+
+#[derive(Debug, Error)]
+#[error("Attempted to set the combo skip count but the value was higher than the 3-bit limit: `7`, got {0}")]
+/// Error used when the `ComboSkipCount` was tried to set higher than the limit of 3 bits: `7`.
+pub struct ComboSkipCountSetError(pub ComboSkipCount);

@@ -13,7 +13,6 @@ use self::types::*;
 use super::Integer;
 use super::Position;
 
-// TODO look into some crate that allows for a 3 bit value
 type ComboSkipCount = u8;
 
 /// An interface that represents a hitobject.
@@ -43,7 +42,8 @@ pub trait HitObject: Display {
     /// Returns a 3-bit integer specifying how many combo colours to skip, if this object starts a new combo.
     fn combo_skip_count(&self) -> ComboSkipCount;
     /// Sets a 3-bit integer specifying how many combo colours to skip, if this object starts a new combo.
-    fn set_combo_skip_count(&mut self, value: ComboSkipCount);
+    fn set_combo_skip_count(&mut self, value: ComboSkipCount)
+        -> Result<(), ComboSkipCountSetError>;
 
     /// Returns the [hitsound][HitSound] property of the hitobject.
     fn hitsound(&self) -> &HitSound;
@@ -495,8 +495,16 @@ impl HitObject for HitCircle {
         self.combo_skip_count
     }
 
-    fn set_combo_skip_count(&mut self, value: ComboSkipCount) {
-        self.combo_skip_count = value;
+    fn set_combo_skip_count(
+        &mut self,
+        value: ComboSkipCount,
+    ) -> Result<(), ComboSkipCountSetError> {
+        if value > 0b111 {
+            Err(ComboSkipCountSetError(value))
+        } else {
+            self.combo_skip_count = value;
+            Ok(())
+        }
     }
 
     fn hitsound(&self) -> &HitSound {
@@ -647,8 +655,16 @@ impl HitObject for Slider {
         self.combo_skip_count
     }
 
-    fn set_combo_skip_count(&mut self, value: ComboSkipCount) {
-        self.combo_skip_count = value;
+    fn set_combo_skip_count(
+        &mut self,
+        value: ComboSkipCount,
+    ) -> Result<(), ComboSkipCountSetError> {
+        if value > 0b111 {
+            Err(ComboSkipCountSetError(value))
+        } else {
+            self.combo_skip_count = value;
+            Ok(())
+        }
     }
 
     fn hitsound(&self) -> &HitSound {
@@ -716,8 +732,16 @@ impl HitObject for Spinner {
         self.combo_skip_count
     }
 
-    fn set_combo_skip_count(&mut self, value: ComboSkipCount) {
-        self.combo_skip_count = value;
+    fn set_combo_skip_count(
+        &mut self,
+        value: ComboSkipCount,
+    ) -> Result<(), ComboSkipCountSetError> {
+        if value > 0b111 {
+            Err(ComboSkipCountSetError(value))
+        } else {
+            self.combo_skip_count = value;
+            Ok(())
+        }
     }
 
     fn hitsound(&self) -> &HitSound {
@@ -852,8 +876,16 @@ impl HitObject for OsuManiaHold {
         self.combo_skip_count
     }
 
-    fn set_combo_skip_count(&mut self, value: ComboSkipCount) {
-        self.combo_skip_count = value;
+    fn set_combo_skip_count(
+        &mut self,
+        value: ComboSkipCount,
+    ) -> Result<(), ComboSkipCountSetError> {
+        if value > 0b111 {
+            Err(ComboSkipCountSetError(value))
+        } else {
+            self.combo_skip_count = value;
+            Ok(())
+        }
     }
 
     fn hitsound(&self) -> &HitSound {
