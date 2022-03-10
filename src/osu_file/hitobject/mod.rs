@@ -370,10 +370,15 @@ pub fn try_parse_hitobject(hitobject: &str) -> Result<HitObjectWrapper, HitObjec
 }
 
 /// Type contanining one of the hitobject types.
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum HitObjectWrapper {
+    /// Contains a [`HitCircle`].
     HitCircle(HitCircle),
+    /// Contains a [`Slider`].
     Slider(Slider),
+    /// Contains a [`Spinner`].
     Spinner(Spinner),
+    /// Contains a [`OsuManiaHold`].
     OsuManiaHold(OsuManiaHold),
 }
 
@@ -392,7 +397,7 @@ impl Display for HitObjectWrapper {
 
 impl HitObjectWrapper {
     /// Turns itself into a boxed [HitObject].
-    pub fn hitobject_trait_obj(&self) -> Box<dyn HitObject> {
+    pub fn boxed_hitobject(&self) -> Box<dyn HitObject> {
         match self {
             HitObjectWrapper::HitCircle(circle) => Box::new(circle.clone()),
             HitObjectWrapper::Slider(slider) => Box::new(slider.clone()),
@@ -402,15 +407,21 @@ impl HitObjectWrapper {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+/// All possible `HitObject` types.
 pub enum HitObjectType {
+    /// A hitcircle.
     HitCircle,
+    /// A slider.
     Slider,
+    /// A spinner.
     Spinner,
+    /// An osu!mania hold
     OsuManiaHold,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
+/// A `HitCircle` object.
 pub struct HitCircle {
     position: Position,
     time: Integer,
@@ -506,6 +517,7 @@ impl HitObject for HitCircle {
 }
 
 impl HitCircle {
+    /// Creates a new `HitCircle` instance.
     pub fn new(
         pos: Position,
         time: Integer,
@@ -526,7 +538,8 @@ impl HitCircle {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
+/// A `Slider` object.
 pub struct Slider {
     position: Position,
     time: Integer,
@@ -546,26 +559,32 @@ pub struct Slider {
 }
 
 impl Slider {
+    /// Returns the `CurveType` of the slider.
     pub fn curve_type(&self) -> CurveType {
         self.curve_type
     }
 
+    /// Sets the `CurveType` of the slider.
     pub fn set_curve_type(&mut self, curve_type: CurveType) {
         self.curve_type = curve_type;
     }
 
+    /// Returns a reference to the `CurvePoints` of the slider.
     pub fn curve_points(&self) -> &[CurvePoint] {
         &self.curve_points
     }
 
+    /// Returns a mutable reference to the `CurvePoints` of the slider.
     pub fn curve_points_mut(&mut self) -> &mut Vec<CurvePoint> {
         &mut self.curve_points
     }
 
+    /// Returns a reference to the `EdgeSets` of the slider.
     pub fn edge_sets(&self) -> &[EdgeSet] {
         &self.edge_sets
     }
 
+    /// Returns a mutable reference to the `EdgeSets` of the slider.
     pub fn edge_sets_mut(&mut self) -> &mut Vec<EdgeSet> {
         &mut self.edge_sets
     }
@@ -649,7 +668,8 @@ impl HitObject for Slider {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
+/// A `Spinner` object.
 pub struct Spinner {
     position: Position,
     time: Integer,
@@ -750,6 +770,7 @@ impl Default for Spinner {
 }
 
 impl Spinner {
+    /// Creates a new `Spinner` instance.
     pub fn new(
         position: Position,
         time: Integer,
@@ -771,17 +792,20 @@ impl Spinner {
         }
     }
 
+    /// Returns the `end_time` of the Spinner.
     pub fn end_time(&self) -> i32 {
         self.end_time
     }
 
     // TODO is it valid if end_time is lower or equals to time
+    /// Sets the `end_time` of the Spinner.
     pub fn set_end_time(&mut self, end_time: Integer) {
         self.end_time = end_time;
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
+/// A `Osu!Mania Hold` object.
 pub struct OsuManiaHold {
     position: Position,
     time: Integer,
@@ -884,6 +908,7 @@ impl Default for OsuManiaHold {
 }
 
 impl OsuManiaHold {
+    /// Returns a new `OsuManiaHold` instance.
     pub fn new(
         position: Position,
         time: Integer,
@@ -905,11 +930,13 @@ impl OsuManiaHold {
         }
     }
 
+    /// Returns the `end_time` for the `OsuManiaHold`.
     pub fn end_time(&self) -> i32 {
         self.end_time
     }
 
     // TODO is it valid if end_time is lower or equals to time
+    /// Sets the `end_time` for the `OsuManiaHold`.
     pub fn set_end_time(&mut self, end_time: Integer) {
         self.end_time = end_time;
     }

@@ -2,12 +2,12 @@
 
 use std::{fmt::Display, num::NonZeroUsize, str::FromStr};
 
-use crate::osu_file::Integer;
+use crate::osu_file::{Integer, Position};
 
 use super::{error::*, helper::nth_bit_state_i64};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default, Hash)]
-/// Sample sets used for the edgeSounds.
+/// Sample sets used for the `edgeSounds`.
 pub struct EdgeSet {
     /// Sample set of the normal sound.
     pub normal_set: SampleSet,
@@ -56,13 +56,8 @@ impl Display for EdgeSet {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
-/// A coordinate on the screen, represented in the form `x:y` as a `str`.
-pub struct CurvePoint {
-    /// x position of the point in `osu!pixels`.
-    pub x: Integer,
-    /// y position of the point in `osu!pixels`.
-    pub y: Integer,
-}
+/// Anchor point used to construct the [`slider`][super::Slider].
+pub struct CurvePoint(pub Position);
 
 impl FromStr for CurvePoint {
     type Err = ColonSetParseError;
@@ -90,13 +85,15 @@ impl FromStr for CurvePoint {
                 value: y.to_string(),
             })?;
 
-        Ok(Self { x, y })
+        let position = Position { x, y };
+
+        Ok(Self(position))
     }
 }
 
 impl Display for CurvePoint {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}:{}", self.x, self.y)
+        write!(f, "{}:{}", self.0.x, self.0.y)
     }
 }
 
@@ -344,7 +341,7 @@ impl From<u8> for HitSound {
 }
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug, Hash)]
-/// Type of curve used to construct the [`slider`][super::Slider]
+/// Type of curve used to construct the [`slider`][super::Slider].
 pub enum CurveType {
     /// Bézier curve.
     Bezier,
