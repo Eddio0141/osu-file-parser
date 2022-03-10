@@ -1,14 +1,18 @@
 use std::str::FromStr;
 
-use super::section_error::SectionParseError;
+use thiserror::Error;
 
 #[derive(Default)]
 pub struct Events;
 
 impl FromStr for Events {
-    type Err = SectionParseError;
+    type Err = EventsParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         todo!()
     }
 }
+
+#[derive(Debug, Error)]
+#[error("")]
+pub struct EventsParseError;

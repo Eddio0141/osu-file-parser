@@ -8,13 +8,13 @@ use thiserror::Error;
 /// Error used when there was a problem parsing a `str` having a `F:S` format.
 pub enum ColonSetParseError {
     /// When the first item is missing.
-    #[error("Missing the first item in the colon set")]
+    #[error("Missing the first item in the colon set. Colon set requires to have the format `first:second`")]
     MissingFirstItem,
     /// When the second item is missing.
     #[error("Missing the second item in the colon set. Colon set requires to have the format `first:second`")]
     MissingSecondItem,
     /// There are more than 2 items defined.
-    #[error("There is more than 2 items in the colon set: {0}")]
+    #[error("There is more than 2 items in the colon set: {0}. Colon set only has two items: `first:second`")]
     MoreThanTwoItems(String),
     /// There was some problem parsing the value.
     #[error("There was a problem parsing the `str` \"{value}\" to a colon set item")]
@@ -59,8 +59,8 @@ pub enum HitSampleParseError {
 /// Error used when there was a problem parsing a `str` into a [`sampleset`][super::types::SampleSet].
 pub enum SampleSetParseError {
     /// The `str` had a value higher than 3.
-    #[error("The value parsing is higher than 3. Expected value in between `0` ~ `3`")]
-    ValueHigherThanThree,
+    #[error("Expected value in between `0` ~ `3`, got {0}")]
+    ValueHigherThanThree(i32),
     /// There was a problem parsing a `str` as an integer first.
     #[error("There was a problem parsing the `str` into an integer first")]
     ValueParseError(#[from] ParseIntError),

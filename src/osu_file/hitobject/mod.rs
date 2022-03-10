@@ -1,14 +1,14 @@
 pub mod error;
-pub mod types;
 mod helper;
+pub mod types;
 
 use std::fmt::Display;
 
 use rust_decimal::Decimal;
 
 use self::error::*;
-use self::types::*;
 use self::helper::*;
+use self::types::*;
 
 use super::Integer;
 
@@ -105,30 +105,33 @@ pub fn try_parse_hitobject(hitobject: &str) -> Result<HitObjectWrapper, HitObjec
     let mut obj_properties = hitobject.trim().split(',');
 
     let (x, y, time, obj_type, hitsound) = {
-        let properties = (&mut obj_properties).take(5);
+        let properties = (&mut obj_properties).take(5).collect::<Vec<_>>();
 
-        if let Some(properties_len) = properties.size_hint().1 {
-            if properties_len < 5 {
-                return Err(HitObjectParseError::MissingProperty(properties_len));
-            }
+        if properties.len() < 5 {
+            return Err(HitObjectParseError::MissingProperty(properties.len()));
         }
 
-        let properties = properties
+        let properties_parse = properties
+            .iter()
             .map(|property| property.parse::<Integer>())
             .collect::<Vec<_>>();
-        let first_err = properties.iter().position(|result| result.is_err());
+        let first_err = properties_parse.iter().position(|result| result.is_err());
 
         if let Some(first_err) = first_err {
             // since the first_err is a valid index here
-            let err = properties.get(first_err).unwrap().clone().unwrap_err();
+            let err = properties_parse
+                .get(first_err)
+                .unwrap()
+                .clone()
+                .unwrap_err();
 
             return Err(HitObjectParseError::ValueParseError {
-                index: first_err,
-                err: Box::new(err),
+                source: Box::new(err),
+                value: properties[first_err].to_string(),
             });
         }
 
-        let properties = properties
+        let properties = properties_parse
             .iter()
             .cloned()
             .map(|property| property.ok().unwrap())
@@ -146,8 +149,8 @@ pub fn try_parse_hitobject(hitobject: &str) -> Result<HitObjectWrapper, HitObjec
     // TODO direct fromstr conversion
     let hitsound = HitSound::from(u8::try_from(hitsound).map_err(|err| {
         HitObjectParseError::ValueParseError {
-            index: 4,
-            err: Box::new(err),
+            source: Box::new(err),
+            value: hitsound.to_string(),
         }
     })?);
 
@@ -179,13 +182,15 @@ pub fn try_parse_hitobject(hitobject: &str) -> Result<HitObjectWrapper, HitObjec
     };
 
     let hitsample = |obj_properties: &mut dyn Iterator<Item = &str>, property_index| {
-        obj_properties
+        let property = obj_properties
             .next()
-            .ok_or(HitObjectParseError::MissingProperty(property_index))?
+            .ok_or(HitObjectParseError::MissingProperty(property_index))?;
+
+        property
             .parse()
             .map_err(|err| HitObjectParseError::ValueParseError {
-                index: property_index,
-                err: Box::new(err),
+                value: property.to_string(),
+                source: Box::new(err),
             })
     };
 
@@ -216,54 +221,55 @@ pub fn try_parse_hitobject(hitobject: &str) -> Result<HitObjectWrapper, HitObjec
                 curve_type
                     .parse()
                     .map_err(|err| HitObjectParseError::ValueParseError {
-                        index: 5,
-                        err: Box::new(err),
+                        value: curve_type.to_string(),
+                        source: Box::new(err),
                     })?;
 
             let curve_points = str_to_pipe_vec(curve_points).map_err(|err| {
                 HitObjectParseError::ValueParseError {
-                    index: 6,
-                    err: Box::new(err),
+                    value: curve_points.to_string(),
+                    source: Box::new(err),
                 }
             })?;
 
             let slides = obj_properties
                 .next()
-                .ok_or(HitObjectParseError::MissingProperty(7))?
+                .ok_or(HitObjectParseError::MissingProperty(7))?;
+            let slides = slides
                 .parse()
                 .map_err(|err| HitObjectParseError::ValueParseError {
-                    index: 7,
-                    err: Box::new(err),
+                    value: slides.to_string(),
+                    source: Box::new(err),
                 })?;
 
             let length = obj_properties
                 .next()
-                .ok_or(HitObjectParseError::MissingProperty(8))?
+                .ok_or(HitObjectParseError::MissingProperty(8))?;
+            let length = length
                 .parse()
                 .map_err(|err| HitObjectParseError::ValueParseError {
-                    index: 8,
-                    err: Box::new(err),
+                    value: length.to_string(),
+                    source: Box::new(err),
                 })?;
 
-            let edge_sounds = str_to_pipe_vec(
-                obj_properties
-                    .next()
-                    .ok_or(HitObjectParseError::MissingProperty(9))?,
-            )
-            .map_err(|err| HitObjectParseError::ValueParseError {
-                index: 9,
-                err: Box::new(err),
+            let edge_sounds = obj_properties
+                .next()
+                .ok_or(HitObjectParseError::MissingProperty(9))?;
+            let edge_sounds = str_to_pipe_vec(edge_sounds).map_err(|err| {
+                HitObjectParseError::ValueParseError {
+                    value: edge_sounds.to_string(),
+                    source: Box::new(err),
+                }
             })?;
 
-            let edge_sets = str_to_pipe_vec(
-                obj_properties
-                    .next()
-                    .ok_or(HitObjectParseError::MissingProperty(10))?,
-            )
-            .map_err(|err| HitObjectParseError::ValueParseError {
-                index: 10,
-                err: Box::new(err),
-            })?;
+            let edge_sets = obj_properties
+                .next()
+                .ok_or(HitObjectParseError::MissingProperty(10))?;
+            let edge_sets =
+                str_to_pipe_vec(edge_sets).map_err(|err| HitObjectParseError::ValueParseError {
+                    value: edge_sets.to_string(),
+                    source: Box::new(err),
+                })?;
 
             let hitsample = hitsample(&mut obj_properties, 11)?;
 
@@ -287,12 +293,14 @@ pub fn try_parse_hitobject(hitobject: &str) -> Result<HitObjectWrapper, HitObjec
         HitObjectType::Spinner => {
             let end_time = obj_properties
                 .next()
-                .ok_or(HitObjectParseError::MissingProperty(5))?
-                .parse()
-                .map_err(|err| HitObjectParseError::ValueParseError {
-                    index: 5,
-                    err: Box::new(err),
-                })?;
+                .ok_or(HitObjectParseError::MissingProperty(5))?;
+            let end_time =
+                end_time
+                    .parse()
+                    .map_err(|err| HitObjectParseError::ValueParseError {
+                        value: end_time.to_string(),
+                        source: Box::new(err),
+                    })?;
 
             let hitsample = hitsample(&mut obj_properties, 6)?;
 
@@ -320,16 +328,16 @@ pub fn try_parse_hitobject(hitobject: &str) -> Result<HitObjectWrapper, HitObjec
                 end_time
                     .parse()
                     .map_err(|err| HitObjectParseError::ValueParseError {
-                        index: 5,
-                        err: Box::new(err),
+                        value: end_time.to_string(),
+                        source: Box::new(err),
                     })?;
 
             let hitsample =
                 hitsample
                     .parse()
                     .map_err(|err| HitObjectParseError::ValueParseError {
-                        index: 5,
-                        err: Box::new(err),
+                        value: hitsample.to_string(),
+                        source: Box::new(err),
                     })?;
 
             HitObjectWrapper::OsuManiaHold(OsuManiaHold {

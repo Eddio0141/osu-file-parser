@@ -1,16 +1,17 @@
 use std::{
     error::Error,
     fmt::{Debug, Display},
+    num::ParseIntError,
     str::FromStr,
 };
 
 use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
+use thiserror::Error;
 
-use super::{
-    section_error::{InvalidKey, MissingValue, SectionParseError},
-    Integer, DELIMITER,
-};
+use super::{Integer, DELIMITER};
+
+// TODO re-review all
 
 /// A struct representing the general section of the .osu file
 #[derive(PartialEq, Debug)]
@@ -97,7 +98,7 @@ impl Default for General {
 }
 
 impl FromStr for General {
-    type Err = SectionParseError;
+    type Err = GeneralParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut general = Self::default();
@@ -113,50 +114,145 @@ impl FromStr for General {
                         "AudioFilename" => {
                             general.audio_filename = value.to_owned();
                         }
-                        "AudioLeadIn" => general.audio_lead_in = value.parse()?,
+                        "AudioLeadIn" => {
+                            general.audio_lead_in = value.parse().map_err(|err| {
+                                GeneralParseError::SectionParseError {
+                                    source: Box::new(err),
+                                    name: "AudioLeadIn",
+                                }
+                            })?
+                        }
                         "AudioHash" => general.audio_hash = value.to_owned(),
-                        "PreviewTime" => general.preview_time = value.parse()?,
-                        "Countdown" => general.countdown = value.parse::<Integer>()?.try_into()?,
-                        "SampleSet" => general.sample_set = SampleSet::from_str(value)?,
-                        "StackLeniency" => general.stack_leniency = value.parse()?,
+                        "PreviewTime" => {
+                            general.preview_time = value.parse().map_err(|err| {
+                                GeneralParseError::SectionParseError {
+                                    source: Box::new(err),
+                                    name: "PreviewTime",
+                                }
+                            })?
+                        }
+                        "Countdown" => {
+                            general.countdown = value.parse().map_err(|err| {
+                                GeneralParseError::SectionParseError {
+                                    source: Box::new(err),
+                                    name: "Countdown",
+                                }
+                            })?;
+                        }
+                        "SampleSet" => {
+                            general.sample_set = value.parse().map_err(|err| {
+                                GeneralParseError::SectionParseError {
+                                    source: Box::new(err),
+                                    name: "SampleSet",
+                                }
+                            })?
+                        }
+                        "StackLeniency" => {
+                            general.stack_leniency = value.parse().map_err(|err| {
+                                GeneralParseError::SectionParseError {
+                                    source: Box::new(err),
+                                    name: "StackLeniency",
+                                }
+                            })?
+                        }
                         "Mode" => {
-                            general.mode = value.parse::<Integer>()?.try_into()?;
+                            general.mode = value.parse().map_err(|err| {
+                                GeneralParseError::SectionParseError {
+                                    source: Box::new(err),
+                                    name: "Mode",
+                                }
+                            })?
                         }
                         "LetterboxInBreaks" => {
-                            general.letterbox_in_breaks = parse_zero_one_bool(value)?
+                            general.letterbox_in_breaks =
+                                parse_zero_one_bool(value).map_err(|err| {
+                                    GeneralParseError::SectionParseError {
+                                        source: err,
+                                        name: "LetterboxInBreaks",
+                                    }
+                                })?
                         }
                         "StoryFireInFront" => {
-                            general.story_fire_in_front = parse_zero_one_bool(value)?
+                            general.story_fire_in_front =
+                                parse_zero_one_bool(value).map_err(|err| {
+                                    GeneralParseError::SectionParseError {
+                                        source: err,
+                                        name: "StoryFireInFront",
+                                    }
+                                })?
                         }
-                        "UseSkinSprites" => general.use_skin_sprites = parse_zero_one_bool(value)?,
+                        "UseSkinSprites" => {
+                            general.use_skin_sprites =
+                                parse_zero_one_bool(value).map_err(|err| {
+                                    GeneralParseError::SectionParseError {
+                                        source: err,
+                                        name: "UseSkinSprites",
+                                    }
+                                })?
+                        }
                         "AlwaysShowPlayfield" => {
-                            general.always_show_playfield = parse_zero_one_bool(value)?
+                            general.always_show_playfield =
+                                parse_zero_one_bool(value).map_err(|err| {
+                                    GeneralParseError::SectionParseError {
+                                        source: err,
+                                        name: "AlwaysShowPlayfield",
+                                    }
+                                })?
                         }
                         "OverlayPosition" => {
-                            general.overlay_position = OverlayPosition::from_str(value)?
+                            general.overlay_position = value.parse().map_err(|err| {
+                                GeneralParseError::SectionParseError {
+                                    source: Box::new(err),
+                                    name: "OverlayPosition",
+                                }
+                            })?
                         }
                         "SkinPreference" => general.skin_preference = value.to_owned(),
-                        "EpilepsyWarning" => general.epilepsy_warning = parse_zero_one_bool(value)?,
-                        "CountdownOffset" => general.countdown_offset = value.parse()?,
-                        "SpecialStyle" => general.special_style = parse_zero_one_bool(value)?,
+                        "EpilepsyWarning" => {
+                            general.epilepsy_warning =
+                                parse_zero_one_bool(value).map_err(|err| {
+                                    GeneralParseError::SectionParseError {
+                                        source: err,
+                                        name: "EpilepsyWarning",
+                                    }
+                                })?
+                        }
+                        "CountdownOffset" => {
+                            general.countdown_offset = value.parse().map_err(|err| {
+                                GeneralParseError::SectionParseError {
+                                    source: Box::new(err),
+                                    name: "CountdownOffset",
+                                }
+                            })?
+                        }
+                        "SpecialStyle" => {
+                            general.special_style = parse_zero_one_bool(value).map_err(|err| {
+                                GeneralParseError::SectionParseError {
+                                    source: err,
+                                    name: "SpecialStyle",
+                                }
+                            })?
+                        }
                         "WidescreenStoryboard" => {
-                            general.widescreen_storyboard = parse_zero_one_bool(value)?
+                            general.widescreen_storyboard =
+                                parse_zero_one_bool(value).map_err(|err| {
+                                    GeneralParseError::SectionParseError {
+                                        source: err,
+                                        name: "WidescreenStoryboard",
+                                    }
+                                })?
                         }
                         "SamplesMatchPlaybackRate" => {
-                            general.samples_match_playback_rate = parse_zero_one_bool(value)?
+                            general.samples_match_playback_rate = parse_zero_one_bool(value)
+                                .map_err(|err| GeneralParseError::SectionParseError {
+                                    source: err,
+                                    name: "SamplesMatchPlaybackRate",
+                                })?
                         }
-                        _ => {
-                            return Err(SectionParseError(Box::new(InvalidKey(
-                                key.to_owned(),
-                            ))))
-                        }
+                        _ => return Err(GeneralParseError::InvalidKey(key.to_string())),
                     }
                 }
-                None => {
-                    return Err(SectionParseError::new(Box::new(MissingValue(
-                        line.to_owned(),
-                    ))))
-                }
+                None => return Err(GeneralParseError::MissingValue(line.to_owned())),
             }
         }
 
@@ -164,19 +260,13 @@ impl FromStr for General {
     }
 }
 
-impl From<rust_decimal::Error> for SectionParseError {
-    fn from(err: rust_decimal::Error) -> Self {
-        SectionParseError::new(Box::new(err))
-    }
-}
-
-fn parse_zero_one_bool(value: &str) -> Result<bool, SectionParseError> {
+fn parse_zero_one_bool(value: &str) -> Result<bool, Box<dyn Error>> {
     let value = value.parse()?;
 
     match value {
         0 => Ok(false),
         1 => Ok(true),
-        _ => Err(SectionParseError::new(Box::new(ParseBoolError))),
+        _ => Err(Box::new(ParseBoolError)),
     }
 }
 
@@ -241,6 +331,20 @@ impl Display for General {
     }
 }
 
+#[derive(Debug, Error)]
+pub enum GeneralParseError {
+    #[error("There was a problem parsing the `{name}` property from a `str`")]
+    SectionParseError {
+        #[source]
+        source: Box<dyn Error>,
+        name: &'static str,
+    },
+    #[error("The key {0} doesn't exist in `General`")]
+    InvalidKey(String),
+    #[error("The key {0} has no value set")]
+    MissingValue(String),
+}
+
 /// Speed of the countdown before the first hit
 #[derive(PartialEq, Eq, Debug)]
 pub enum CountdownSpeed {
@@ -263,6 +367,15 @@ impl Display for CountdownSpeed {
     }
 }
 
+impl FromStr for CountdownSpeed {
+    type Err = CountdownSpeedParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let s: Integer = s.parse()?;
+        Ok(s.try_into()?)
+    }
+}
+
 impl TryFrom<i32> for CountdownSpeed {
     type Error = CountdownSpeedParseError;
 
@@ -272,27 +385,18 @@ impl TryFrom<i32> for CountdownSpeed {
             1 => Ok(CountdownSpeed::Normal),
             2 => Ok(CountdownSpeed::Half),
             3 => Ok(CountdownSpeed::Double),
-            _ => Err(CountdownSpeedParseError),
+            _ => Err(CountdownSpeedParseError::UnknownType(value)),
         }
     }
 }
 
 /// Error used when there's an error parsing the string as enum
-#[derive(Debug)]
-pub struct CountdownSpeedParseError;
-
-impl Display for CountdownSpeedParseError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Error trying to parse `value` as CountdownSpeed")
-    }
-}
-
-impl Error for CountdownSpeedParseError {}
-
-impl From<CountdownSpeedParseError> for SectionParseError {
-    fn from(err: CountdownSpeedParseError) -> Self {
-        Self::new(Box::new(err))
-    }
+#[derive(Debug, Error)]
+pub enum CountdownSpeedParseError {
+    #[error("Expected `CountdownSpeed` to be value from 0 ~ 3, got value {0}")]
+    UnknownType(Integer),
+    #[error("There was a problem parsing the `str` as an `Integer`")]
+    ParseError(#[from] ParseIntError),
 }
 
 impl Default for CountdownSpeed {
@@ -341,22 +445,9 @@ impl FromStr for SampleSet {
 }
 
 /// Error used when there's an error parsing the string as enum
-#[derive(Debug)]
+#[derive(Debug, Error)]
+#[error("Error trying to parse `value` as SampleSet")]
 pub struct SampleSetParseError;
-
-impl Display for SampleSetParseError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Error trying to parse `value` as SampleSet")
-    }
-}
-
-impl Error for SampleSetParseError {}
-
-impl From<SampleSetParseError> for SectionParseError {
-    fn from(err: SampleSetParseError) -> Self {
-        Self::new(Box::new(err))
-    }
-}
 
 /// Game mode of the .osu file
 #[derive(PartialEq, Eq, Debug)]
@@ -395,27 +486,27 @@ impl TryFrom<i32> for GameMode {
             1 => Ok(GameMode::Taiko),
             2 => Ok(GameMode::Catch),
             3 => Ok(GameMode::Mania),
-            _ => Err(GameModeParseError),
+            _ => Err(GameModeParseError::UnknownType(value)),
         }
     }
 }
 
-/// Error used when there's an error parsing the string as enum
-#[derive(Debug)]
-pub struct GameModeParseError;
+impl FromStr for GameMode {
+    type Err = GameModeParseError;
 
-impl Display for GameModeParseError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Error trying to parse `value` as GameMode")
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let s: Integer = s.parse()?;
+        Ok(s.try_into()?)
     }
 }
 
-impl Error for GameModeParseError {}
-
-impl From<GameModeParseError> for SectionParseError {
-    fn from(err: GameModeParseError) -> Self {
-        Self::new(Box::new(err))
-    }
+/// Error used when there's an error parsing the string as enum
+#[derive(Debug, Error)]
+pub enum GameModeParseError {
+    #[error("Expected `GameMode` to be value from 0 ~ 3, got value {0}")]
+    UnknownType(Integer),
+    #[error("There was a problem parsing the `str` as an `Integer`")]
+    ParseError(#[from] ParseIntError),
 }
 
 /// Draw order of hit circle overlays compared to hit numbers
@@ -461,19 +552,6 @@ impl FromStr for OverlayPosition {
 }
 
 /// Error used when there's an error parsing the string as enum
-#[derive(Debug)]
+#[derive(Debug, Error)]
+#[error("Error trying to parse `value` as OverlayPosition")]
 pub struct OverlayPositionParseError;
-
-impl Display for OverlayPositionParseError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Error trying to parse `value` as OverlayPosition")
-    }
-}
-
-impl Error for OverlayPositionParseError {}
-
-impl From<OverlayPositionParseError> for SectionParseError {
-    fn from(err: OverlayPositionParseError) -> Self {
-        Self::new(Box::new(err))
-    }
-}

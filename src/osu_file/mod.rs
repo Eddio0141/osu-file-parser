@@ -5,7 +5,6 @@ pub mod events;
 pub mod general;
 pub mod hitobject;
 pub mod metadata;
-pub mod section_error;
 pub mod timingpoint;
 
 use std::hash::Hash;
@@ -252,11 +251,7 @@ impl FromStr for OsuFile {
                     hitobjects = v
                         .lines()
                         .map(try_parse_hitobject)
-                        .collect::<Result<Vec<_>, _>>()
-                        .map_err(|err| OsuFileParseError::SectionParseError {
-                            source: Box::new(err),
-                            section_name: "HitObjects".to_string(),
-                        })?;
+                        .collect::<Result<Vec<_>, _>>()?;
 
                     sections_to_include.remove(
                         sections_to_include
@@ -332,11 +327,10 @@ pub enum OsuFileParseError {
     #[error("There is an invalid section name")]
     InvalidSectionName,
     /// Error parsing a section
-    #[error("There was a problem parsing a section")]
+    #[error(transparent)]
     SectionParseError {
-        #[source]
+        #[from]
         source: Box<dyn Error>,
-        section_name: String,
     },
 }
 

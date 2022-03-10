@@ -168,7 +168,7 @@ impl TryFrom<Integer> for SampleSet {
             1 => Ok(SampleSet::NormalSet),
             2 => Ok(SampleSet::SoftSet),
             3 => Ok(SampleSet::DrumSet),
-            _ => Err(SampleSetParseError::ValueHigherThanThree),
+            _ => Err(SampleSetParseError::ValueHigherThanThree(value)),
         }
     }
 }
