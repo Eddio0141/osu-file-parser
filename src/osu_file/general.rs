@@ -372,7 +372,7 @@ impl FromStr for CountdownSpeed {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let s: Integer = s.parse()?;
-        Ok(s.try_into()?)
+        s.try_into()
     }
 }
 
@@ -496,7 +496,7 @@ impl FromStr for GameMode {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let s: Integer = s.parse()?;
-        Ok(s.try_into()?)
+        s.try_into()
     }
 }
 

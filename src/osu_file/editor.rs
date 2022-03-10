@@ -2,7 +2,7 @@ use std::{error::Error, fmt::Display, str::FromStr};
 
 use rust_decimal::Decimal;
 
-use super::{section_error::SectionParseError, Integer};
+use super::Integer;
 
 /// A struct representing the editor section of thye .osu file
 #[derive(Default, Debug, PartialEq)]
@@ -15,9 +15,9 @@ pub struct Editor {
 }
 
 impl FromStr for Editor {
-    type Err = SectionParseError;
+    type Err = EditorParseError;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(_s: &str) -> Result<Self, Self::Err> {
         todo!()
     }
 }
@@ -58,7 +58,7 @@ impl Error for EditorParseError {
 }
 
 impl Display for Editor {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, _f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         todo!()
     }
 }

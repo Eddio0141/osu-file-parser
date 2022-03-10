@@ -181,7 +181,11 @@ impl FromStr for OsuFile {
         for (k, v) in section_map.iter() {
             match **k {
                 "General" => {
-                    general = v.parse()?;
+                    general = v
+                        .parse()
+                        .map_err(|err| OsuFileParseError::SectionParseError {
+                            source: Box::new(err),
+                        })?;
                     sections_to_include.remove(
                         sections_to_include
                             .iter()
@@ -190,7 +194,11 @@ impl FromStr for OsuFile {
                     );
                 }
                 "Editor" => {
-                    editor = v.parse()?;
+                    editor = v
+                        .parse()
+                        .map_err(|err| OsuFileParseError::SectionParseError {
+                            source: Box::new(err),
+                        })?;
                     sections_to_include.remove(
                         sections_to_include
                             .iter()
@@ -199,7 +207,11 @@ impl FromStr for OsuFile {
                     );
                 }
                 "Metadata" => {
-                    metadata = v.parse()?;
+                    metadata = v
+                        .parse()
+                        .map_err(|err| OsuFileParseError::SectionParseError {
+                            source: Box::new(err),
+                        })?;
                     sections_to_include.remove(
                         sections_to_include
                             .iter()
@@ -208,7 +220,11 @@ impl FromStr for OsuFile {
                     );
                 }
                 "Difficulty" => {
-                    difficulty = v.parse()?;
+                    difficulty = v
+                        .parse()
+                        .map_err(|err| OsuFileParseError::SectionParseError {
+                            source: Box::new(err),
+                        })?;
                     sections_to_include.remove(
                         sections_to_include
                             .iter()
@@ -217,7 +233,11 @@ impl FromStr for OsuFile {
                     );
                 }
                 "Events" => {
-                    events = v.parse()?;
+                    events = v
+                        .parse()
+                        .map_err(|err| OsuFileParseError::SectionParseError {
+                            source: Box::new(err),
+                        })?;
                     sections_to_include.remove(
                         sections_to_include
                             .iter()
@@ -229,7 +249,10 @@ impl FromStr for OsuFile {
                     timing_points = v
                         .lines()
                         .map(|line| line.parse::<TimingPoint>())
-                        .collect::<Result<Vec<_>, _>>()?;
+                        .collect::<Result<Vec<_>, _>>()
+                        .map_err(|err| OsuFileParseError::SectionParseError {
+                            source: Box::new(err),
+                        })?;
 
                     sections_to_include.remove(
                         sections_to_include
@@ -239,7 +262,11 @@ impl FromStr for OsuFile {
                     );
                 }
                 "Colours" => {
-                    colours = v.parse()?;
+                    colours = v
+                        .parse()
+                        .map_err(|err| OsuFileParseError::SectionParseError {
+                            source: Box::new(err),
+                        })?;
                     sections_to_include.remove(
                         sections_to_include
                             .iter()
@@ -251,7 +278,10 @@ impl FromStr for OsuFile {
                     hitobjects = v
                         .lines()
                         .map(try_parse_hitobject)
-                        .collect::<Result<Vec<_>, _>>()?;
+                        .collect::<Result<Vec<_>, _>>()
+                        .map_err(|err| OsuFileParseError::SectionParseError {
+                            source: Box::new(err),
+                        })?;
 
                     sections_to_include.remove(
                         sections_to_include

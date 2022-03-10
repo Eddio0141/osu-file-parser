@@ -1,14 +1,18 @@
 use std::str::FromStr;
 
-use super::section_error::SectionParseError;
+use thiserror::Error;
 
 #[derive(Default)]
 pub struct Metadata;
 
 impl FromStr for Metadata {
-    type Err = SectionParseError;
+    type Err = MetadataParseError;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(_s: &str) -> Result<Self, Self::Err> {
         todo!()
     }
 }
+
+#[derive(Debug, Error)]
+#[error("")]
+pub struct MetadataParseError;

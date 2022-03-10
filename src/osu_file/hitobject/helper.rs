@@ -25,7 +25,7 @@ where
         .enumerate()
         .map(|(i, s)| {
             let s = s.parse();
-            if let Err(_) = s {
+            if s.is_err() {
                 err_index = Some(i)
             }
             s
