@@ -1,8 +1,8 @@
-use std::{
-    error::Error,
-    fmt::Display,
-    num::{ParseFloatError, ParseIntError},
-};
+use std::{error::Error, fmt::Display};
+
+use thiserror::Error;
+
+use super::OsuFileParseError;
 
 // TODO doc
 // TODO error boilerplate reduction
@@ -30,41 +30,19 @@ impl Display for MissingValue {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
+#[error("There was a problem parsing the osu file section {section_name}")]
 pub struct SectionParseError {
+    #[source]
     source: Box<dyn Error>,
+    section_name: String,
 }
 
-impl SectionParseError {
-    pub fn new(err: Box<dyn Error>) -> Self {
-        Self { source: err }
-    }
-}
-
-impl Display for SectionParseError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "There was a problem parsing a section")
-    }
-}
-
-impl Error for SectionParseError {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        Some(self.source.as_ref())
-    }
-}
-
-impl From<ParseIntError> for SectionParseError {
-    fn from(err: ParseIntError) -> Self {
-        Self {
-            source: Box::new(err),
-        }
-    }
-}
-
-impl From<ParseFloatError> for SectionParseError {
-    fn from(err: ParseFloatError) -> Self {
-        Self {
-            source: Box::new(err),
+impl From<SectionParseError> for OsuFileParseError {
+    fn from(err: SectionParseError) -> Self {
+        Self::SectionParseError {
+            source: err.source,
+            section_name: err.section_name,
         }
     }
 }

@@ -146,7 +146,7 @@ impl FromStr for General {
                             general.samples_match_playback_rate = parse_zero_one_bool(value)?
                         }
                         _ => {
-                            return Err(SectionParseError::new(Box::new(InvalidKey(
+                            return Err(SectionParseError(Box::new(InvalidKey(
                                 key.to_owned(),
                             ))))
                         }

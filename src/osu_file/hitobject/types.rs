@@ -26,9 +26,7 @@ impl FromStr for EdgeSet {
         let s = s.split(':').collect::<Vec<_>>();
 
         if s.len() > 2 {
-            return Err(ColonSetParseError::MoreThanTwoItems(
-                format!("{}:{}", s[0], s[1]).len(),
-            ));
+            return Err(ColonSetParseError::MoreThanTwoItems(s[2..].join(":")));
         }
 
         let normal_set = s.get(0).ok_or(ColonSetParseError::MissingFirstItem)?;
@@ -40,14 +38,14 @@ impl FromStr for EdgeSet {
             .parse()
             .map_err(|err| ColonSetParseError::ValueParseError {
                 source: Box::new(err),
-                index: 0,
+                value: normal_set.to_string(),
             })?;
         let addition_set =
             addition_set
                 .parse()
                 .map_err(|err| ColonSetParseError::ValueParseError {
                     source: Box::new(err),
-                    index: normal_set_len,
+                    value: addition_set.to_string(),
                 })?;
 
         Ok(Self {
@@ -79,9 +77,7 @@ impl FromStr for CurvePoint {
         let s = s.split(':').collect::<Vec<_>>();
 
         if s.len() > 2 {
-            return Err(ColonSetParseError::MoreThanTwoItems(
-                format!("{}:{}", s[0], s[1]).len(),
-            ));
+            return Err(ColonSetParseError::MoreThanTwoItems(s[2..].join(":")));
         }
 
         let x = s.get(0).ok_or(ColonSetParseError::MissingFirstItem)?;
@@ -93,13 +89,13 @@ impl FromStr for CurvePoint {
             .parse()
             .map_err(|err| ColonSetParseError::ValueParseError {
                 source: Box::new(err),
-                index: 0,
+                value: x.to_string(),
             })?;
         let y = y
             .parse()
             .map_err(|err| ColonSetParseError::ValueParseError {
                 source: Box::new(err),
-                index: x_len,
+                value: y.to_string(),
             })?;
 
         Ok(Self { x, y })
@@ -199,7 +195,7 @@ impl Volume {
             if volume == 0 {
                 Err(VolumeParseError::VolumeTooLow)
             } else if volume > 100 {
-                Err(VolumeParseError::VolumeTooHigh)
+                Err(VolumeParseError::VolumeTooHigh(volume))
             } else {
                 Ok(Volume(Some(volume)))
             }
@@ -382,7 +378,7 @@ impl FromStr for CurveType {
             "C" => Ok(Self::Centripetal),
             "L" => Ok(Self::Linear),
             "P" => Ok(Self::PerfectCircle),
-            _ => Err(CurveTypeParseError),
+            _ => Err(CurveTypeParseError(s.to_string())),
         }
     }
 }
@@ -492,17 +488,20 @@ impl FromStr for HitSample {
 
                 sample_sets.push(s.parse().map_err(|err| HitSampleParseError::ParseError {
                     source: Box::new(err),
-                    range: i..i + s.len() + 1,
+                    value: s.to_string(),
                 })?);
             }
 
             (sample_sets[0], sample_sets[1])
         };
 
-        let index = s
-            .next()
-            .ok_or(HitSampleParseError::MissingProperty)?
-            .parse::<usize>()?;
+        let index = s.next().ok_or(HitSampleParseError::MissingProperty(2))?;
+        let index = index
+            .parse::<usize>()
+            .map_err(|err| HitSampleParseError::ParseError {
+                source: Box::new(err),
+                value: index.to_string(),
+            })?;
         let index = if index == 0 {
             None
         } else {
@@ -510,10 +509,13 @@ impl FromStr for HitSample {
             Some(NonZeroUsize::new(index).unwrap())
         };
 
-        let volume = s
-            .next()
-            .ok_or(HitSampleParseError::MissingProperty)?
-            .parse()?;
+        let volume = s.next().ok_or(HitSampleParseError::MissingProperty(3))?;
+        let volume = volume
+            .parse()
+            .map_err(|err| HitSampleParseError::ParseError {
+                source: Box::new(err),
+                value: volume.to_string(),
+            })?;
 
         // filename is empty if not specified
         let filename = s.next().unwrap_or_default();

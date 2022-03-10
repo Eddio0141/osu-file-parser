@@ -98,13 +98,13 @@ pub enum VolumeParseError {
 #[derive(Debug, Error)]
 #[error("Unknown `CurveType` value was tried to be parsed: {0}")]
 /// Error used when an unknown [`CurveType`][super::types::CurveType] was tried to be parsed from a `str`.
-pub struct CurveTypeParseError(String);
+pub struct CurveTypeParseError(pub String);
 
 #[derive(Debug, Error)]
 /// Error used when there was a problem parsing one of the items from a `str` to another type.
 #[error("There was a problem parsing one of the items from a `str` to another type")]
 pub struct PipeVecParseErr {
     #[source]
-    source: Box<dyn Error>,
-    value: String,
+    pub source: Box<dyn Error>,
+    pub value: String,
 }

@@ -12,11 +12,11 @@ use std::hash::Hash;
 use std::{
     collections::{HashMap, HashSet},
     error::Error,
-    fmt::Display,
     str::FromStr,
 };
 
 use regex::Regex;
+use thiserror::Error;
 
 use self::colours::Colours;
 use self::difficulty::Difficulty;
@@ -25,7 +25,7 @@ use self::events::Events;
 use self::general::General;
 use self::hitobject::{try_parse_hitobject, HitObjectWrapper};
 use self::metadata::Metadata;
-use self::section_error::SectionParseError;
+
 use self::timingpoint::TimingPoint;
 
 fn has_unique_elements<T>(iter: T) -> bool
@@ -36,6 +36,8 @@ where
     let mut uniq = HashSet::new();
     iter.into_iter().all(move |x| uniq.insert(x))
 }
+
+// TODO experiment with anyhow = "1.0.56" for errors
 
 /// An .osu file represented as a struct
 pub struct OsuFile {
@@ -250,7 +252,11 @@ impl FromStr for OsuFile {
                     hitobjects = v
                         .lines()
                         .map(try_parse_hitobject)
-                        .collect::<Result<Vec<_>, _>>()?;
+                        .collect::<Result<Vec<_>, _>>()
+                        .map_err(|err| OsuFileParseError::SectionParseError {
+                            source: Box::new(err),
+                            section_name: "HitObjects".to_string(),
+                        })?;
 
                     sections_to_include.remove(
                         sections_to_include
@@ -299,61 +305,39 @@ impl Default for OsuFile {
     }
 }
 
-#[derive(Debug)]
+// TODO refine error
+
+#[derive(Debug, Error)]
 /// Error for when there's a problem parsing an .osu file
 pub enum OsuFileParseError {
     /// File version is invalid
+    #[error("Invalid file version")]
     InvalidFileVersion,
     /// No file version defined
+    #[error("No file version defined")]
     NoFileVersion,
     /// More than 1 file version defined
+    #[error("Multiple file versions defined")]
     MultipleFileVersions,
     /// File contains no sections
+    #[error("No sections found")]
     NoSectionsFound,
     /// There are sections missing from the file
-    MissingSections(Vec<String>),
+    #[error("Missing sections: {0}")]
+    MissingSections(String),
     /// Duplicate section names defined
+    #[error("There are duplicate sections")]
     DuplicateSections,
     /// Invalid section name defined
+    #[error("There is an invalid section name")]
     InvalidSectionName,
     /// Error parsing a section
-    SectionParseError { source: Box<dyn Error> },
-}
-
-impl From<SectionParseError> for OsuFileParseError {
-    fn from(err: SectionParseError) -> Self {
-        OsuFileParseError::SectionParseError {
-            source: Box::new(err),
-        }
-    }
-}
-
-impl Display for OsuFileParseError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let error_text = match self {
-            OsuFileParseError::InvalidFileVersion => "Invalid file version".to_string(),
-            OsuFileParseError::NoFileVersion => "No file version defined".to_string(),
-            OsuFileParseError::MultipleFileVersions => "Multiple file versions defined".to_string(),
-            OsuFileParseError::NoSectionsFound => "No sections defined".to_string(),
-            OsuFileParseError::DuplicateSections => "Duplicate sections defined".to_string(),
-            OsuFileParseError::InvalidSectionName => "Invalid section name".to_string(),
-            OsuFileParseError::SectionParseError { .. } => "Error parsing a section".to_string(),
-            OsuFileParseError::MissingSections(sections) => {
-                format!("Missing sections: {}", sections.join(", "))
-            }
-        };
-
-        write!(f, "{}", error_text)
-    }
-}
-
-impl Error for OsuFileParseError {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        match self {
-            OsuFileParseError::SectionParseError { source } => Some(source.as_ref()),
-            _ => None,
-        }
-    }
+    #[error("There was a problem parsing a section")]
+    SectionParseError {
+        #[source]
+        source: Box<dyn Error>,
+        section_name: String,
+    },
 }
 
 const DELIMITER: char = ':';
