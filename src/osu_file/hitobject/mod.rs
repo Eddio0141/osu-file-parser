@@ -11,6 +11,7 @@ use self::helper::*;
 use self::types::*;
 
 use super::Integer;
+use super::Position;
 
 // TODO look into some crate that allows for a 3 bit value
 type ComboSkipCount = u8;
@@ -22,14 +23,10 @@ type ComboSkipCount = u8;
 /// The `type` property is a `u8` integer with each bit flags containing some information, which are split into the functions:
 /// [hitobject_type][Self::obj_type], [new_combo][Self::new_combo], [combo_skip_count][Self::combo_skip_count]
 pub trait HitObject: Display {
-    /// Returns the x coordinate of the hitobject.
-    fn x(&self) -> Integer;
-    /// Returns the y coordinate of the hitobject.
-    fn y(&self) -> Integer;
-    /// Sets the x coordinate of the hitobject.
-    fn set_x(&mut self, x: Integer);
-    /// Sets the y coordinate of the hitobject.
-    fn set_y(&mut self, y: Integer);
+    /// Returns the position of the hitobject.
+    fn position(&self) -> &Position;
+    /// Sets the position of the hitobject.
+    fn position_mut(&mut self) -> &mut Position;
 
     /// Returns the time when the object is to be hit, in milliseconds from the beginning of the beatmap's audio.
     fn time(&self) -> Integer;
@@ -156,6 +153,8 @@ pub fn try_parse_hitobject(hitobject: &str) -> Result<HitObjectWrapper, HitObjec
         )
     };
 
+    let position = Position { x, y };
+
     let hitsound = hitsound
         .try_into()
         .map_err(|err| HitObjectParseError::ValueParseError {
@@ -210,8 +209,7 @@ pub fn try_parse_hitobject(hitobject: &str) -> Result<HitObjectWrapper, HitObjec
             let hitsample = hitsample(&mut obj_properties)?;
 
             HitObjectWrapper::HitCircle(HitCircle {
-                x,
-                y,
+                position,
                 time,
                 obj_type,
                 hitsound,
@@ -291,8 +289,7 @@ pub fn try_parse_hitobject(hitobject: &str) -> Result<HitObjectWrapper, HitObjec
             let hitsample = hitsample(&mut obj_properties)?;
 
             HitObjectWrapper::Slider(Slider {
-                x,
-                y,
+                position,
                 time,
                 obj_type,
                 hitsound,
@@ -322,8 +319,7 @@ pub fn try_parse_hitobject(hitobject: &str) -> Result<HitObjectWrapper, HitObjec
             let hitsample = hitsample(&mut obj_properties)?;
 
             HitObjectWrapper::Spinner(Spinner {
-                x,
-                y,
+                position,
                 time,
                 obj_type,
                 hitsound,
@@ -360,8 +356,7 @@ pub fn try_parse_hitobject(hitobject: &str) -> Result<HitObjectWrapper, HitObjec
                     })?;
 
             HitObjectWrapper::OsuManiaHold(OsuManiaHold {
-                x,
-                y,
+                position,
                 time,
                 obj_type,
                 hitsound,
@@ -417,8 +412,7 @@ pub enum HitObjectType {
 
 #[derive(Clone)]
 pub struct HitCircle {
-    x: Integer,
-    y: Integer,
+    position: Position,
     time: Integer,
     obj_type: HitObjectType,
     hitsound: HitSound,
@@ -431,8 +425,7 @@ pub struct HitCircle {
 impl Default for HitCircle {
     fn default() -> Self {
         Self {
-            x: Default::default(),
-            y: Default::default(),
+            position: Default::default(),
             time: Default::default(),
             obj_type: HitObjectType::HitCircle,
             hitsound: Default::default(),
@@ -446,8 +439,8 @@ impl Default for HitCircle {
 impl Display for HitCircle {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let properties: Vec<String> = vec![
-            self.x.to_string(),
-            self.y.to_string(),
+            self.position.x.to_string(),
+            self.position.y.to_string(),
             self.time.to_string(),
             self.type_to_string(),
             self.hitsound.to_string(),
@@ -459,20 +452,12 @@ impl Display for HitCircle {
 }
 
 impl HitObject for HitCircle {
-    fn x(&self) -> Integer {
-        self.x
+    fn position(&self) -> &Position {
+        &self.position
     }
 
-    fn y(&self) -> Integer {
-        self.y
-    }
-
-    fn set_x(&mut self, x: Integer) {
-        self.x = x;
-    }
-
-    fn set_y(&mut self, y: Integer) {
-        self.y = y;
+    fn position_mut(&mut self) -> &mut Position {
+        &mut self.position
     }
 
     fn time(&self) -> Integer {
@@ -522,8 +507,7 @@ impl HitObject for HitCircle {
 
 impl HitCircle {
     pub fn new(
-        x: Integer,
-        y: Integer,
+        pos: Position,
         time: Integer,
         hitsound: HitSound,
         hitsample: HitSample,
@@ -531,8 +515,7 @@ impl HitCircle {
         combo_skip_count: ComboSkipCount,
     ) -> Self {
         Self {
-            x,
-            y,
+            position: pos,
             time,
             obj_type: HitObjectType::HitCircle,
             hitsound,
@@ -545,8 +528,7 @@ impl HitCircle {
 
 #[derive(Clone)]
 pub struct Slider {
-    x: Integer,
-    y: Integer,
+    position: Position,
     time: Integer,
     obj_type: HitObjectType,
     hitsound: HitSound,
@@ -592,8 +574,8 @@ impl Slider {
 impl Display for Slider {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let properties = vec![
-            self.x.to_string(),
-            self.y.to_string(),
+            self.position.x.to_string(),
+            self.position.y.to_string(),
             self.time.to_string(),
             self.type_to_string(),
             self.hitsound.to_string(),
@@ -614,20 +596,12 @@ impl Display for Slider {
 }
 
 impl HitObject for Slider {
-    fn x(&self) -> Integer {
-        self.x
+    fn position(&self) -> &Position {
+        &self.position
     }
 
-    fn y(&self) -> Integer {
-        self.y
-    }
-
-    fn set_x(&mut self, x: Integer) {
-        self.x = x;
-    }
-
-    fn set_y(&mut self, y: Integer) {
-        self.y = y;
+    fn position_mut(&mut self) -> &mut Position {
+        &mut self.position
     }
 
     fn time(&self) -> Integer {
@@ -677,8 +651,7 @@ impl HitObject for Slider {
 
 #[derive(Clone)]
 pub struct Spinner {
-    x: Integer,
-    y: Integer,
+    position: Position,
     time: Integer,
     obj_type: HitObjectType,
     hitsound: HitSound,
@@ -691,20 +664,12 @@ pub struct Spinner {
 }
 
 impl HitObject for Spinner {
-    fn x(&self) -> Integer {
-        self.x
+    fn position(&self) -> &Position {
+        &self.position
     }
 
-    fn y(&self) -> Integer {
-        self.y
-    }
-
-    fn set_x(&mut self, x: Integer) {
-        self.x = x;
-    }
-
-    fn set_y(&mut self, y: Integer) {
-        self.y = y;
+    fn position_mut(&mut self) -> &mut Position {
+        &mut self.position
     }
 
     fn time(&self) -> Integer {
@@ -755,8 +720,8 @@ impl HitObject for Spinner {
 impl Display for Spinner {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let properties: Vec<String> = vec![
-            self.x.to_string(),
-            self.y.to_string(),
+            self.position.x.to_string(),
+            self.position.y.to_string(),
             self.time.to_string(),
             self.type_to_string(),
             self.hitsound.to_string(),
@@ -773,8 +738,7 @@ impl Default for Spinner {
         Self {
             // TODO make constant for "centre of the playfield"
             // TODO check if 0ms spinner is valid
-            x: 256,
-            y: 192,
+            position: Default::default(),
             time: Default::default(),
             obj_type: HitObjectType::Spinner,
             hitsound: Default::default(),
@@ -788,8 +752,7 @@ impl Default for Spinner {
 
 impl Spinner {
     pub fn new(
-        x: Integer,
-        y: Integer,
+        position: Position,
         time: Integer,
         hitsound: HitSound,
         hitsample: HitSample,
@@ -798,8 +761,7 @@ impl Spinner {
         end_time: Integer,
     ) -> Self {
         Self {
-            x,
-            y,
+            position,
             time,
             obj_type: HitObjectType::Spinner,
             hitsound,
@@ -822,8 +784,7 @@ impl Spinner {
 
 #[derive(Clone)]
 pub struct OsuManiaHold {
-    x: Integer,
-    y: Integer,
+    position: Position,
     time: Integer,
     obj_type: HitObjectType,
     hitsound: HitSound,
@@ -836,20 +797,12 @@ pub struct OsuManiaHold {
 }
 
 impl HitObject for OsuManiaHold {
-    fn x(&self) -> Integer {
-        self.x
+    fn position(&self) -> &Position {
+        &self.position
     }
 
-    fn y(&self) -> Integer {
-        self.y
-    }
-
-    fn set_x(&mut self, x: Integer) {
-        self.x = x;
-    }
-
-    fn set_y(&mut self, y: Integer) {
-        self.y = y;
+    fn position_mut(&mut self) -> &mut Position {
+        &mut self.position
     }
 
     fn time(&self) -> Integer {
@@ -900,8 +853,8 @@ impl HitObject for OsuManiaHold {
 impl Display for OsuManiaHold {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let properties: Vec<String> = vec![
-            self.x.to_string(),
-            self.y.to_string(),
+            self.position.x.to_string(),
+            self.position.y.to_string(),
             self.time.to_string(),
             self.type_to_string(),
             self.hitsound.to_string(),
@@ -917,8 +870,10 @@ impl Default for OsuManiaHold {
         Self {
             // TODO make constant for "centre of the playfield"
             // TODO check if 0ms hold is valid
-            x: Default::default(),
-            y: 192,
+            position: Position {
+                x: Default::default(),
+                ..Default::default()
+            },
             time: Default::default(),
             obj_type: HitObjectType::OsuManiaHold,
             hitsound: Default::default(),
@@ -932,8 +887,7 @@ impl Default for OsuManiaHold {
 
 impl OsuManiaHold {
     pub fn new(
-        x: Integer,
-        y: Integer,
+        position: Position,
         time: Integer,
         hitsound: HitSound,
         hitsample: HitSample,
@@ -942,8 +896,7 @@ impl OsuManiaHold {
         end_time: Integer,
     ) -> Self {
         Self {
-            x,
-            y,
+            position,
             time,
             obj_type: HitObjectType::OsuManiaHold,
             hitsound,

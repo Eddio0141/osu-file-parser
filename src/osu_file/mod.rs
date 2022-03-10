@@ -367,3 +367,15 @@ pub enum OsuFileParseError {
 const DELIMITER: char = ':';
 
 type Integer = i32;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Position {
+    pub x: Integer,
+    pub y: Integer,
+}
+
+impl Default for Position {
+    fn default() -> Self {
+        Self { x: 256, y: 192 }
+    }
+}
