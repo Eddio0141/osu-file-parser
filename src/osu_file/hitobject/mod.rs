@@ -736,7 +736,6 @@ impl Display for Spinner {
 impl Default for Spinner {
     fn default() -> Self {
         Self {
-            // TODO make constant for "centre of the playfield"
             // TODO check if 0ms spinner is valid
             position: Default::default(),
             time: Default::default(),
@@ -868,7 +867,6 @@ impl Display for OsuManiaHold {
 impl Default for OsuManiaHold {
     fn default() -> Self {
         Self {
-            // TODO make constant for "centre of the playfield"
             // TODO check if 0ms hold is valid
             position: Position {
                 x: Default::default(),
