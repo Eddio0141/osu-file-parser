@@ -1,10 +1,6 @@
 //! Module defining misc types used for different hitobjects, such as [CurveType] used for [Slider][super::Slider] curve types.
 
-use std::{
-    fmt::Display,
-    num::{NonZeroUsize, ParseIntError},
-    str::FromStr,
-};
+use std::{fmt::Display, num::NonZeroUsize, str::FromStr};
 
 use crate::osu_file::Integer;
 
@@ -316,10 +312,18 @@ impl HitSound {
 }
 
 impl FromStr for HitSound {
-    type Err = ParseIntError;
+    type Err = HitSoundParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(HitSound::from(s.parse::<u8>()?))
+    }
+}
+
+impl TryFrom<i32> for HitSound {
+    type Error = HitSoundParseError;
+
+    fn try_from(value: i32) -> Result<Self, Self::Error> {
+        Ok(HitSound::from(u8::try_from(value)?))
     }
 }
 

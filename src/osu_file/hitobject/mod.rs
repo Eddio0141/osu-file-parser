@@ -108,7 +108,17 @@ pub fn try_parse_hitobject(hitobject: &str) -> Result<HitObjectWrapper, HitObjec
         let properties = (&mut obj_properties).take(5).collect::<Vec<_>>();
 
         if properties.len() < 5 {
-            return Err(HitObjectParseError::MissingProperty(properties.len()));
+            let missing_name = match properties.len() {
+                0 => "x",
+                1 => "y",
+                2 => "Time",
+                3 => "ObjType",
+                4 => "HitSound",
+                _ => unreachable!(),
+            };
+            return Err(HitObjectParseError::MissingProperty(
+                missing_name.to_string(),
+            ));
         }
 
         let properties_parse = properties
@@ -146,13 +156,12 @@ pub fn try_parse_hitobject(hitobject: &str) -> Result<HitObjectWrapper, HitObjec
         )
     };
 
-    // TODO direct fromstr conversion
-    let hitsound = HitSound::from(u8::try_from(hitsound).map_err(|err| {
-        HitObjectParseError::ValueParseError {
+    let hitsound = hitsound
+        .try_into()
+        .map_err(|err| HitObjectParseError::ValueParseError {
             source: Box::new(err),
             value: hitsound.to_string(),
-        }
-    })?);
+        })?;
 
     // type bit definition
     // 0: hitcircle, 1: slider, 2: newcombo, 3: spinner, 4 ~ 6: how many combo colours to skip, 7: osumania hold
@@ -181,10 +190,12 @@ pub fn try_parse_hitobject(hitobject: &str) -> Result<HitObjectWrapper, HitObjec
         )
     };
 
-    let hitsample = |obj_properties: &mut dyn Iterator<Item = &str>, property_index| {
+    let hitsample = |obj_properties: &mut dyn Iterator<Item = &str>| {
         let property = obj_properties
             .next()
-            .ok_or(HitObjectParseError::MissingProperty(property_index))?;
+            .ok_or(HitObjectParseError::MissingProperty(
+                "HitSample".to_string(),
+            ))?;
 
         property
             .parse()
@@ -196,7 +207,7 @@ pub fn try_parse_hitobject(hitobject: &str) -> Result<HitObjectWrapper, HitObjec
 
     Ok(match obj_type {
         HitObjectType::HitCircle => {
-            let hitsample = hitsample(&mut obj_properties, 5)?;
+            let hitsample = hitsample(&mut obj_properties)?;
 
             HitObjectWrapper::HitCircle(HitCircle {
                 x,
@@ -213,9 +224,13 @@ pub fn try_parse_hitobject(hitobject: &str) -> Result<HitObjectWrapper, HitObjec
             // idk why ppy decided to just put in curve type without the usual , splitter
             let (curve_type, curve_points) = obj_properties
                 .next()
-                .ok_or(HitObjectParseError::MissingProperty(5))?
+                .ok_or(HitObjectParseError::MissingProperty(
+                    "CurveType".to_string(),
+                ))?
                 .split_once('|')
-                .ok_or(HitObjectParseError::MissingProperty(6))?;
+                .ok_or(HitObjectParseError::MissingProperty(
+                    "CurvePoints".to_string(),
+                ))?;
 
             let curve_type =
                 curve_type
@@ -234,7 +249,7 @@ pub fn try_parse_hitobject(hitobject: &str) -> Result<HitObjectWrapper, HitObjec
 
             let slides = obj_properties
                 .next()
-                .ok_or(HitObjectParseError::MissingProperty(7))?;
+                .ok_or(HitObjectParseError::MissingProperty("Slides".to_string()))?;
             let slides = slides
                 .parse()
                 .map_err(|err| HitObjectParseError::ValueParseError {
@@ -244,7 +259,7 @@ pub fn try_parse_hitobject(hitobject: &str) -> Result<HitObjectWrapper, HitObjec
 
             let length = obj_properties
                 .next()
-                .ok_or(HitObjectParseError::MissingProperty(8))?;
+                .ok_or(HitObjectParseError::MissingProperty("Length".to_string()))?;
             let length = length
                 .parse()
                 .map_err(|err| HitObjectParseError::ValueParseError {
@@ -254,7 +269,9 @@ pub fn try_parse_hitobject(hitobject: &str) -> Result<HitObjectWrapper, HitObjec
 
             let edge_sounds = obj_properties
                 .next()
-                .ok_or(HitObjectParseError::MissingProperty(9))?;
+                .ok_or(HitObjectParseError::MissingProperty(
+                    "EdgeSounds".to_string(),
+                ))?;
             let edge_sounds = str_to_pipe_vec(edge_sounds).map_err(|err| {
                 HitObjectParseError::ValueParseError {
                     value: edge_sounds.to_string(),
@@ -264,14 +281,14 @@ pub fn try_parse_hitobject(hitobject: &str) -> Result<HitObjectWrapper, HitObjec
 
             let edge_sets = obj_properties
                 .next()
-                .ok_or(HitObjectParseError::MissingProperty(10))?;
+                .ok_or(HitObjectParseError::MissingProperty("EdgeSets".to_string()))?;
             let edge_sets =
                 str_to_pipe_vec(edge_sets).map_err(|err| HitObjectParseError::ValueParseError {
                     value: edge_sets.to_string(),
                     source: Box::new(err),
                 })?;
 
-            let hitsample = hitsample(&mut obj_properties, 11)?;
+            let hitsample = hitsample(&mut obj_properties)?;
 
             HitObjectWrapper::Slider(Slider {
                 x,
@@ -293,7 +310,7 @@ pub fn try_parse_hitobject(hitobject: &str) -> Result<HitObjectWrapper, HitObjec
         HitObjectType::Spinner => {
             let end_time = obj_properties
                 .next()
-                .ok_or(HitObjectParseError::MissingProperty(5))?;
+                .ok_or(HitObjectParseError::MissingProperty("EndTime".to_string()))?;
             let end_time =
                 end_time
                     .parse()
@@ -302,7 +319,7 @@ pub fn try_parse_hitobject(hitobject: &str) -> Result<HitObjectWrapper, HitObjec
                         source: Box::new(err),
                     })?;
 
-            let hitsample = hitsample(&mut obj_properties, 6)?;
+            let hitsample = hitsample(&mut obj_properties)?;
 
             HitObjectWrapper::Spinner(Spinner {
                 x,
@@ -320,9 +337,11 @@ pub fn try_parse_hitobject(hitobject: &str) -> Result<HitObjectWrapper, HitObjec
             // ppy has done it once again
             let (end_time, hitsample) = obj_properties
                 .next()
-                .ok_or(HitObjectParseError::MissingProperty(5))?
+                .ok_or(HitObjectParseError::MissingProperty("EndTime".to_string()))?
                 .split_once(':')
-                .ok_or(HitObjectParseError::MissingProperty(6))?;
+                .ok_or(HitObjectParseError::MissingProperty(
+                    "HitSample".to_string(),
+                ))?;
 
             let end_time =
                 end_time

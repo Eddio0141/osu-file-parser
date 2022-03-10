@@ -1,6 +1,9 @@
 //! Module defining `error` types that's used for the `hitobject` related modules.
 
-use std::{error::Error, num::ParseIntError};
+use std::{
+    error::Error,
+    num::{ParseIntError, TryFromIntError},
+};
 
 use thiserror::Error;
 
@@ -29,8 +32,8 @@ pub enum ColonSetParseError {
 /// Error used when there was a problem parsing a `str` into a [`hitobject`][super::HitObjectWrapper].
 pub enum HitObjectParseError {
     /// There is a missing property.
-    #[error("The property for index {0} of the object is missing")]
-    MissingProperty(usize),
+    #[error("The property {0} of the object is missing")]
+    MissingProperty(String),
     /// There was a problem parsing a value.
     #[error("There was a problem parsing the `str` \"{value}\" to a property type")]
     ValueParseError {
@@ -107,4 +110,20 @@ pub struct PipeVecParseErr {
     #[source]
     pub source: Box<dyn Error>,
     pub value: String,
+}
+
+#[derive(Debug, Error)]
+#[error(transparent)]
+pub struct HitSoundParseError(#[from] Box<dyn Error>);
+
+impl From<ParseIntError> for HitSoundParseError {
+    fn from(err: ParseIntError) -> Self {
+        HitSoundParseError(Box::new(err))
+    }
+}
+
+impl From<TryFromIntError> for HitSoundParseError {
+    fn from(err: TryFromIntError) -> Self {
+        HitSoundParseError(Box::new(err))
+    }
 }
