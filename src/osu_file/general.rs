@@ -105,8 +105,8 @@ impl FromStr for General {
 
         for line in s.lines() {
             match line.split_once(SECTION_DELIMITER) {
-                Some((key, mut value)) => {
-                    value = value.trim();
+                Some((key, value)) => {
+                    let value = value.trim();
 
                     match key.trim() {
                         "AudioFilename" => {

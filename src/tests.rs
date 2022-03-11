@@ -1,6 +1,6 @@
 use rust_decimal_macros::dec;
 
-use crate::osu_file::general::{CountdownSpeed, GameMode, General, OverlayPosition, SampleSet};
+use crate::osu_file::{general::{CountdownSpeed, GameMode, General, OverlayPosition, SampleSet}, editor::Editor};
 
 #[test]
 fn general_parse() {
@@ -49,4 +49,24 @@ SamplesMatchPlaybackRate: 1"
     };
 
     assert_eq!(i, g);
+}
+
+#[test]
+fn editor_parse() {
+    let i = "Bookmarks: 11018,21683,32349,37683,48349,59016,69683,80349,91016
+DistanceSpacing: 0.8
+BeatDivisor: 12
+GridSize: 8
+TimelineZoom: 2".replace("\n", "\r\n");
+    let i: Editor = i.parse().unwrap();
+
+    let e = Editor {
+        bookmarks: vec![11018,21683,32349,37683,48349,59016,69683,80349,91016],
+        distance_spacing: dec!(0.8),
+        beat_divisor: dec!(12),
+        grid_size: 8,
+        timeline_zoom: dec!(2),
+    };
+
+    assert_eq!(i, e);
 }
