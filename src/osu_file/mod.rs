@@ -8,6 +8,7 @@ pub mod metadata;
 pub mod timingpoint;
 
 use std::hash::Hash;
+use std::num::ParseIntError;
 use std::{
     collections::{HashMap, HashSet},
     error::Error,
@@ -36,35 +37,33 @@ where
     iter.into_iter().all(move |x| uniq.insert(x))
 }
 
-// TODO experiment with anyhow = "1.0.56" for errors
-
-/// An .osu file represented as a struct
+/// An .osu file represented as a struct.
 pub struct OsuFile {
-    /// Version of the file format
-    pub version: u64,
-    /// General information about the beatmap
-    /// - `key`: `value` pairs
+    /// Version of the file format.
+    pub version: Integer,
+    /// General information about the beatmap.
+    /// - `key`: `value` pairs.
     pub general: General,
-    /// Saved settings for the beatmap editor
-    /// - `key`: `value` pairs
+    /// Saved settings for the beatmap editor.
+    /// - `key`: `value` pairs.
     pub editor: Editor,
-    /// Information used to identify the beatmap
-    /// - `key`:`value` pairs
+    /// Information used to identify the beatmap.
+    /// - `key`:`value` pairs.
     pub metadata: Metadata,
-    /// Difficulty settings
-    /// - `key`:`value` pairs
+    /// Difficulty settings.
+    /// - `key`:`value` pairs.
     pub difficulty: Difficulty,
-    /// Beatmap and storyboard graphic events
-    /// Comma-separated lists
+    /// Beatmap and storyboard graphic events.
+    /// Comma-separated lists.
     pub events: Events,
-    /// Timing and control points
-    /// Comma-separated lists
+    /// Timing and control points.
+    /// Comma-separated lists.
     pub timing_points: Vec<TimingPoint>,
-    /// Combo and skin colours
-    /// `key` : `value` pairs
+    /// Combo and skin colours.
+    /// `key` : `value` pairs.
     pub colours: Colours,
-    /// Hit objects
-    /// Comma-separated lists
+    /// Hit objects.
+    /// Comma-separated lists.
     pub hitobjects: Vec<HitObjectWrapper>,
 }
 
@@ -77,22 +76,62 @@ impl FromStr for OsuFile {
         let mut lines = s.lines();
 
         let version = match lines.next() {
-            Some(version) => match version.strip_prefix(version_text) {
-                Some(version) => match version.parse::<u64>() {
-                    Ok(version) => version,
-                    Err(_) => return Err(OsuFileParseError::InvalidFileVersion),
+            Some(version) => match version.trim().strip_prefix(version_text) {
+                Some(version) => match version.parse() {
+                    Ok(version) => {
+                        if version > LATEST_VERSION {
+                            return Err(OsuFileParseError::InvalidFileVersion(version));
+                        } else {
+                            version
+                        }
+                    }
+                    Err(err) => {
+                        return Err(OsuFileParseError::FileVersionParseError {
+                            source: err,
+                            value: version.to_string(),
+                        })
+                    }
                 },
-                None => return Err(OsuFileParseError::NoFileVersion),
+                None => {
+                    // check what type of error it is
+                    let mut version_index = None;
+
+                    for (i, line) in s.lines().enumerate() {
+                        if line.trim().starts_with(version_text) {
+                            version_index = Some(i);
+                            break;
+                        }
+                    }
+
+                    match version_index {
+                        Some(version_index) => {
+                            return Err(OsuFileParseError::FileVersionInWrongLine(version_index))
+                        }
+                        None => return Err(OsuFileParseError::NoFileVersion),
+                    }
+                }
             },
             None => return Err(OsuFileParseError::NoFileVersion),
         };
 
-        let s = lines.collect::<String>();
+        let mut lines_no_version = lines.clone();
 
-        // no defining more than 1 file version
-        if s.contains(version_text) {
-            return Err(OsuFileParseError::MultipleFileVersions);
+        if let Some(version_index) =
+            lines_no_version.position(|s| s.trim().starts_with(version_text))
+        {
+            let mut all_version_defs = lines_no_version.enumerate().filter_map(|(i, s)| {
+                if s.trim().starts_with(version_text) {
+                    Some(i.to_string())
+                } else {
+                    None
+                }
+            }).collect::<Vec<_>>();
+            all_version_defs.insert(0, version_index.to_string());
+
+            return Err(OsuFileParseError::MultipleFileVersions(format!("lines {}", all_version_defs.join(", "))))
         }
+
+        let s = lines.collect::<String>();
 
         let (section_open, section_close) = ('[', ']');
 
@@ -290,7 +329,7 @@ impl FromStr for OsuFile {
                             .unwrap(),
                     );
                 }
-                _ => return Err(OsuFileParseError::InvalidSectionName),
+                _ => return Err(OsuFileParseError::InvalidSectionName(k.to_string())),
             }
         }
 
@@ -333,30 +372,40 @@ impl Default for OsuFile {
 // TODO refine error
 
 #[derive(Debug, Error)]
-/// Error for when there's a problem parsing an .osu file
+/// Error for when there's a problem parsing an .osu file.
 pub enum OsuFileParseError {
-    /// File version is invalid
-    #[error("Invalid file version")]
-    InvalidFileVersion,
-    /// No file version defined
-    #[error("No file version defined")]
+    /// File version is invalid.
+    #[error("Invalid file version, expected {LATEST_VERSION}, got {0}")]
+    InvalidFileVersion(Integer),
+    /// File version parsing failed
+    #[error("Invalid file version, expected version in an `Integer` form, got {value}")]
+    FileVersionParseError {
+        #[source]
+        source: ParseIntError,
+        value: String,
+    },
+    /// No file version defined.
+    #[error("No file version defined, expected `osu file format v..` at the first line")]
     NoFileVersion,
-    /// More than 1 file version defined
-    #[error("Multiple file versions defined")]
-    MultipleFileVersions,
-    /// File contains no sections
+    /// More than 1 file version defined.
+    #[error("Multiple file versions defined, only requires one file version: {0}")]
+    MultipleFileVersions(String),
+    /// File version not defined in line 1.
+    #[error("Found file version definition, but in the line {0}, expected to be in line 1")]
+    FileVersionInWrongLine(usize),
+    /// File contains no sections.
     #[error("No sections found")]
     NoSectionsFound,
-    /// There are sections missing from the file
+    /// There are sections missing from the file.
     #[error("Missing sections: {0}")]
     MissingSections(String),
-    /// Duplicate section names defined
-    #[error("There are duplicate sections")]
-    DuplicateSections,
-    /// Invalid section name defined
-    #[error("There is an invalid section name")]
-    InvalidSectionName,
-    /// Error parsing a section
+    /// Duplicate section names defined.
+    #[error("There are duplicate sections: {0}")]
+    DuplicateSections(String),
+    /// Invalid section name defined.
+    #[error("There is an invalid section name `{0}`")]
+    InvalidSectionName(String),
+    /// Error parsing a section.
     #[error(transparent)]
     SectionParseError {
         #[from]
@@ -364,13 +413,21 @@ pub enum OsuFileParseError {
     },
 }
 
-const DELIMITER: char = ':';
+/// Latest file version.
+const LATEST_VERSION: Integer = 14;
 
+/// Delimiter for the `key: value` pair.
+const SECTION_DELIMITER: char = ':';
+
+/// Definition of the `Integer` type.
 type Integer = i32;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+/// The position of something in `osu!pixels` with the `x` `y` form.
 pub struct Position {
+    /// x coordinate.
     pub x: Integer,
+    /// y coordinate
     pub y: Integer,
 }
 
