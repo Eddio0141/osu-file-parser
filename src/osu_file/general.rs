@@ -9,7 +9,7 @@ use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
 use thiserror::Error;
 
-use super::{Integer, DELIMITER};
+use super::{Integer, SECTION_DELIMITER};
 
 /// A struct representing the general section of the .osu file.
 #[derive(PartialEq, Debug, Clone, Eq, Hash)]
@@ -104,7 +104,7 @@ impl FromStr for General {
         let s = s.trim();
 
         for line in s.lines() {
-            match line.split_once(DELIMITER) {
+            match line.split_once(SECTION_DELIMITER) {
                 Some((key, mut value)) => {
                     value = value.trim();
 
