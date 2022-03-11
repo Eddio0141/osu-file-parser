@@ -329,15 +329,13 @@ impl Default for OsuFile {
     }
 }
 
-// TODO refine error
-
 #[derive(Debug, Error)]
 /// Error for when there's a problem parsing an .osu file.
 pub enum OsuFileParseError {
     /// File version is invalid.
     #[error("Invalid file version, expected {LATEST_VERSION}, got {0}")]
     InvalidFileVersion(Integer),
-    /// File version parsing failed
+    /// File version parsing failed.
     #[error("Invalid file version, expected version in an `Integer` form, got {value}")]
     FileVersionParseError {
         #[source]
