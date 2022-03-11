@@ -73,7 +73,7 @@ impl FromStr for OsuFile {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let version_text = "osu file format v";
 
-        let mut lines = s.lines();
+        let mut lines = s.lines().peekable();
 
         let version = match lines.next() {
             Some(version) => match version.trim().strip_prefix(version_text) {
@@ -119,61 +119,61 @@ impl FromStr for OsuFile {
         if let Some(version_index) =
             lines_no_version.position(|s| s.trim().starts_with(version_text))
         {
-            let mut all_version_defs = lines_no_version.enumerate().filter_map(|(i, s)| {
-                if s.trim().starts_with(version_text) {
-                    Some(i.to_string())
-                } else {
-                    None
-                }
-            }).collect::<Vec<_>>();
+            let mut all_version_defs = lines_no_version
+                .enumerate()
+                .filter_map(|(i, s)| {
+                    if s.trim().starts_with(version_text) {
+                        Some(i.to_string())
+                    } else {
+                        None
+                    }
+                })
+                .collect::<Vec<_>>();
             all_version_defs.insert(0, version_index.to_string());
 
-            return Err(OsuFileParseError::MultipleFileVersions(format!("lines {}", all_version_defs.join(", "))))
+            return Err(OsuFileParseError::MultipleFileVersions(format!(
+                "lines {}",
+                all_version_defs.join(", ")
+            )));
         }
 
-        let s = lines.collect::<String>();
-
-        let (section_open, section_close) = ('[', ']');
-
-        let section_match = format!("\\{section_open}\\w*\\{section_close}[^{section_open}]*");
-        let section_match = Regex::new(&section_match).unwrap();
-
-        // split sections
-        // TODO are sections required
-        let (section_names, sections) = match section_match.captures(&s) {
-            Some(section_match) => {
-                let section_name_match = format!(
-                    "(?!\\{section_open})[^\\{section_open}\\{section_close}]*(?={section_close})"
-                );
-                let section_name_match = Regex::new(&section_name_match).unwrap();
-
-                let (names, sections): (Vec<_>, Vec<_>) = section_match
-                    .iter()
-                    .filter_map(|section| {
-                        if let Some(section) = section {
-                            let name = section_name_match
-                                .captures(section.as_str().trim())
-                                .unwrap()
-                                .get(0)
-                                .unwrap()
-                                .as_str();
-
-                            let section = section
-                                .as_str()
-                                .trim()
-                                .strip_prefix(&format!("[{name}]"))
-                                .unwrap();
-
-                            Some((name, section))
-                        } else {
-                            None
+        let (section_names, sections) = {
+            let mut section_names = Vec::new();
+            let mut sections = Vec::new();
+    
+            let mut in_section = false;
+    
+            for line in lines {
+                if in_section {
+                    sections.push(line);
+    
+                    if let Some(next_line) = lines.peek() {
+                        if next_line.trim().starts_with(SECTION_OPEN) {
+                            in_section = false;
                         }
-                    })
-                    .unzip();
-
-                (names, sections)
+                    }
+                } else {
+                    let line = line.trim();
+    
+                    if line.starts_with(SECTION_OPEN) {
+                        if line.ends_with(SECTION_CLOSE) {
+                            section_names.push(&line[1..section_names.len()]);
+                        } else {
+                            return Err(OsuFileParseError::SectionNameNoCloseBracket(
+                                line.to_string(),
+                            ));
+                        }
+                    } else {
+                        return Err(OsuFileParseError::SectionNameNoOpenBracket(
+                            line.to_string(),
+                        ));
+                    }
+    
+                    in_section = true;
+                }
             }
-            None => return Err(OsuFileParseError::NoSectionsFound),
+
+            (section_names, sections)
         };
 
         if !has_unique_elements(&section_names) {
@@ -411,6 +411,12 @@ pub enum OsuFileParseError {
         #[from]
         source: Box<dyn Error>,
     },
+    /// Error used when the opening bracket for the section is missing.
+    #[error("The opening bracket of the section is missing, expected `{SECTION_OPEN}` before {0}")]
+    SectionNameNoOpenBracket(String),
+    /// Error used when the closing bracket for the section is missing.
+    #[error("The closing bracket of the section is missing, expected `{SECTION_CLOSE}` after {0}")]
+    SectionNameNoCloseBracket(String),
 }
 
 /// Latest file version.
@@ -418,6 +424,10 @@ const LATEST_VERSION: Integer = 14;
 
 /// Delimiter for the `key: value` pair.
 const SECTION_DELIMITER: char = ':';
+/// Section name open bracket.
+const SECTION_OPEN: char = '[';
+/// Section name close bracket.
+const SECTION_CLOSE: char = ']';
 
 /// Definition of the `Integer` type.
 type Integer = i32;
