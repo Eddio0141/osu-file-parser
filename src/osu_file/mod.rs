@@ -10,12 +10,11 @@ pub mod timingpoint;
 use std::hash::Hash;
 use std::num::ParseIntError;
 use std::{
-    collections::{HashMap, HashSet},
+    collections::{HashMap},
     error::Error,
     str::FromStr,
 };
 
-use regex::Regex;
 use thiserror::Error;
 
 use self::colours::Colours;
@@ -27,15 +26,6 @@ use self::hitobject::{try_parse_hitobject, HitObjectWrapper};
 use self::metadata::Metadata;
 
 use self::timingpoint::TimingPoint;
-
-fn has_unique_elements<T>(iter: T) -> bool
-where
-    T: IntoIterator,
-    T::Item: Eq + Hash,
-{
-    let mut uniq = HashSet::new();
-    iter.into_iter().all(move |x| uniq.insert(x))
-}
 
 /// An .osu file represented as a struct.
 pub struct OsuFile {
@@ -140,21 +130,27 @@ impl FromStr for OsuFile {
         let (section_names, sections) = {
             let mut section_names = Vec::new();
             let mut sections = Vec::new();
-    
+            let mut section_content = Vec::new();
+
             let mut in_section = false;
-    
+
             for line in lines {
+                let mut line_is_section_name = false;
+
                 if in_section {
-                    sections.push(line);
-    
-                    if let Some(next_line) = lines.peek() {
-                        if next_line.trim().starts_with(SECTION_OPEN) {
-                            in_section = false;
-                        }
+                    if line.starts_with(SECTION_OPEN) {
+                        line_is_section_name = true;
+
+                        sections.push(section_content.join("\n"));
+                        section_content.clear();
+                    } else {
+                        section_content.push(line);
                     }
-                } else {
+                }
+
+                if !in_section || line_is_section_name {
                     let line = line.trim();
-    
+
                     if line.starts_with(SECTION_OPEN) {
                         if line.ends_with(SECTION_CLOSE) {
                             section_names.push(&line[1..section_names.len()]);
@@ -168,7 +164,7 @@ impl FromStr for OsuFile {
                             line.to_string(),
                         ));
                     }
-    
+
                     in_section = true;
                 }
             }
@@ -176,12 +172,16 @@ impl FromStr for OsuFile {
             (section_names, sections)
         };
 
-        if !has_unique_elements(&section_names) {
-            return Err(OsuFileParseError::DuplicateSections);
-        }
-
-        let section_map: HashMap<_, _> =
-            HashMap::from_iter(section_names.iter().zip(sections.iter()));
+        let mut section_name_check = HashMap::from([
+            ("General", None),
+            ("Editor", None),
+            ("Metadata", None),
+            ("Difficulty", None),
+            ("Events", None),
+            ("TimingPoints", None),
+            ("Colours", None),
+            ("HitObjects", None),
+        ]);
 
         let (
             mut general,
@@ -203,140 +203,100 @@ impl FromStr for OsuFile {
             Default::default(),
         );
 
-        // maybe temporary
-        // used to check what sections are missing
-        let mut sections_to_include = vec![
-            "General",
-            "Editor",
-            "Metadata",
-            "Difficulty",
-            "Events",
-            "TimingPoints",
-            "Colours",
-            "HitObjects",
-        ];
+        for (i, section_name) in section_names.iter().enumerate() {
+            let section = &sections[i];
 
-        // TODO clean this up
-        for (k, v) in section_map.iter() {
-            match **k {
-                "General" => {
-                    general = v
-                        .parse()
-                        .map_err(|err| OsuFileParseError::SectionParseError {
-                            source: Box::new(err),
-                        })?;
-                    sections_to_include.remove(
-                        sections_to_include
-                            .iter()
-                            .position(|section| *section == "General")
-                            .unwrap(),
-                    );
-                }
-                "Editor" => {
-                    editor = v
-                        .parse()
-                        .map_err(|err| OsuFileParseError::SectionParseError {
-                            source: Box::new(err),
-                        })?;
-                    sections_to_include.remove(
-                        sections_to_include
-                            .iter()
-                            .position(|section| *section == "Editor")
-                            .unwrap(),
-                    );
-                }
-                "Metadata" => {
-                    metadata = v
-                        .parse()
-                        .map_err(|err| OsuFileParseError::SectionParseError {
-                            source: Box::new(err),
-                        })?;
-                    sections_to_include.remove(
-                        sections_to_include
-                            .iter()
-                            .position(|section| *section == "Metadata")
-                            .unwrap(),
-                    );
-                }
-                "Difficulty" => {
-                    difficulty = v
-                        .parse()
-                        .map_err(|err| OsuFileParseError::SectionParseError {
-                            source: Box::new(err),
-                        })?;
-                    sections_to_include.remove(
-                        sections_to_include
-                            .iter()
-                            .position(|section| *section == "Difficulty")
-                            .unwrap(),
-                    );
-                }
-                "Events" => {
-                    events = v
-                        .parse()
-                        .map_err(|err| OsuFileParseError::SectionParseError {
-                            source: Box::new(err),
-                        })?;
-                    sections_to_include.remove(
-                        sections_to_include
-                            .iter()
-                            .position(|section| *section == "Events")
-                            .unwrap(),
-                    );
-                }
-                "TimingPoints" => {
-                    timing_points = v
-                        .lines()
-                        .map(|line| line.parse::<TimingPoint>())
-                        .collect::<Result<Vec<_>, _>>()
-                        .map_err(|err| OsuFileParseError::SectionParseError {
-                            source: Box::new(err),
-                        })?;
+            let prev_parsed_index = section_name_check.get_mut(section_name);
 
-                    sections_to_include.remove(
-                        sections_to_include
-                            .iter()
-                            .position(|section| *section == "TimingPoints")
-                            .unwrap(),
-                    );
+            match prev_parsed_index {
+                Some(prev_parsed_index) => match prev_parsed_index {
+                    Some(prev_parsed_index) => {
+                        return Err(OsuFileParseError::DuplicateSections {
+                            first: *prev_parsed_index,
+                            second: i,
+                            name: section_name.to_string(),
+                        })
+                    }
+                    None => {
+                        match *section_name {
+                                "General" => {
+                                    general = section.parse().map_err(|err| {
+                                        OsuFileParseError::SectionParseError {
+                                            source: Box::new(err),
+                                        }
+                                    })?
+                                }
+                                "Editor" => {
+                                    editor = section
+                                        .parse()
+                                        .map_err(|err| OsuFileParseError::SectionParseError {
+                                            source: Box::new(err),
+                                        })?;
+                                    
+                                }
+                                "Metadata" => {
+                                    metadata = section
+                                        .parse()
+                                        .map_err(|err| OsuFileParseError::SectionParseError {
+                                            source: Box::new(err),
+                                        })?;
+                                    
+                                }
+                                "Difficulty" => {
+                                    difficulty = section
+                                        .parse()
+                                        .map_err(|err| OsuFileParseError::SectionParseError {
+                                            source: Box::new(err),
+                                        })?;
+                                    
+                                }
+                                "Events" => {
+                                    events = section
+                                        .parse()
+                                        .map_err(|err| OsuFileParseError::SectionParseError {
+                                            source: Box::new(err),
+                                        })?;
+                                    
+                                }
+                                "TimingPoints" => {
+                                    timing_points = section
+                                        .lines()
+                                        .map(|line| line.parse::<TimingPoint>())
+                                        .collect::<Result<Vec<_>, _>>()
+                                        .map_err(|err| OsuFileParseError::SectionParseError {
+                                            source: Box::new(err),
+                                        })?;
+                
+                                    
+                                }
+                                "Colours" => {
+                                    colours = section
+                                        .parse()
+                                        .map_err(|err| OsuFileParseError::SectionParseError {
+                                            source: Box::new(err),
+                                        })?;
+                                    
+                                }
+                                "HitObjects" => {
+                                    hitobjects = section
+                                        .lines()
+                                        .map(try_parse_hitobject)
+                                        .collect::<Result<Vec<_>, _>>()
+                                        .map_err(|err| OsuFileParseError::SectionParseError {
+                                            source: Box::new(err),
+                                        })?;
+                                }
+                                _ => unreachable!("Section name is already checked if valid, so this should never reach")
+                            }
+                        *prev_parsed_index = Some(i);
+                    }
+                },
+                None => {
+                    return Err(OsuFileParseError::InvalidSectionName(
+                        section_name.to_string(),
+                    ))
                 }
-                "Colours" => {
-                    colours = v
-                        .parse()
-                        .map_err(|err| OsuFileParseError::SectionParseError {
-                            source: Box::new(err),
-                        })?;
-                    sections_to_include.remove(
-                        sections_to_include
-                            .iter()
-                            .position(|section| *section == "Colours")
-                            .unwrap(),
-                    );
-                }
-                "HitObjects" => {
-                    hitobjects = v
-                        .lines()
-                        .map(try_parse_hitobject)
-                        .collect::<Result<Vec<_>, _>>()
-                        .map_err(|err| OsuFileParseError::SectionParseError {
-                            source: Box::new(err),
-                        })?;
-
-                    sections_to_include.remove(
-                        sections_to_include
-                            .iter()
-                            .position(|section| *section == "HitObjects")
-                            .unwrap(),
-                    );
-                }
-                _ => return Err(OsuFileParseError::InvalidSectionName(k.to_string())),
             }
-        }
-
-        if !sections_to_include.is_empty() {
-            return Err(OsuFileParseError::MissingSections(
-                sections_to_include.iter().map(|s| s.to_string()).collect(),
-            ));
         }
 
         Ok(OsuFile {
@@ -400,8 +360,12 @@ pub enum OsuFileParseError {
     #[error("Missing sections: {0}")]
     MissingSections(String),
     /// Duplicate section names defined.
-    #[error("There are duplicate sections: {0}")]
-    DuplicateSections(String),
+    #[error("There are duplicate sections at line {first} and {second}, both having the section name {name}")]
+    DuplicateSections {
+        first: usize,
+        second: usize,
+        name: String,
+    },
     /// Invalid section name defined.
     #[error("There is an invalid section name `{0}`")]
     InvalidSectionName(String),
