@@ -11,63 +11,61 @@ use thiserror::Error;
 
 use super::{Integer, DELIMITER};
 
-// TODO re-review all
-
-/// A struct representing the general section of the .osu file
-#[derive(PartialEq, Debug)]
+/// A struct representing the general section of the .osu file.
+#[derive(PartialEq, Debug, Clone, Eq, Hash)]
 pub struct General {
-    /// Location of the audio file relative to the current folder
+    /// Location of the audio file relative to the current folder.
     pub audio_filename: String,
-    /// Milliseconds of silence before the audio starts playing
+    /// Milliseconds of silence before the audio starts playing.
     pub audio_lead_in: Integer,
-    /// Deprecated
+    /// Deprecated.
     pub audio_hash: String,
-    /// Time in milliseconds when the audio preview should start
-    /// - Defaults to `-1`
+    /// Time in milliseconds when the audio preview should start.
+    /// - Defaults to `-1`.
     pub preview_time: Integer,
-    /// Speed of the countdown before the first hit object
-    /// - Defaults to `Normal`
+    /// Speed of the countdown before the first hit object.
+    /// - Defaults to `Normal`.
     pub countdown: CountdownSpeed,
-    /// Sample set that will be used if timing points do not override it
-    /// - Defaults to `Normal`
+    /// Sample set that will be used if timing points do not override it.
+    /// - Defaults to `Normal`.
     pub sample_set: SampleSet,
-    /// Multiplier for the threshold in time where hit objects placed close together stack
-    /// - Defaults to `0.7`
+    /// Multiplier for the threshold in time where hit objects placed close together stack.
+    /// - Defaults to `0.7`.
     pub stack_leniency: Decimal,
-    /// Game mode
-    /// - Defaults to `osu`
+    /// Game mode.
+    /// - Defaults to `osu`.
     pub mode: GameMode,
-    /// Whether or not breaks have a letterboxing effect
-    /// - Defaults to `false`
+    /// Whether or not breaks have a letterboxing effect.
+    /// - Defaults to `false`.
     pub letterbox_in_breaks: bool,
-    /// Deprecated
-    /// - Defaults to `true`
+    /// Deprecated.
+    /// - Defaults to `true`.
     pub story_fire_in_front: bool,
-    /// Whether or not the storyboard can use the user's skin images
-    /// - Defaults to `false`
+    /// Whether or not the storyboard can use the user's skin images.
+    /// - Defaults to `false`.
     pub use_skin_sprites: bool,
-    /// Deprecated
-    /// - Defaults to `false`
+    /// Deprecated.
+    /// - Defaults to `false`.
     pub always_show_playfield: bool,
-    /// Draw order of hit circle overlays compared to hit numbers
-    /// - Defaults to `NoChange`
+    /// Draw order of hit circle overlays compared to hit numbers.
+    /// - Defaults to `NoChange`.
     pub overlay_position: OverlayPosition,
-    /// Preferred skin to use during gameplay
+    /// Preferred skin to use during gameplay.
     pub skin_preference: String,
-    /// Whether or not a warning about flashing colours should be shown at the beginning of the map
-    /// - Defaults to `false`
+    /// Whether or not a warning about flashing colours should be shown at the beginning of the map.
+    /// - Defaults to `false`.
     pub epilepsy_warning: bool,
-    /// Time in beats that the countdown starts before the first hit object
-    /// - Defaults to `false`
+    /// Time in beats that the countdown starts before the first hit object.
+    /// - Defaults to `false`.
     pub countdown_offset: Integer,
-    /// Whether or not the "N+1" style key layout is used for osu!mania
-    /// - Defaults to `false`
+    /// Whether or not the "N+1" style key layout is used for osu!mania.
+    /// - Defaults to `false`.
     pub special_style: bool,
-    /// Whether or not the storyboard allows widescreen viewing
-    /// - Defaults to `false`
+    /// Whether or not the storyboard allows widescreen viewing.
+    /// - Defaults to `false`.
     pub widescreen_storyboard: bool,
-    /// Whether or not sound samples will change rate when playing with speed-changing mods
-    /// - Defaults to `false`
+    /// Whether or not sound samples will change rate when playing with speed-changing mods.
+    /// - Defaults to `false`.
     pub samples_match_playback_rate: bool,
 }
 
@@ -279,12 +277,14 @@ fn parse_zero_one_bool(value: &str) -> Result<bool, ParseBoolError> {
 #[derive(Debug, Error)]
 pub enum ParseBoolError {
     #[error("Error parsing {value} as an Integer")]
+    /// There was an error trying to parse `str` into an `Integer`.
     ValueParseError {
         #[source]
         source: ParseIntError,
         value: String,
     },
     #[error("Error parsing {0} as `true` or `false`, expected value of 0 or 1")]
+    /// The value attempted to parse wasn't 0 or 1.
     InvalidValue(Integer),
 }
 
@@ -338,25 +338,33 @@ impl Display for General {
 }
 
 #[derive(Debug, Error)]
+/// Error used when there was a problem parsing the `General` section.
 pub enum GeneralParseError {
     #[error("There was a problem parsing the `{name}` property from a `str`")]
+    /// A section in `General` failed to parse.
     SectionParseError {
         #[source]
         source: Box<dyn Error>,
         name: &'static str,
     },
     #[error("The key {0} doesn't exist in `General`")]
+    /// Invalid key name was used.
     InvalidKey(String),
     #[error("The key {0} has no value set")]
+    /// The value is missing from the `key: value` set.
     MissingValue(String),
 }
 
-/// Speed of the countdown before the first hit
-#[derive(PartialEq, Eq, Debug)]
+/// Speed of the countdown before the first hitobject.
+#[derive(PartialEq, Eq, Debug, Clone, Copy, Hash)]
 pub enum CountdownSpeed {
+    /// No countdown.
     NoCountdown,
+    /// Normal speed.
     Normal,
+    /// Half speed.
     Half,
+    /// Double speed.
     Double,
 }
 
@@ -400,8 +408,10 @@ impl TryFrom<i32> for CountdownSpeed {
 #[derive(Debug, Error)]
 pub enum CountdownSpeedParseError {
     #[error("Expected `CountdownSpeed` to be value from 0 ~ 3, got value {0}")]
+    /// The integer value is an unknown `CountdownSpeed` type.
     UnknownType(Integer),
     #[error("There was a problem parsing the `str` as an `Integer`")]
+    /// There was a problem converting from `str` to an `Integer`.
     ParseError(#[from] ParseIntError),
 }
 
@@ -412,10 +422,13 @@ impl Default for CountdownSpeed {
 }
 
 /// Sample set that will be used if timing points do not override it
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy, Hash)]
 pub enum SampleSet {
+    /// The `Normal` sample set.
     Normal,
+    /// The `Soft` sample set.
     Soft,
+    /// The `Drum` sample set.
     Drum,
 }
 
@@ -445,22 +458,26 @@ impl FromStr for SampleSet {
             "Normal" => Ok(SampleSet::Normal),
             "Soft" => Ok(SampleSet::Soft),
             "Drum" => Ok(SampleSet::Drum),
-            _ => Err(SampleSetParseError),
+            _ => Err(SampleSetParseError(s.to_string())),
         }
     }
 }
 
 /// Error used when there's an error parsing the string as enum
 #[derive(Debug, Error)]
-#[error("Error trying to parse `value` as SampleSet")]
-pub struct SampleSetParseError;
+#[error("Expected SampleSet `Normal`, `Soft`, or `Drum, got {0}")]
+pub struct SampleSetParseError(String);
 
 /// Game mode of the .osu file
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy, Hash)]
 pub enum GameMode {
+    /// Osu! gamemode.
     Osu,
+    /// Osu!Taiko gamemode.
     Taiko,
+    /// Osu!Catch gamemode.
     Catch,
+    /// Osu!Mania gamemode.
     Mania,
 }
 
@@ -506,17 +523,19 @@ impl FromStr for GameMode {
     }
 }
 
-/// Error used when there's an error parsing the string as enum
+/// Error used when there's an error parsing the string as enum.
 #[derive(Debug, Error)]
 pub enum GameModeParseError {
+    /// Error when the `GameMode` isn't the value between 0 ~ 3.
     #[error("Expected `GameMode` to be value from 0 ~ 3, got value {0}")]
     UnknownType(Integer),
+    /// Error trying to parse the `str` into an `Integer`.
     #[error("There was a problem parsing the `str` as an `Integer`")]
     ParseError(#[from] ParseIntError),
 }
 
 /// Draw order of hit circle overlays compared to hit numbers
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy, Hash)]
 pub enum OverlayPosition {
     /// Use skin setting
     NoChange,
@@ -552,12 +571,12 @@ impl FromStr for OverlayPosition {
             "NoChange" => Ok(OverlayPosition::NoChange),
             "Below" => Ok(OverlayPosition::Below),
             "Above" => Ok(OverlayPosition::Above),
-            _ => Err(OverlayPositionParseError),
+            _ => Err(OverlayPositionParseError(s.to_string())),
         }
     }
 }
 
-/// Error used when there's an error parsing the string as enum
+/// Error used when there's an error parsing the string as enum.
 #[derive(Debug, Error)]
-#[error("Error trying to parse `value` as OverlayPosition")]
-pub struct OverlayPositionParseError;
+#[error("Expected `NoChange` or `Below` or `Above` as `OverlayPosition`, got {0}")]
+pub struct OverlayPositionParseError(String);
