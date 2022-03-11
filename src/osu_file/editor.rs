@@ -135,7 +135,7 @@ pub enum EditorParseError {
         source: Box<dyn Error>,
         name: &'static str,
     },
-    #[error("The key {0} doesn't exist in `General`")]
+    #[error("The key {0} doesn't exist in `Editor`")]
     /// Invalid key name was used.
     InvalidKey(String),
     #[error("The key {0} has no value set")]
