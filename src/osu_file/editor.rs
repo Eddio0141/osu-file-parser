@@ -126,6 +126,7 @@ impl Display for Editor {
 
 #[derive(Debug, Error)]
 #[error("Error parsing a key: value in Editor")]
+/// Error used when there was a problem parsing the `Editor` section.
 pub enum EditorParseError {
     #[error("There was a problem parsing the `{name}` property from a `str`")]
     /// A section in `Editor` failed to parse.
