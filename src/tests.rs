@@ -1,6 +1,10 @@
 use rust_decimal_macros::dec;
 
-use crate::osu_file::{general::{CountdownSpeed, GameMode, General, OverlayPosition, SampleSet}, editor::Editor};
+use crate::osu_file::{
+    editor::Editor,
+    general::{CountdownSpeed, GameMode, General, OverlayPosition, SampleSet},
+    metadata::Metadata,
+};
 
 #[test]
 fn general_parse() {
@@ -57,11 +61,14 @@ fn editor_parse() {
 DistanceSpacing: 0.8
 BeatDivisor: 12
 GridSize: 8
-TimelineZoom: 2".replace("\n", "\r\n");
+TimelineZoom: 2"
+        .replace("\n", "\r\n");
     let i: Editor = i.parse().unwrap();
 
     let e = Editor {
-        bookmarks: vec![11018,21683,32349,37683,48349,59016,69683,80349,91016],
+        bookmarks: vec![
+            11018, 21683, 32349, 37683, 48349, 59016, 69683, 80349, 91016,
+        ],
         distance_spacing: dec!(0.8),
         beat_divisor: dec!(12),
         grid_size: 8,
@@ -69,4 +76,44 @@ TimelineZoom: 2".replace("\n", "\r\n");
     };
 
     assert_eq!(i, e);
+}
+
+#[test]
+fn metadata_parse() {
+    let i = "Title:LOVE IS ORANGE
+TitleUnicode:LOVE IS ORANGE
+Artist:Orange Lounge
+ArtistUnicode:Orange Lounge
+Creator:Xnery
+Version:Bittersweet Love
+Source:beatmania IIDX 8th style
+Tags:famoss 舟木智介 tomosuke funaki 徳井志津江 videogame ハードシャンソン Tart&Toffee
+BeatmapID:3072232
+BeatmapSetID:1499093"
+        .replace("\n", "\r\n");
+    let i: Metadata = i.parse().unwrap();
+
+    let m = Metadata {
+        title: "LOVE IS ORANGE".to_string(),
+        title_unicode: "LOVE IS ORANGE".to_string(),
+        artist: "Orange Lounge".to_string(),
+        artist_unicode: "Orange Lounge".to_string(),
+        creator: "Xnery".to_string(),
+        version: "Bittersweet Love".to_string(),
+        source: "beatmania IIDX 8th style".to_string(),
+        tags: vec![
+            "famoss".to_string(),
+            "舟木智介".to_string(),
+            "tomosuke".to_string(),
+            "funaki".to_string(),
+            "徳井志津江".to_string(),
+            "videogame".to_string(),
+            "ハードシャンソン".to_string(),
+            "Tart&Toffee".to_string(),
+        ],
+        beatmap_id: 3072232,
+        beatmap_set_id: 1499093,
+    };
+
+    assert_eq!(i, m);
 }

@@ -5,7 +5,7 @@ use thiserror::Error;
 
 use super::{Integer, SECTION_DELIMITER};
 
-/// A struct representing the editor section of thye .osu file.
+/// A struct representing the editor section of the .osu file.
 #[derive(Default, Debug, PartialEq, Clone, Hash, Eq)]
 pub struct Editor {
     /// Time in milliseconds of bookmarks.
