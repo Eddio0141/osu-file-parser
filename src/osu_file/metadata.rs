@@ -1,4 +1,5 @@
-use std::{error::Error, fmt::Display};
+use std::fmt::Display;
+use std::num::ParseIntError;
 use std::str::FromStr;
 
 use thiserror::Error;
@@ -58,7 +59,7 @@ impl FromStr for Metadata {
                         "BeatmapID" => {
                             metadata.beatmap_id = value.parse().map_err(|err| {
                                 MetadataParseError::SectionParseError {
-                                    source: Box::new(err),
+                                    source: err,
                                     name: "BeatmapID",
                                 }
                             })?
@@ -66,7 +67,7 @@ impl FromStr for Metadata {
                         "BeatmapSetID" => {
                             metadata.beatmap_set_id = value.parse().map_err(|err| {
                                 MetadataParseError::SectionParseError {
-                                    source: Box::new(err),
+                                    source: err,
                                     name: "BeatmapSetID",
                                 }
                             })?
@@ -96,7 +97,7 @@ impl Display for Metadata {
         key_value.push(format!("Tags:{}", self.tags.join(" ")));
         key_value.push(format!("BeatmapID:{}", self.beatmap_id));
         key_value.push(format!("BeatmapSetID:{}", self.beatmap_set_id));
-        
+
         write!(f, "{}", key_value.join("\r\n"))
     }
 }
@@ -104,11 +105,11 @@ impl Display for Metadata {
 #[derive(Debug, Error)]
 /// Error used when there was a problem parsing the `Metadata` section.
 pub enum MetadataParseError {
-    #[error("There was a problem parsing the `{name}` property from a `str`")]
+    #[error("There was a problem parsing the `{name}` property from a `str` to an `Integer`")]
     /// A section in `Metadata` failed to parse.
     SectionParseError {
         #[source]
-        source: Box<dyn Error>,
+        source: ParseIntError,
         name: &'static str,
     },
     #[error("The key {0} doesn't exist in `Metadata`")]
