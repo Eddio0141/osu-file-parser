@@ -1,6 +1,7 @@
 use rust_decimal_macros::dec;
 
 use crate::osu_file::{
+    difficulty::Difficulty,
     editor::Editor,
     general::{CountdownSpeed, GameMode, General, OverlayPosition, SampleSet},
     metadata::Metadata,
@@ -116,4 +117,27 @@ BeatmapSetID:1499093"
     };
 
     assert_eq!(i, m);
+}
+
+#[test]
+fn difficulty_parse() {
+    let i = "HPDrainRate:8
+CircleSize:5
+OverallDifficulty:8
+ApproachRate:5
+SliderMultiplier:1.4
+SliderTickRate:1"
+        .replace("\n", "\r\n");
+    let i: Difficulty = i.parse().unwrap();
+
+    let d = Difficulty {
+        hp_drain_rate: dec!(8),
+        circle_size: dec!(5),
+        overall_difficulty: dec!(8),
+        approach_rate: dec!(5),
+        slider_multiplier: dec!(1.4),
+        slider_tickrate: dec!(1),
+    };
+
+    assert_eq!(i, d);
 }
