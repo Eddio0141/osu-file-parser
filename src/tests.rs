@@ -6,6 +6,7 @@ use crate::osu_file::{
     editor::Editor,
     general::{CountdownSpeed, GameMode, General, OverlayPosition, SampleSet},
     metadata::Metadata,
+    timingpoint::{self, Effects, SampleIndex, TimingPoint},
 };
 
 #[test]
@@ -173,4 +174,46 @@ SliderBorder : 120,130,140"
     ];
 
     assert_eq!(i, c);
+}
+
+#[test]
+fn timing_points_parse() {
+    let i = "10000,333.33,4,0,0,100,1,1
+12000,-25,4,3,0,100,0,1"
+        .replace("\n", "\r\n");
+    let i: Vec<TimingPoint> = i
+        .lines()
+        .map(|timing_point| timing_point.parse().unwrap())
+        .collect();
+
+    let t = vec![
+        TimingPoint::new(
+            10000,
+            dec!(333.33),
+            4,
+            timingpoint::SampleSet::BeatmapDefault,
+            SampleIndex::OsuDefaultHitsounds,
+            100,
+            true,
+            Effects {
+                kiai_time_enabled: true,
+                no_first_barline_in_taiko_mania: false,
+            },
+        ),
+        TimingPoint::new(
+            12000,
+            dec!(-25),
+            4,
+            timingpoint::SampleSet::Drum,
+            SampleIndex::OsuDefaultHitsounds,
+            100,
+            false,
+            Effects {
+                kiai_time_enabled: true,
+                no_first_barline_in_taiko_mania: false,
+            },
+        ),
+    ];
+
+    assert_eq!(i, t);
 }

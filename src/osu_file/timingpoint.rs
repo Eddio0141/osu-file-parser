@@ -16,20 +16,50 @@ use super::{
 
 #[derive(Default, Clone, Copy, Hash, PartialEq, Eq, Debug)]
 pub struct TimingPoint {
-    pub time: Integer,
-    pub beat_length: Decimal,
-    pub meter: Integer,
-    pub sample_set: SampleSet,
-    pub sample_index: SampleIndex,
-    pub volume: Integer,
-    pub uninherited: bool,
-    pub effects: Effects,
+    time: Integer,
+    beat_length: Decimal,
+    meter: Integer,
+    sample_set: SampleSet,
+    sample_index: SampleIndex,
+    volume: Integer,
+    uninherited: bool,
+    effects: Effects,
 }
 
 impl TimingPoint {
-    pub fn bpm(&self) -> Decimal {
-        dec!(1) / self.beat_length * dec!(60000)
+    pub fn new(
+        time: Integer,
+        beat_length: Decimal,
+        meter: Integer,
+        sample_set: SampleSet,
+        sample_index: SampleIndex,
+        volume: Integer,
+        uninherited: bool,
+        effects: Effects,
+    ) -> Self {
+        Self {
+            time,
+            beat_length,
+            meter,
+            sample_set,
+            sample_index,
+            volume,
+            uninherited,
+            effects,
+        }
     }
+
+    /// Calculates BPM using the `beatLength` field.
+    pub fn calc_bpm(&self) -> Option<Decimal> {
+        if self.uninherited {
+            Some(dec!(1) / self.beat_length * dec!(60000))
+        } else {
+            None
+        }
+    }
+    // pub fn slider_velocity_multiplier(&self) -> Option<Decimal> {
+
+    // }
 }
 
 impl FromStr for TimingPoint {
