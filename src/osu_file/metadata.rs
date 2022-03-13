@@ -27,7 +27,7 @@ pub struct Metadata {
     pub tags: Vec<String>,
     /// Difficulty ID.
     pub beatmap_id: Integer,
-    /// Beatmap ID>
+    /// Beatmap ID.
     pub beatmap_set_id: Integer,
 }
 
