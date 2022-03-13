@@ -6,6 +6,7 @@ pub mod general;
 pub mod hitobject;
 pub mod metadata;
 pub mod timingpoint;
+mod helper;
 
 use std::hash::Hash;
 use std::num::ParseIntError;

@@ -1,5 +1,4 @@
 pub mod error;
-mod helper;
 pub mod types;
 
 use std::fmt::Display;
@@ -7,7 +6,7 @@ use std::fmt::Display;
 use rust_decimal::Decimal;
 
 use self::error::*;
-use self::helper::*;
+use super::helper::*;
 use self::types::*;
 
 use super::Integer;

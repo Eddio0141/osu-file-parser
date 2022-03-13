@@ -1,6 +1,6 @@
 use std::{error::Error, str::FromStr};
 
-use super::error::PipeVecParseErr;
+use super::hitobject::error::PipeVecParseErr;
 
 pub fn pipe_vec_to_string<T>(vec: &[T]) -> String
 where
