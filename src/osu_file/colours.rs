@@ -8,11 +8,11 @@ use super::Integer;
 #[derive(Clone, Copy, Hash, PartialEq, Eq, Debug)]
 pub enum Colour {
     /// Additive combo colours.
-    Combo(Integer, RGB),
+    Combo(Integer, Rgb),
     /// Additive slider track colour.
-    SliderTrackOverride(RGB),
+    SliderTrackOverride(Rgb),
     /// Slider border colour.
-    SliderBorder(RGB),
+    SliderBorder(Rgb),
 }
 
 impl FromStr for Colour {
@@ -85,7 +85,7 @@ pub enum ColourParseError {
 
 #[derive(Default, Clone, Copy, Hash, Debug, PartialEq, Eq)]
 /// Struct representing the RGB colours with each colour having value from 0 ~ 255.
-pub struct RGB {
+pub struct Rgb {
     /// Red colour.
     pub red: u8,
     /// Green colour.
@@ -94,7 +94,7 @@ pub struct RGB {
     pub blue: u8,
 }
 
-impl FromStr for RGB {
+impl FromStr for Rgb {
     type Err = RGBParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -127,7 +127,7 @@ impl FromStr for RGB {
     }
 }
 
-impl Display for RGB {
+impl Display for Rgb {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{},{},{}", self.red, self.green, self.blue)
     }

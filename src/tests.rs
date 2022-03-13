@@ -1,7 +1,7 @@
 use rust_decimal_macros::dec;
 
 use crate::osu_file::{
-    colours::{Colour, RGB},
+    colours::{Colour, Rgb},
     difficulty::Difficulty,
     editor::Editor,
     general::{CountdownSpeed, GameMode, General, OverlayPosition, SampleSet},
@@ -154,18 +154,18 @@ SliderBorder : 120,130,140"
     let c = vec![
         Colour::Combo(
             1,
-            RGB {
+            Rgb {
                 red: 255,
                 green: 128,
                 blue: 255,
             },
         ),
-        Colour::SliderTrackOverride(RGB {
+        Colour::SliderTrackOverride(Rgb {
             red: 100,
             green: 99,
             blue: 70,
         }),
-        Colour::SliderBorder(RGB {
+        Colour::SliderBorder(Rgb {
             red: 120,
             green: 130,
             blue: 140,
