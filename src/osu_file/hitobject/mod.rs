@@ -192,7 +192,7 @@ pub fn try_parse_hitobject(hitobject: &str) -> Result<HitObjectWrapper, HitObjec
     let hitsample = |obj_properties: &mut dyn Iterator<Item = &str>| {
         let property = obj_properties
             .next()
-            .ok_or(HitObjectParseError::MissingProperty(
+            .ok_or_else(|| HitObjectParseError::MissingProperty(
                 "HitSample".to_string(),
             ))?;
 
@@ -222,11 +222,11 @@ pub fn try_parse_hitobject(hitobject: &str) -> Result<HitObjectWrapper, HitObjec
             // idk why ppy decided to just put in curve type without the usual , splitter
             let (curve_type, curve_points) = obj_properties
                 .next()
-                .ok_or(HitObjectParseError::MissingProperty(
+                .ok_or_else(|| HitObjectParseError::MissingProperty(
                     "CurveType".to_string(),
                 ))?
                 .split_once('|')
-                .ok_or(HitObjectParseError::MissingProperty(
+                .ok_or_else(|| HitObjectParseError::MissingProperty(
                     "CurvePoints".to_string(),
                 ))?;
 
@@ -247,7 +247,7 @@ pub fn try_parse_hitobject(hitobject: &str) -> Result<HitObjectWrapper, HitObjec
 
             let slides = obj_properties
                 .next()
-                .ok_or(HitObjectParseError::MissingProperty("Slides".to_string()))?;
+                .ok_or_else(|| HitObjectParseError::MissingProperty("Slides".to_string()))?;
             let slides = slides
                 .parse()
                 .map_err(|err| HitObjectParseError::ValueParseError {
@@ -257,7 +257,7 @@ pub fn try_parse_hitobject(hitobject: &str) -> Result<HitObjectWrapper, HitObjec
 
             let length = obj_properties
                 .next()
-                .ok_or(HitObjectParseError::MissingProperty("Length".to_string()))?;
+                .ok_or_else(|| HitObjectParseError::MissingProperty("Length".to_string()))?;
             let length = length
                 .parse()
                 .map_err(|err| HitObjectParseError::ValueParseError {
@@ -267,7 +267,7 @@ pub fn try_parse_hitobject(hitobject: &str) -> Result<HitObjectWrapper, HitObjec
 
             let edge_sounds = obj_properties
                 .next()
-                .ok_or(HitObjectParseError::MissingProperty(
+                .ok_or_else(|| HitObjectParseError::MissingProperty(
                     "EdgeSounds".to_string(),
                 ))?;
             let edge_sounds = str_to_pipe_vec(edge_sounds).map_err(|err| {
@@ -279,7 +279,7 @@ pub fn try_parse_hitobject(hitobject: &str) -> Result<HitObjectWrapper, HitObjec
 
             let edge_sets = obj_properties
                 .next()
-                .ok_or(HitObjectParseError::MissingProperty("EdgeSets".to_string()))?;
+                .ok_or_else(|| HitObjectParseError::MissingProperty("EdgeSets".to_string()))?;
             let edge_sets =
                 str_to_pipe_vec(edge_sets).map_err(|err| HitObjectParseError::ValueParseError {
                     value: edge_sets.to_string(),
@@ -307,7 +307,7 @@ pub fn try_parse_hitobject(hitobject: &str) -> Result<HitObjectWrapper, HitObjec
         HitObjectType::Spinner => {
             let end_time = obj_properties
                 .next()
-                .ok_or(HitObjectParseError::MissingProperty("EndTime".to_string()))?;
+                .ok_or_else(|| HitObjectParseError::MissingProperty("EndTime".to_string()))?;
             let end_time =
                 end_time
                     .parse()
@@ -333,9 +333,9 @@ pub fn try_parse_hitobject(hitobject: &str) -> Result<HitObjectWrapper, HitObjec
             // ppy has done it once again
             let (end_time, hitsample) = obj_properties
                 .next()
-                .ok_or(HitObjectParseError::MissingProperty("EndTime".to_string()))?
+                .ok_or_else(|| HitObjectParseError::MissingProperty("EndTime".to_string()))?
                 .split_once(':')
-                .ok_or(HitObjectParseError::MissingProperty(
+                .ok_or_else(|| HitObjectParseError::MissingProperty(
                     "HitSample".to_string(),
                 ))?;
 
