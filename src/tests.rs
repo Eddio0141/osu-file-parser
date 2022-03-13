@@ -1,6 +1,7 @@
 use rust_decimal_macros::dec;
 
 use crate::osu_file::{
+    colours::{Colour, RGB},
     difficulty::Difficulty,
     editor::Editor,
     general::{CountdownSpeed, GameMode, General, OverlayPosition, SampleSet},
@@ -140,4 +141,36 @@ SliderTickRate:1"
     };
 
     assert_eq!(i, d);
+}
+
+#[test]
+fn colours_parse() {
+    let i = "Combo1 : 255,128,255
+SliderTrackOverride : 100,99,70
+SliderBorder : 120,130,140"
+        .replace("\n", "\r\n");
+    let i: Vec<Colour> = i.lines().map(|line| line.parse().unwrap()).collect();
+
+    let c = vec![
+        Colour::Combo(
+            1,
+            RGB {
+                red: 255,
+                green: 128,
+                blue: 255,
+            },
+        ),
+        Colour::SliderTrackOverride(RGB {
+            red: 100,
+            green: 99,
+            blue: 70,
+        }),
+        Colour::SliderBorder(RGB {
+            red: 120,
+            green: 130,
+            blue: 140,
+        }),
+    ];
+
+    assert_eq!(i, c);
 }

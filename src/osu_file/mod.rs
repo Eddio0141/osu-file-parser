@@ -17,7 +17,7 @@ use std::{
 
 use thiserror::Error;
 
-use self::colours::Colours;
+use self::colours::Colour;
 use self::difficulty::Difficulty;
 use self::editor::Editor;
 use self::events::Events;
@@ -51,7 +51,7 @@ pub struct OsuFile {
     pub timing_points: Vec<TimingPoint>,
     /// Combo and skin colours.
     /// `key` : `value` pairs.
-    pub colours: Colours,
+    pub colours: Vec<Colour>,
     /// Hit objects.
     /// Comma-separated lists.
     pub hitobjects: Vec<HitObjectWrapper>,
@@ -270,8 +270,7 @@ impl FromStr for OsuFile {
                                     
                                 }
                                 "Colours" => {
-                                    colours = section
-                                        .parse()
+                                    colours = section.lines().map(|line| line.parse::<Colour>()).collect::<Result<Vec<_>, _>>()
                                         .map_err(|err| OsuFileParseError::SectionParseError {
                                             source: Box::new(err),
                                         })?;
