@@ -9,7 +9,7 @@ use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
 use thiserror::Error;
 
-use super::{Integer, SECTION_DELIMITER};
+use super::{Integer, SECTION_DELIMITER, helper::parse_zero_one_bool};
 
 /// A struct representing the general section of the .osu file.
 #[derive(PartialEq, Debug, Clone, Eq, Hash)]
@@ -256,36 +256,6 @@ impl FromStr for General {
 
         Ok(general)
     }
-}
-
-fn parse_zero_one_bool(value: &str) -> Result<bool, ParseBoolError> {
-    let value = value
-        .parse()
-        .map_err(|err| ParseBoolError::ValueParseError {
-            source: err,
-            value: value.to_string(),
-        })?;
-
-    match value {
-        0 => Ok(false),
-        1 => Ok(true),
-        _ => Err(ParseBoolError::InvalidValue(value)),
-    }
-}
-
-/// Error for when having a problem parsing 0 or 1 as a boolean
-#[derive(Debug, Error)]
-pub enum ParseBoolError {
-    #[error("Error parsing {value} as an Integer")]
-    /// There was an error trying to parse `str` into an `Integer`.
-    ValueParseError {
-        #[source]
-        source: ParseIntError,
-        value: String,
-    },
-    #[error("Error parsing {0} as `true` or `false`, expected value of 0 or 1")]
-    /// The value attempted to parse wasn't 0 or 1.
-    InvalidValue(Integer),
 }
 
 impl Display for General {

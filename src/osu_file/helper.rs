@@ -1,6 +1,8 @@
-use std::{error::Error, str::FromStr};
+use std::{error::Error, str::FromStr, num::ParseIntError};
 
-use super::hitobject::error::PipeVecParseErr;
+use thiserror::Error;
+
+use super::{hitobject::error::PipeVecParseErr, Integer};
 
 pub fn pipe_vec_to_string<T>(vec: &[T]) -> String
 where
@@ -39,4 +41,34 @@ where
 
 pub fn nth_bit_state_i64(value: i64, nth_bit: u8) -> bool {
     value >> nth_bit & 1 == 1
+}
+
+pub fn parse_zero_one_bool(value: &str) -> Result<bool, ParseBoolError> {
+    let value = value
+        .parse()
+        .map_err(|err| ParseBoolError::ValueParseError {
+            source: err,
+            value: value.to_string(),
+        })?;
+
+    match value {
+        0 => Ok(false),
+        1 => Ok(true),
+        _ => Err(ParseBoolError::InvalidValue(value)),
+    }
+}
+
+/// Error for when having a problem parsing 0 or 1 as a boolean
+#[derive(Debug, Error)]
+pub enum ParseBoolError {
+    #[error("Error parsing {value} as an Integer")]
+    /// There was an error trying to parse `str` into an `Integer`.
+    ValueParseError {
+        #[source]
+        source: ParseIntError,
+        value: String,
+    },
+    #[error("Error parsing {0} as `true` or `false`, expected value of 0 or 1")]
+    /// The value attempted to parse wasn't 0 or 1.
+    InvalidValue(Integer),
 }

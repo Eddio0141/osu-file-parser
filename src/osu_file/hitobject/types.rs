@@ -2,9 +2,9 @@
 
 use std::{fmt::Display, num::NonZeroUsize, str::FromStr};
 
-use crate::osu_file::{Integer, Position};
+use crate::osu_file::{Integer, Position, helper::nth_bit_state_i64};
 
-use super::{error::*, helper::nth_bit_state_i64};
+use super::error::*;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default, Hash)]
 /// Sample sets used for the `edgeSounds`.
