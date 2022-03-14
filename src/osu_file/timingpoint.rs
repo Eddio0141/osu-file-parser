@@ -2,7 +2,7 @@ use std::{
     error::Error,
     fmt::Display,
     num::{NonZeroUsize, ParseIntError},
-    str::FromStr,
+    str::{FromStr, Split},
 };
 
 use rust_decimal::Decimal;
@@ -30,14 +30,17 @@ pub struct TimingPoint {
 }
 
 impl TimingPoint {
+    /// Converts beat duration in milliseconds to BPM.
     pub fn beat_duration_ms_to_bpm(beat_duration_ms: Decimal) -> Decimal {
         dec!(1) / beat_duration_ms * dec!(60000)
     }
 
+    /// Converts BPM to beat duration in milliseconds.
     pub fn bpm_to_beat_duration_ms(bpm: Decimal) -> Decimal {
         dec!(1) / (bpm / dec!(60000))
     }
 
+    /// New instance of `TimingPoint` that is inherited.
     pub fn new_inherited(
         time: Integer,
         slider_velocity_multiplier: Decimal,
@@ -59,6 +62,7 @@ impl TimingPoint {
         }
     }
 
+    /// New instance of `TimingPoint` that is uninherited.
     pub fn new_uninherited(
         time: Integer,
         beat_duration_ms: Decimal,
@@ -168,6 +172,26 @@ impl TimingPoint {
     pub fn effects_mut(&mut self) -> &mut Effects {
         &mut self.effects
     }
+
+    fn parse_field<T>(
+        s: &mut Split<char>,
+        field_name: &'static str,
+    ) -> Result<T, TimingPointParseError>
+    where
+        T: FromStr,
+        <T as FromStr>::Err: Error + 'static,
+    {
+        let value = s
+            .next()
+            .ok_or(TimingPointParseError::MissingField(field_name))?;
+        value
+            .parse()
+            .map_err(|err| TimingPointParseError::FieldParseError {
+                source: Box::new(err),
+                value: value.to_string(),
+                field_name,
+            })
+    }
 }
 
 impl FromStr for TimingPoint {
@@ -176,75 +200,12 @@ impl FromStr for TimingPoint {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut s = s.split(',');
 
-        let time = s
-            .next()
-            .ok_or(TimingPointParseError::MissingField("time"))?;
-        let time = time
-            .parse()
-            .map_err(|err| TimingPointParseError::FieldParseError {
-                source: Box::new(err),
-                value: time.to_string(),
-                field_name: "time",
-            })?;
-
-        let beat_length = s
-            .next()
-            .ok_or(TimingPointParseError::MissingField("beatLength"))?;
-        let beat_length =
-            beat_length
-                .parse()
-                .map_err(|err| TimingPointParseError::FieldParseError {
-                    source: Box::new(err),
-                    value: beat_length.to_string(),
-                    field_name: "beatLength",
-                })?;
-
-        let meter = s
-            .next()
-            .ok_or(TimingPointParseError::MissingField("meter"))?;
-        let meter = meter
-            .parse()
-            .map_err(|err| TimingPointParseError::FieldParseError {
-                source: Box::new(err),
-                value: meter.to_string(),
-                field_name: "meter",
-            })?;
-
-        let sample_set = s
-            .next()
-            .ok_or(TimingPointParseError::MissingField("sampleSet"))?;
-        let sample_set =
-            sample_set
-                .parse()
-                .map_err(|err| TimingPointParseError::FieldParseError {
-                    source: Box::new(err),
-                    value: sample_set.to_string(),
-                    field_name: "sampleSet",
-                })?;
-
-        let sample_index = s
-            .next()
-            .ok_or(TimingPointParseError::MissingField("sampleIndex"))?;
-        let sample_index =
-            sample_index
-                .parse()
-                .map_err(|err| TimingPointParseError::FieldParseError {
-                    source: Box::new(err),
-                    value: sample_index.to_string(),
-                    field_name: "sampleIndex",
-                })?;
-
-        let volume = s
-            .next()
-            .ok_or(TimingPointParseError::MissingField("volume"))?;
-        let volume = volume
-            .parse()
-            .map_err(|err| TimingPointParseError::FieldParseError {
-                source: Box::new(err),
-                value: volume.to_string(),
-                field_name: "volume",
-            })?;
-
+        let time = Self::parse_field(&mut s, "time")?;
+        let beat_length = Self::parse_field(&mut s, "beatLength")?;
+        let meter = Self::parse_field(&mut s, "meter")?;
+        let sample_set = Self::parse_field(&mut s, "sampleSet")?;
+        let sample_index = Self::parse_field(&mut s, "sampleIndex")?;
+        let volume = Self::parse_field(&mut s, "volume")?;
         let uninherited = s
             .next()
             .ok_or(TimingPointParseError::MissingField("uninherited"))?;
@@ -255,17 +216,7 @@ impl FromStr for TimingPoint {
                 field_name: "uninherited",
             }
         })?;
-
-        let effects = s
-            .next()
-            .ok_or(TimingPointParseError::MissingField("effects"))?;
-        let effects = effects
-            .parse()
-            .map_err(|err| TimingPointParseError::FieldParseError {
-                source: Box::new(err),
-                value: effects.to_string(),
-                field_name: "effects",
-            })?;
+        let effects = Self::parse_field(&mut s, "effects")?;
 
         Ok(TimingPoint {
             time,
@@ -297,11 +248,14 @@ impl Display for TimingPoint {
     }
 }
 
+/// Error used when there was a problem parsing the [`TimingPoint`].
 #[derive(Debug, Error)]
 pub enum TimingPointParseError {
+    /// A field is missing.
     #[error("The field {0} is missing")]
     MissingField(&'static str),
     #[error("There was a problem parsing the value {value}")]
+    /// The field failed to parse to some type from a `str`.
     FieldParseError {
         #[source]
         source: Box<dyn Error>,
@@ -311,11 +265,16 @@ pub enum TimingPointParseError {
 }
 
 // TODO figure out default
+/// Default sample set for hitobjects.
 #[derive(Clone, Copy, Hash, PartialEq, Eq, Debug)]
 pub enum SampleSet {
+    /// Beatmap's default.
     BeatmapDefault,
+    /// Normal.
     Normal,
+    /// Soft.
     Soft,
+    /// Drum.
     Drum,
 }
 
@@ -369,19 +328,23 @@ impl Display for SampleSet {
     }
 }
 
+/// There was some problem parsing the [`SampleSet`].
 #[derive(Debug, Error)]
 pub enum SampleSetParseError {
+    /// The value failed to parse from a `str`.
     #[error("There was a problem parsing {value} as an `Integer`")]
     ValueParseError {
         #[source]
         source: ParseIntError,
         value: String,
     },
+    /// The `SampleSet` type is invalid.
     #[error("Expected `SampleSet` to have a value of 0 ~ 3, got {0}")]
     UnknownSampleSetType(u8),
 }
 
 // TODO figure out default
+/// Flags that give the [`TimingPoint`] extra effects.
 #[derive(Default, Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub struct Effects {
     pub kiai_time_enabled: bool,
@@ -434,17 +397,21 @@ impl Display for Effects {
     }
 }
 
+/// There was a problem parsing `str` as [`Effects`].
 #[derive(Debug, Error)]
 #[error("There was a problem parsing {value} as an `Integer`")]
 pub struct EffectsParseError {
     #[source]
-    source: ParseIntError,
-    value: String,
+    pub source: ParseIntError,
+    pub value: String,
 }
 
+/// Custom sample index for hitobjects.
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum SampleIndex {
+    /// Osu!'s default hitsounds.
     OsuDefaultHitsounds,
+    /// Sample index for hitobjects.
     Index(NonZeroUsize),
 }
 
@@ -498,6 +465,7 @@ impl Default for SampleIndex {
     }
 }
 
+/// Error used when `str` failed to parse as [`SampleIndex`].
 #[derive(Debug, Error)]
 #[error("There was a problem parsing {value} as an usize for `SampleIndex`")]
 pub struct SampleIndexParseError {
@@ -573,10 +541,13 @@ impl Volume {
     }
 }
 
+/// Error for when there was a problem setting / parsing the volume.
 #[derive(Debug, Error)]
 pub enum VolumeError {
+    /// Error when volume is out of range of the 0 ~ 100 range.
     #[error("The volume was too high, expected 0 ~ 100, got {0}")]
     VolumeTooHigh(u8),
+    /// There was a problem parsing the `str` as [`Volume`].
     #[error("There was a problem parsing a `str` as [`Volume`]")]
     VolumeParseError {
         #[source]
