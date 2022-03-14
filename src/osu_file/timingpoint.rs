@@ -14,6 +14,9 @@ use super::{
     Integer,
 };
 
+/// Struct representing a timing point.
+/// Each timing point influences a specified portion of the map, commonly called a `timing section`.
+/// The .osu file format requires these to be sorted in chronological order.
 #[derive(Default, Clone, Copy, Hash, PartialEq, Eq, Debug)]
 pub struct TimingPoint {
     time: Integer,
@@ -21,45 +24,150 @@ pub struct TimingPoint {
     meter: Integer,
     sample_set: SampleSet,
     sample_index: SampleIndex,
-    volume: Integer,
+    volume: Volume,
     uninherited: bool,
     effects: Effects,
 }
 
 impl TimingPoint {
-    pub fn new(
+    pub fn beat_duration_ms_to_bpm(beat_duration_ms: Decimal) -> Decimal {
+        dec!(1) / beat_duration_ms * dec!(60000)
+    }
+
+    pub fn bpm_to_beat_duration_ms(bpm: Decimal) -> Decimal {
+        dec!(1) / (bpm / dec!(60000))
+    }
+
+    pub fn new_inherited(
         time: Integer,
-        beat_length: Decimal,
+        slider_velocity_multiplier: Decimal,
         meter: Integer,
         sample_set: SampleSet,
         sample_index: SampleIndex,
-        volume: Integer,
-        uninherited: bool,
+        volume: Volume,
         effects: Effects,
     ) -> Self {
         Self {
             time,
-            beat_length,
+            beat_length: (dec!(1) / slider_velocity_multiplier) * dec!(-100),
             meter,
             sample_set,
             sample_index,
             volume,
-            uninherited,
+            uninherited: false,
             effects,
         }
     }
 
-    /// Calculates BPM using the `beatLength` field.
+    pub fn new_uninherited(
+        time: Integer,
+        beat_duration_ms: Decimal,
+        meter: Integer,
+        sample_set: SampleSet,
+        sample_index: SampleIndex,
+        volume: Volume,
+        effects: Effects,
+    ) -> Self {
+        Self {
+            time,
+            beat_length: beat_duration_ms,
+            meter,
+            sample_set,
+            sample_index,
+            volume,
+            uninherited: true,
+            effects,
+        }
+    }
+
+    /// Calculates BPM using the `beatLength` field when unherited.
     pub fn calc_bpm(&self) -> Option<Decimal> {
         if self.uninherited {
-            Some(dec!(1) / self.beat_length * dec!(60000))
+            Some(Self::beat_duration_ms_to_bpm(self.beat_length))
         } else {
             None
         }
     }
-    // pub fn slider_velocity_multiplier(&self) -> Option<Decimal> {
+    /// Calculates the slider velocity multiplier when the timing point is inherited.
+    pub fn slider_velocity_multiplier(&self) -> Option<Decimal> {
+        if self.uninherited {
+            None
+        } else {
+            // TODO cache?
+            Some(dec!(1) / (self.beat_length / dec!(-100)))
+        }
+    }
 
-    // }
+    /// Start time of the timing section, in milliseconds from the beginning of the beatmap's audio.
+    /// The end of the timing section is the next timing point's time (or never, if this is the last timing point).
+    pub fn time(&self) -> i32 {
+        self.time
+    }
+
+    /// Set the timing point's start time.
+    pub fn set_time(&mut self, time: Integer) {
+        self.time = time;
+    }
+
+    /// Amount of beats in a measure. Inherited timing points ignore this property.
+    pub fn meter(&self) -> i32 {
+        self.meter
+    }
+
+    /// Set the timing point's meter field.
+    pub fn set_meter(&mut self, meter: Integer) {
+        self.meter = meter;
+    }
+
+    /// Default sample set for hit objects
+    pub fn sample_set(&self) -> SampleSet {
+        self.sample_set
+    }
+
+    /// Set the timing point's sample set.
+    pub fn set_sample_set(&mut self, sample_set: SampleSet) {
+        self.sample_set = sample_set;
+    }
+
+    /// Custom sample index for hit objects.
+    pub fn sample_index(&self) -> SampleIndex {
+        self.sample_index
+    }
+
+    /// Get a mutable reference to the timing point's sample index.
+    pub fn sample_index_mut(&mut self) -> &mut SampleIndex {
+        &mut self.sample_index
+    }
+
+    /// Volume percentage for hit objects.
+    pub fn volume(&self) -> &Volume {
+        &self.volume
+    }
+
+    /// Set the timing point's volume.
+    pub fn set_volume(&mut self, volume: Volume) {
+        self.volume = volume;
+    }
+
+    /// Get the timing point's uninherited.
+    pub fn uninherited(&self) -> bool {
+        self.uninherited
+    }
+
+    /// Set the timing point's uninherited.
+    pub fn set_uninherited(&mut self, uninherited: bool) {
+        self.uninherited = uninherited;
+    }
+
+    /// Get the timing point's effects.
+    pub fn effects(&self) -> Effects {
+        self.effects
+    }
+
+    /// Get a mutable reference to the timing point's effects.
+    pub fn effects_mut(&mut self) -> &mut Effects {
+        &mut self.effects
+    }
 }
 
 impl FromStr for TimingPoint {
@@ -70,7 +178,7 @@ impl FromStr for TimingPoint {
 
         let time = s
             .next()
-            .ok_or_else(|| TimingPointParseError::MissingField("time"))?;
+            .ok_or(TimingPointParseError::MissingField("time"))?;
         let time = time
             .parse()
             .map_err(|err| TimingPointParseError::FieldParseError {
@@ -81,7 +189,7 @@ impl FromStr for TimingPoint {
 
         let beat_length = s
             .next()
-            .ok_or_else(|| TimingPointParseError::MissingField("beatLength"))?;
+            .ok_or(TimingPointParseError::MissingField("beatLength"))?;
         let beat_length =
             beat_length
                 .parse()
@@ -93,7 +201,7 @@ impl FromStr for TimingPoint {
 
         let meter = s
             .next()
-            .ok_or_else(|| TimingPointParseError::MissingField("meter"))?;
+            .ok_or(TimingPointParseError::MissingField("meter"))?;
         let meter = meter
             .parse()
             .map_err(|err| TimingPointParseError::FieldParseError {
@@ -104,7 +212,7 @@ impl FromStr for TimingPoint {
 
         let sample_set = s
             .next()
-            .ok_or_else(|| TimingPointParseError::MissingField("sampleSet"))?;
+            .ok_or(TimingPointParseError::MissingField("sampleSet"))?;
         let sample_set =
             sample_set
                 .parse()
@@ -116,7 +224,7 @@ impl FromStr for TimingPoint {
 
         let sample_index = s
             .next()
-            .ok_or_else(|| TimingPointParseError::MissingField("sampleIndex"))?;
+            .ok_or(TimingPointParseError::MissingField("sampleIndex"))?;
         let sample_index =
             sample_index
                 .parse()
@@ -128,7 +236,7 @@ impl FromStr for TimingPoint {
 
         let volume = s
             .next()
-            .ok_or_else(|| TimingPointParseError::MissingField("volume"))?;
+            .ok_or(TimingPointParseError::MissingField("volume"))?;
         let volume = volume
             .parse()
             .map_err(|err| TimingPointParseError::FieldParseError {
@@ -139,7 +247,7 @@ impl FromStr for TimingPoint {
 
         let uninherited = s
             .next()
-            .ok_or_else(|| TimingPointParseError::MissingField("uninherited"))?;
+            .ok_or(TimingPointParseError::MissingField("uninherited"))?;
         let uninherited = parse_zero_one_bool(uninherited).map_err(|err| {
             TimingPointParseError::FieldParseError {
                 source: Box::new(err),
@@ -150,7 +258,7 @@ impl FromStr for TimingPoint {
 
         let effects = s
             .next()
-            .ok_or_else(|| TimingPointParseError::MissingField("effects"))?;
+            .ok_or(TimingPointParseError::MissingField("effects"))?;
         let effects = effects
             .parse()
             .map_err(|err| TimingPointParseError::FieldParseError {
@@ -396,4 +504,83 @@ pub struct SampleIndexParseError {
     #[source]
     pub source: Box<dyn Error>,
     pub value: String,
+}
+
+/// The volume percentage in the range of 0 ~ 100.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct Volume(u8);
+
+impl FromStr for Volume {
+    type Err = VolumeError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let s: u8 = s.parse().map_err(|err| VolumeError::VolumeParseError {
+            source: err,
+            value: s.to_string(),
+        })?;
+        Volume::try_from(s)
+    }
+}
+
+impl TryFrom<u8> for Volume {
+    type Error = VolumeError;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        if value > 100 {
+            Err(VolumeError::VolumeTooHigh(value))
+        } else {
+            Ok(Volume(value))
+        }
+    }
+}
+
+impl From<Volume> for u8 {
+    fn from(volume: Volume) -> Self {
+        volume.0
+    }
+}
+
+impl Display for Volume {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl Volume {
+    /// Creates a new volme instance.
+    pub fn new(volume: u8) -> Result<Self, VolumeError> {
+        if volume > 100 {
+            Err(VolumeError::VolumeTooHigh(volume))
+        } else {
+            Ok(Volume(volume))
+        }
+    }
+
+    /// Gets the volume percentage.
+    pub fn volume(&self) -> u8 {
+        self.0
+    }
+
+    /// Sets the volume percentage.
+    /// - Volume is in the range of 0 ~ 100 and setting it above 100 will return a [`VolumeError`].
+    pub fn set_volume(&mut self, volume: u8) -> Result<(), VolumeError> {
+        if volume > 100 {
+            Err(VolumeError::VolumeTooHigh(volume))
+        } else {
+            self.0 = volume;
+            Ok(())
+        }
+    }
+}
+
+#[derive(Debug, Error)]
+pub enum VolumeError {
+    #[error("The volume was too high, expected 0 ~ 100, got {0}")]
+    VolumeTooHigh(u8),
+    #[error("There was a problem parsing a `str` as [`Volume`]")]
+    VolumeParseError {
+        #[source]
+        source: ParseIntError,
+        value: String,
+    },
 }

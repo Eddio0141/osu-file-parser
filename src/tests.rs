@@ -6,7 +6,7 @@ use crate::osu_file::{
     editor::Editor,
     general::{CountdownSpeed, GameMode, General, OverlayPosition, SampleSet},
     metadata::Metadata,
-    timingpoint::{self, Effects, SampleIndex, TimingPoint},
+    timingpoint::{self, Effects, SampleIndex, TimingPoint, Volume},
 };
 
 #[test]
@@ -187,27 +187,25 @@ fn timing_points_parse() {
         .collect();
 
     let t = vec![
-        TimingPoint::new(
+        TimingPoint::new_uninherited(
             10000,
             dec!(333.33),
             4,
             timingpoint::SampleSet::BeatmapDefault,
             SampleIndex::OsuDefaultHitsounds,
-            100,
-            true,
+            Volume::new(100).unwrap(),
             Effects {
                 kiai_time_enabled: true,
                 no_first_barline_in_taiko_mania: false,
             },
         ),
-        TimingPoint::new(
+        TimingPoint::new_inherited(
             12000,
-            dec!(-25),
+            dec!(4),
             4,
             timingpoint::SampleSet::Drum,
             SampleIndex::OsuDefaultHitsounds,
-            100,
-            false,
+            Volume::new(100).unwrap(),
             Effects {
                 kiai_time_enabled: true,
                 no_first_barline_in_taiko_mania: false,

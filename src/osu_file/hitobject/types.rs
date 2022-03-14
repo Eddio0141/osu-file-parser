@@ -433,6 +433,7 @@ impl HitSample {
         self.index
     }
 
+    // TODO make custom type for those 0 index cases
     /// Sets the index of the sample.
     /// - If this returns `None`, the timing point's sample index will be used instead.
     pub fn set_index(&mut self, index: NonZeroUsize) {
