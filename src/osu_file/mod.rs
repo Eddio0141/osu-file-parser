@@ -21,7 +21,7 @@ use thiserror::Error;
 use self::colours::Colour;
 use self::difficulty::Difficulty;
 use self::editor::Editor;
-use self::events::Events;
+use self::events::Event;
 use self::general::General;
 use self::hitobject::{try_parse_hitobject, HitObjectWrapper};
 use self::metadata::Metadata;
@@ -46,7 +46,7 @@ pub struct OsuFile {
     pub difficulty: Difficulty,
     /// Beatmap and storyboard graphic events.
     /// Comma-separated lists.
-    pub events: Events,
+    pub events: Vec<Event>,
     /// Timing and control points.
     /// Comma-separated lists.
     pub timing_points: Vec<TimingPoint>,
@@ -252,8 +252,7 @@ impl FromStr for OsuFile {
                                     
                                 }
                                 "Events" => {
-                                    events = section
-                                        .parse()
+                                    events = section.lines().map(|line| line.parse::<Event>()).collect::<Result<Vec<_>, _>>()
                                         .map_err(|err| OsuFileParseError::SectionParseError {
                                             source: Box::new(err),
                                         })?;
