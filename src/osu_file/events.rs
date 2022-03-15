@@ -5,48 +5,54 @@ use thiserror::Error;
 use super::{Integer, Position};
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
-pub struct Event {
-    pub start_time: Integer,
-    pub event_params: EventParams,
+pub enum Event {
+    Comment(String),
+    NormalEvent {
+        start_time: Integer,
+        event_params: EventParams,
+    },
 }
 
 impl FromStr for Event {
     type Err = EventsParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut s = s.split(',');
+        match s.trim().strip_prefix("//") {
+            Some(comment) => Ok(Event::Comment(comment.to_string())),
+            None => {
+                let mut s = s.split(',');
 
-        let event_type = s
-            .next()
-            .ok_or(EventsParseError::MissingField("eventType"))?;
+                let event_type = s
+                    .next()
+                    .ok_or(EventsParseError::MissingField("eventType"))?;
 
-        let start_time = s
-            .next()
-            .ok_or(EventsParseError::MissingField("startTime"))?;
-        let start_time = start_time
-            .parse()
-            .map_err(|err| EventsParseError::FieldParseError {
-                source: Box::new(err),
-                value: start_time.to_string(),
-                field_name: "startTime",
-            })?;
+                let start_time = s
+                    .next()
+                    .ok_or(EventsParseError::MissingField("startTime"))?;
+                let start_time =
+                    start_time
+                        .parse()
+                        .map_err(|err| EventsParseError::FieldParseError {
+                            source: Box::new(err),
+                            value: start_time.to_string(),
+                            field_name: "startTime",
+                        })?;
 
-        let event_params = s
-            .next()
-            .ok_or(EventsParseError::MissingField("eventParams"))?;
+                let event_params = EventParams::try_from((event_type, &mut s)).map_err(|err| {
+                    EventsParseError::FieldParseError {
+                        source: Box::new(err),
+                        // TODO does this even work
+                        value: format!("{}{}", event_type, s.collect::<String>()),
+                        field_name: "eventParams",
+                    }
+                })?;
 
-        let event_params = EventParams::try_from((event_type, event_params)).map_err(|err| {
-            EventsParseError::FieldParseError {
-                source: Box::new(err),
-                value: format!("{}{}", event_type, event_params),
-                field_name: "eventParams",
+                Ok(Self::NormalEvent {
+                    start_time,
+                    event_params,
+                })
             }
-        })?;
-
-        Ok(Self {
-            start_time,
-            event_params,
-        })
+        }
     }
 }
 
@@ -74,6 +80,23 @@ pub struct Background {
     pub position: Position,
 }
 
+impl Background {
+    pub fn new(filename: String, position: Position) -> Self {
+        let (filename, filename_has_quotes) =
+            if filename.starts_with('"') && filename.ends_with('"') {
+                (&filename[1..filename.len()], true)
+            } else {
+                (filename.as_str(), false)
+            };
+
+        Self {
+            filename: filename.to_string(),
+            filename_has_quotes,
+            position,
+        }
+    }
+}
+
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Video {
     pub filename: String,
@@ -95,11 +118,13 @@ pub enum EventParams {
     Storyboard,
 }
 
-impl TryFrom<(&str, &str)> for EventParams {
+impl<'a, T> TryFrom<(&str, &mut T)> for EventParams
+where
+    T: Iterator<Item = &'a str>,
+{
     type Error = EventParamsParseError;
 
-    fn try_from((event_type, event_params): (&str, &str)) -> Result<Self, Self::Error> {
-        let mut event_params = event_params.split(',');
+    fn try_from((event_type, event_params): (&str, &mut T)) -> Result<Self, Self::Error> {
         let event_type = event_type.trim();
 
         match event_type {
@@ -109,6 +134,11 @@ impl TryFrom<(&str, &str)> for EventParams {
                     .ok_or(EventParamsParseError::MissingField("filename"))?
                     .trim();
                 let filename_has_quotes = filename.starts_with('"') && filename.ends_with('"');
+                let filename = if filename_has_quotes {
+                    &filename[1..filename.len()]
+                } else {
+                    filename
+                };
                 let position = {
                     let x = event_params
                         .next()

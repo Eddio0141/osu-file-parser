@@ -4,9 +4,11 @@ use crate::osu_file::{
     colours::{Colour, Rgb},
     difficulty::Difficulty,
     editor::Editor,
+    events::{Background, Break, Event, EventParams},
     general::{CountdownSpeed, GameMode, General, OverlayPosition, SampleSet},
     metadata::Metadata,
     timingpoint::{self, Effects, SampleIndex, TimingPoint, Volume},
+    Position,
 };
 
 #[test]
@@ -29,8 +31,7 @@ EpilepsyWarning: 1
 CountdownOffset: 120
 SpecialStyle: 1
 WidescreenStoryboard: 1
-SamplesMatchPlaybackRate: 1"
-        .replace("\n", "\r\n");
+SamplesMatchPlaybackRate: 1";
     let i = i.parse::<General>().unwrap();
 
     let g = General {
@@ -64,8 +65,7 @@ fn editor_parse() {
 DistanceSpacing: 0.8
 BeatDivisor: 12
 GridSize: 8
-TimelineZoom: 2"
-        .replace("\n", "\r\n");
+TimelineZoom: 2";
     let i: Editor = i.parse().unwrap();
 
     let e = Editor {
@@ -92,8 +92,7 @@ Version:Bittersweet Love
 Source:beatmania IIDX 8th style
 Tags:famoss 舟木智介 tomosuke funaki 徳井志津江 videogame ハードシャンソン Tart&Toffee
 BeatmapID:3072232
-BeatmapSetID:1499093"
-        .replace("\n", "\r\n");
+BeatmapSetID:1499093";
     let i: Metadata = i.parse().unwrap();
 
     let m = Metadata {
@@ -128,8 +127,7 @@ CircleSize:5
 OverallDifficulty:8
 ApproachRate:5
 SliderMultiplier:1.4
-SliderTickRate:1"
-        .replace("\n", "\r\n");
+SliderTickRate:1";
     let i: Difficulty = i.parse().unwrap();
 
     let d = Difficulty {
@@ -148,8 +146,7 @@ SliderTickRate:1"
 fn colours_parse() {
     let i = "Combo1 : 255,128,255
 SliderTrackOverride : 100,99,70
-SliderBorder : 120,130,140"
-        .replace("\n", "\r\n");
+SliderBorder : 120,130,140";
     let i: Vec<Colour> = i.lines().map(|line| line.parse().unwrap()).collect();
 
     let c = vec![
@@ -179,8 +176,7 @@ SliderBorder : 120,130,140"
 #[test]
 fn timing_points_parse() {
     let i = "10000,333.33,4,0,0,100,1,1
-12000,-25,4,3,0,100,0,1"
-        .replace("\n", "\r\n");
+12000,-25,4,3,0,100,0,1";
     let i: Vec<TimingPoint> = i
         .lines()
         .map(|timing_point| timing_point.parse().unwrap())
@@ -214,4 +210,37 @@ fn timing_points_parse() {
     ];
 
     assert_eq!(i, t);
+}
+
+#[test]
+fn events_parse() {
+    let i = "0,0,\"bg2.jpg\",0,0
+0,0,bg2.jpg,0,0
+//Break Periods
+2,100,163";
+    let i: Vec<Event> = i.lines().map(|event| event.parse().unwrap()).collect();
+
+    let e = vec![
+        Event::NormalEvent {
+            start_time: 0,
+            event_params: EventParams::Background(Background::new(
+                "\"bg2.jpg\"".to_string(),
+                Position { x: 0, y: 0 },
+            )),
+        },
+        Event::NormalEvent {
+            start_time: 0,
+            event_params: EventParams::Background(Background::new(
+                "bg2.jpg".to_string(),
+                Position { x: 0, y: 0 },
+            )),
+        },
+        Event::Comment("Break Periods".to_string()),
+        Event::NormalEvent {
+            start_time: 100,
+            event_params: EventParams::Break(Break { end_time: 163 }),
+        },
+    ];
+
+    assert_eq!(i, e);
 }
