@@ -4,7 +4,7 @@ use std::{error::Error, str::FromStr};
 
 use thiserror::Error;
 
-use self::storyboard::{ Object};
+use self::storyboard::Object;
 
 use super::{Integer, Position};
 
@@ -15,20 +15,22 @@ impl FromStr for Events {
     type Err = EventsParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut s = s.lines();
+        let s = s.lines();
         let mut events = Events::default();
 
         for line in s {
             if line.trim().is_empty() {
                 continue;
             }
-    
+
             match line.trim().strip_prefix("//") {
                 Some(comment) => events.0.push(Event::Comment(comment.to_string())),
                 None => {
                     let mut s = line.split(',');
 
-                    let mut header = s.next().ok_or(EventsParseError::MissingField("eventType"))?;
+                    let mut header = s
+                        .next()
+                        .ok_or(EventsParseError::MissingField("eventType"))?;
                     let header_indent = {
                         let mut count = 0usize;
                         while let Some(header_no_indent) = header.strip_prefix(" ") {
@@ -42,27 +44,23 @@ impl FromStr for Events {
                     // its a storyboard
                     if header_indent > 0 {
                         match events.0.last_mut() {
-                            Some(sprite) => if let Event::Storyboard(sprite) = sprite {
-                                sprite.push_cmd(header.parse().map_err(EventsParseError::StoryboardParseError))
-                            } else {
-                                return Err(EventsParseError::StoryboardCmdWithNoSprite);
-                            },
-                            None => todo!(),
+                            Some(sprite) => {
+                                if let Event::Storyboard(sprite) = sprite {
+                                    sprite.push_cmd(
+                                        header.parse().map_err(|_err| {
+                                            EventsParseError::StoryboardParseError
+                                        })?,
+                                    );
+                                } else {
+                                    return Err(EventsParseError::StoryboardCmdWithNoSprite);
+                                }
+                            }
+                            None => return Err(EventsParseError::StoryboardCmdWithNoSprite),
                         }
                     }
-                    
-                    match header {
 
-                    }
+                    let event_type = header;
 
-                    let err = 
-    
-                    let mut s = line.split(',');
-    
-                    let event_type = s
-                        .next()
-                        .ok_or(EventsParseError::MissingField("eventType"))?;
-    
                     let start_time = s
                         .next()
                         .ok_or(EventsParseError::MissingField("startTime"))?;
@@ -74,17 +72,18 @@ impl FromStr for Events {
                                 value: start_time.to_string(),
                                 field_name: "startTime",
                             })?;
-    
-                    let event_params = EventParams::try_from((event_type, &mut s)).map_err(|err| {
-                        EventsParseError::FieldParseError {
-                            source: Box::new(err),
-                            // TODO does this even work
-                            value: format!("{}{}", event_type, s.collect::<String>()),
-                            field_name: "eventParams",
-                        }
-                    })?;
-    
-                    Ok(Self::NormalEvent {
+
+                    let event_params =
+                        EventParams::try_from((event_type, &mut s)).map_err(|err| {
+                            EventsParseError::FieldParseError {
+                                source: Box::new(err),
+                                // TODO does this even work
+                                value: format!("{}{}", event_type, s.collect::<String>()),
+                                field_name: "eventParams",
+                            }
+                        })?;
+
+                    events.0.push(Event::NormalEvent {
                         start_time,
                         event_params,
                     })
@@ -92,7 +91,7 @@ impl FromStr for Events {
             }
         }
 
-        Ok(())
+        Ok(events)
     }
 }
 
@@ -104,20 +103,6 @@ pub enum Event {
         event_params: EventParams,
     },
     Storyboard(Object),
-}
-
-impl Event {
-    pub fn try_push_str_line(&mut self, line: &str) -> Result<(), EventParseError> {
-
-    }
-}
-
-impl FromStr for Event {
-    type Err = EventsParseError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-
-    }
 }
 
 /// Errors used when there was a problem parsing an [`Event`] from a `str`.
@@ -144,7 +129,7 @@ pub enum EventsParseError {
     /// There was a problem parsing some `storyboard` element.
     // TODO more specific error
     #[error("There was a problem parsing a storyboard element")]
-    StoryboardParseError
+    StoryboardParseError,
 }
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]

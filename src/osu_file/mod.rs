@@ -21,7 +21,7 @@ use thiserror::Error;
 use self::colours::Colour;
 use self::difficulty::Difficulty;
 use self::editor::Editor;
-use self::events::Event;
+use self::events::Events;
 use self::general::General;
 use self::hitobject::{try_parse_hitobject, HitObjectWrapper};
 use self::metadata::Metadata;

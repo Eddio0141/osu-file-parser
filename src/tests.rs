@@ -8,7 +8,7 @@ use crate::osu_file::{
     editor::Editor,
     events::{
         storyboard::{Animation, Layer, LoopType, Object, ObjectType, Origin},
-        Background, Break, Event, EventParams,
+        Background, Break, Event, EventParams, Events,
     },
     general::{CountdownSpeed, GameMode, General, OverlayPosition, SampleSet},
     metadata::Metadata,
@@ -223,9 +223,9 @@ fn events_parse() {
 0,0,bg2.jpg,0,0
 //Break Periods
 2,100,163";
-    let i: Vec<Event> = i.lines().map(|event| event.parse().unwrap()).collect();
+    let i: Events = i.parse().unwrap();
 
-    let e = vec![
+    let e = Events(vec![
         Event::NormalEvent {
             start_time: 0,
             event_params: EventParams::Background(Background::new(
@@ -245,7 +245,7 @@ fn events_parse() {
             start_time: 100,
             event_params: EventParams::Break(Break { end_time: 163 }),
         },
-    ];
+    ]);
 
     assert_eq!(i, e);
 }

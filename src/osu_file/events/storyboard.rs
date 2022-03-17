@@ -1,9 +1,13 @@
-use std::{path::PathBuf, str::{FromStr, Split}};
+use std::{
+    error::Error,
+    path::PathBuf,
+    str::{FromStr, Split},
+};
 
 use rust_decimal::Decimal;
 use thiserror::Error;
 
-use crate::osu_file::{Position, Integer};
+use crate::osu_file::{Integer, Position};
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Object {
@@ -14,7 +18,9 @@ pub struct Object {
 }
 
 impl Object {
-    pub fn push_cmd(&mut self, cmd: Command) {}
+    pub fn push_cmd(&mut self, _cmd: Command) {
+        todo!()
+    }
 }
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
@@ -106,7 +112,15 @@ pub enum Command {
         start_opacity: Decimal,
         end_opacity: Decimal,
     },
-    Move,
+    Move {
+        easing: Easing,
+        start_time: Integer,
+        end_time: Integer,
+        start_x: Decimal,
+        start_y: Decimal,
+        end_x: Decimal,
+        end_y: Decimal,
+    },
     MoveX,
     MoveY,
     Scale,
@@ -124,18 +138,64 @@ impl FromStr for Command {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut s = s.split(',');
 
-        let event = s.next().ok_or(CommandParseError::MissingField("event"))?.trim();
+        let event = s
+            .next()
+            .ok_or(CommandParseError::MissingField("event"))?
+            .trim();
 
-        let easing_parse = |s: &mut Split<char>| s.next().ok_or(CommandParseError::MissingField("easing"))?;
-        let start_time_parse = |s: &mut Split<char>| s.next().ok_or(CommandParseError::MissingField("start_time"));
-        let end_time_parse = |s: &mut Split<char>| s.next().ok_or(CommandParseError::MissingField("end_time"));
+        let easing_parse = |s: &mut Split<char>| {
+            let s = s.next().ok_or(CommandParseError::MissingField("easing"))?;
+            s.parse().map_err(|err| CommandParseError::FieldParseError {
+                source: Box::new(err),
+                value: s.to_string(),
+            })
+        };
+        let start_time_parse = |s: &mut Split<char>| {
+            let s = s
+                .next()
+                .ok_or(CommandParseError::MissingField("start_time"))?;
+            s.parse().map_err(|err| CommandParseError::FieldParseError {
+                source: Box::new(err),
+                value: s.to_string(),
+            })
+        };
+        let end_time_parse = |s: &mut Split<char>| {
+            let s = s
+                .next()
+                .ok_or(CommandParseError::MissingField("end_time"))?;
+            s.parse().map_err(|err| CommandParseError::FieldParseError {
+                source: Box::new(err),
+                value: s.to_string(),
+            })
+        };
 
-        let decimal_parse = |s: &mut Split<char>, field_name| s.next().ok_or(CommandParseError::MissingField(field_name));
+        let decimal_parse = |s: &mut Split<char>, field_name| {
+            let s = s
+                .next()
+                .ok_or(CommandParseError::MissingField(field_name))?;
+            s.parse().map_err(|err| CommandParseError::FieldParseError {
+                source: Box::new(err),
+                value: s.to_string(),
+            })
+        };
 
         match event {
-            "F" => {
-                Ok(Command::Fade { easing: easing_parse(&mut s)?, start_time: start_time_parse(&mut s)?,
-                end_time: end_time_parse(&mut s), start_opacity: decimal_parse(&mut s, "start_opacity")?, end_opacity: decimal_parse(&mut s, "end_opacity") })}
+            "F" => Ok(Command::Fade {
+                easing: easing_parse(&mut s)?,
+                start_time: start_time_parse(&mut s)?,
+                end_time: end_time_parse(&mut s)?,
+                start_opacity: decimal_parse(&mut s, "start_opacity")?,
+                end_opacity: decimal_parse(&mut s, "end_opacity")?,
+            }),
+            "M" => Ok(Command::Move {
+                easing: easing_parse(&mut s)?,
+                start_time: start_time_parse(&mut s)?,
+                end_time: end_time_parse(&mut s)?,
+                start_x: decimal_parse(&mut s, "start_x")?,
+                start_y: decimal_parse(&mut s, "start_y")?,
+                end_x: decimal_parse(&mut s, "end_x")?,
+                end_y: decimal_parse(&mut s, "end_y")?,
+            }),
             _ => Err(CommandParseError::UnknownEvent(event.to_string())),
         }
     }
@@ -147,8 +207,26 @@ pub enum CommandParseError {
     MissingField(&'static str),
     #[error("The event type {0} is unknown")]
     UnknownEvent(String),
+    #[error("Attempted to parse {value} from a `str` as another type")]
+    FieldParseError {
+        #[source]
+        source: Box<dyn Error>,
+        value: String,
+    },
 }
 
-pub enum Easing {
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+pub enum Easing {}
 
+impl FromStr for Easing {
+    type Err = EasingParseError;
+
+    fn from_str(_s: &str) -> Result<Self, Self::Err> {
+        todo!()
+    }
 }
+
+#[derive(Debug, Error)]
+#[error("")]
+// TODO
+pub struct EasingParseError;
