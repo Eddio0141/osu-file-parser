@@ -1,12 +1,13 @@
 use std::{
     error::Error,
     fmt::Display,
-    num::ParseIntError,
+    num::{NonZeroU32, ParseIntError},
     path::{Path, PathBuf},
     str::{FromStr, Split},
 };
 
 use rust_decimal::Decimal;
+use strum_macros::{Display, EnumString};
 use thiserror::Error;
 
 use crate::osu_file::{Integer, Position};
@@ -17,11 +18,43 @@ pub struct Object {
     pub origin: Origin,
     pub position: Position,
     pub object_type: ObjectType,
+    pub commands: Vec<(Command, usize)>,
 }
 
 impl Object {
-    pub fn push_cmd(&mut self, _cmd: Command) {
-        todo!()
+    pub fn try_push_cmd(
+        &mut self,
+        cmd: Command,
+        indentation: usize,
+    ) -> Result<(), CommandPushError> {
+        match self.commands.last() {
+            Some((last_cmd, last_indentation)) => {
+                match last_cmd {
+                    Command::Loop => todo!(),
+                    Command::Trigger => todo!(),
+                    _ => {
+                        if indentation != *last_indentation {
+                            return Err(CommandPushError::InvalidIndentation(
+                                *last_indentation,
+                                indentation,
+                            ));
+                        } else {
+                            self.commands.push((cmd, indentation));
+                        }
+                    }
+                }
+
+                Ok(())
+            }
+            None => {
+                if indentation > 1 {
+                    return Err(CommandPushError::InvalidIndentation(1, indentation));
+                } else {
+                    self.commands.push((cmd, indentation));
+                    Ok(())
+                }
+            }
+        }
     }
 }
 
@@ -81,6 +114,12 @@ impl FromStr for Object {
             _ => return Err(ObjectParseError::UnknownObjectType(object_type.to_string())),
         }
     }
+}
+
+#[derive(Debug, Error)]
+pub enum CommandPushError {
+    #[error("Invalid indentation, expected {0}, got {1}")]
+    InvalidIndentation(usize, usize),
 }
 
 fn parse_object_field<T>(
@@ -422,6 +461,8 @@ impl FromStr for LoopType {
 #[error("Unknown loop type {0}")]
 pub struct UnknownLoopType(String);
 
+// TODO make most enums non-exhaustive
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub enum Command {
     Fade {
         easing: Easing,
@@ -446,8 +487,18 @@ pub enum Command {
     Rotate,
     Colour,
     Parameter,
-    Loop,
-    Trigger,
+    Loop {
+        start_time: Integer,
+        loop_count: u32,
+        commands: Vec<Command>,
+    },
+    Trigger {
+        trigger_type: TriggerType,
+        start_time: Integer,
+        end_time: Integer,
+        // TODO find out if negative group numbers are fine
+        group_number: Option<Integer>,
+    },
 }
 
 impl FromStr for Command {
@@ -517,6 +568,129 @@ impl FromStr for Command {
             _ => Err(CommandParseError::UnknownEvent(event.to_string())),
         }
     }
+}
+
+// TODO what is group_number
+// TODO for all usize used in the project, but replace with something more concrete since its unrelated to hardware
+// and also for nonzerousize
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+pub enum TriggerType {
+    HitSound {
+        sample_set: Option<SampleSet>,
+        additions_sample_set: Option<SampleSet>,
+        addition: Option<Addition>,
+        custom_sample_set: Option<NonZeroU32>,
+    },
+    Passing,
+    Failing,
+}
+
+impl FromStr for TriggerType {
+    type Err = TriggerTypeParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let s = s.trim();
+
+        match s {
+            "Passing" => Ok(TriggerType::Passing),
+            "Failing" => Ok(TriggerType::Failing),
+            _ => {
+                if let Some(s) = s.strip_prefix("HitSound") {
+                    let fields = {
+                        let mut fields = Vec::new();
+                        let mut builder = String::with_capacity(256);
+
+                        for ch in s.chars() {
+                            if ch.is_lowercase() || !ch.is_alphabetic() {
+                                builder.push(ch);
+                            } else {
+                                fields.push(builder);
+                                builder.clear();
+                            }
+                        }
+
+                        fields
+                    };
+
+                    // TODO for the project, make sure all fields are used
+                    if fields.len() > 4 {
+                        return Err(TriggerTypeParseError::TooManyHitSoundFields(fields.len()));
+                    }
+
+                    let mut field_parse_attempt_index = 0;
+
+                    let mut sample_set = None;
+                    let mut additions_sample_set = None;
+                    let mut addition = None;
+                    let mut custom_sample_set = None;
+
+                    for field in fields {
+                        for i in field_parse_attempt_index..4 {
+                            match i {
+                                0 => if let Ok(field) = field.parse() {
+                                    sample_set = Some(field);
+                                }
+                                _ => unreachable!("The check for field size is already done so this is impossible to reach")
+                            }
+                        }
+                    }
+
+                    Ok(TriggerType::HitSound {
+                        sample_set,
+                        additions_sample_set,
+                        addition,
+                        custom_sample_set,
+                    })
+                } else {
+                    Err(todo!())
+                }
+            }
+        }
+    }
+}
+
+impl Display for TriggerType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let trigger_type = match self {
+            TriggerType::HitSound {
+                sample_set,
+                additions_sample_set,
+                addition,
+                custom_sample_set,
+            } => format!(
+                "HitSound{}{}{}{}",
+                sample_set.map_or(String::new(), |s| s.to_string()),
+                additions_sample_set.map_or(String::new(), |s| s.to_string()),
+                addition.map_or(String::new(), |s| s.to_string()),
+                custom_sample_set.map_or(String::new(), |s| s.to_string())
+            ),
+            TriggerType::Passing => "Passing".to_string(),
+            TriggerType::Failing => "Failing".to_string(),
+        };
+
+        write!(f, "{trigger_type}")
+    }
+}
+
+#[derive(Debug, Error)]
+pub enum TriggerTypeParseError {
+    #[error("There are too many `HitSound` fields: {0}")]
+    TooManyHitSoundFields(usize),
+}
+
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, EnumString, Display)]
+pub enum SampleSet {
+    All,
+    Normal,
+    Soft,
+    Drum,
+}
+
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, EnumString, Display)]
+pub enum Addition {
+    Whistle,
+    Finish,
+    Clap,
 }
 
 #[derive(Debug, Error)]

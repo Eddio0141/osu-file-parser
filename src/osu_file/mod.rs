@@ -58,6 +58,7 @@ pub struct OsuFile {
     pub hitobjects: Vec<HitObjectWrapper>,
 }
 
+// TODO clean up error stuff
 impl FromStr for OsuFile {
     type Err = OsuFileParseError;
 

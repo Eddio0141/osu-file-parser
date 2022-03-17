@@ -32,8 +32,9 @@ impl FromStr for Events {
                         .next()
                         .ok_or(EventsParseError::MissingField("eventType"))?;
                     let header_indent = {
+                        // TODO find out if u can alternate indentation by _ and space
                         let mut count = 0usize;
-                        while let Some(header_no_indent) = header.strip_prefix(" ") {
+                        while let Some(header_no_indent) = header.strip_prefix([' ', '_']) {
                             header = header_no_indent;
                             count += 1;
                         }
@@ -46,11 +47,12 @@ impl FromStr for Events {
                         match events.0.last_mut() {
                             Some(sprite) => {
                                 if let Event::Storyboard(sprite) = sprite {
-                                    sprite.push_cmd(
+                                    sprite.try_push_cmd(
                                         header.parse().map_err(|_err| {
                                             EventsParseError::StoryboardParseError
                                         })?,
-                                    );
+                                        header_indent,
+                                    )?;
                                 } else {
                                     return Err(EventsParseError::StoryboardCmdWithNoSprite);
                                 }
