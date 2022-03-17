@@ -45,16 +45,12 @@ impl FromStr for Events {
                     // its a storyboard command
                     if header_indent > 0 {
                         match events.0.last_mut() {
-                            Some(sprite) => {
-                                if let Event::Storyboard(sprite) = sprite {
-                                    sprite
-                                        .try_push_cmd(line.parse()?, header_indent)
-                                        .map_err(|_err| EventsParseError::StoryboardParseError)?;
-                                } else {
-                                    return Err(EventsParseError::StoryboardCmdWithNoSprite);
-                                }
+                            Some(Event::Storyboard(sprite)) => {
+                                sprite
+                                    .try_push_cmd(line.parse()?, header_indent)
+                                    .map_err(|_err| EventsParseError::StoryboardParseError)?;
                             }
-                            None => return Err(EventsParseError::StoryboardCmdWithNoSprite),
+                            _ => return Err(EventsParseError::StoryboardCmdWithNoSprite),
                         }
                         continue;
                     }

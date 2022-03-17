@@ -59,7 +59,7 @@ impl Object {
             }
             None => {
                 if indentation > 1 {
-                    return Err(CommandPushError::InvalidIndentation(1, indentation));
+                    Err(CommandPushError::InvalidIndentation(1, indentation))
                 } else {
                     self.commands.push((cmd, indentation));
                     Ok(())
@@ -124,7 +124,7 @@ impl FromStr for Object {
                     commands: Vec::new(),
                 })
             }
-            _ => return Err(ObjectParseError::UnknownObjectType(object_type.to_string())),
+            _ => Err(ObjectParseError::UnknownObjectType(object_type.to_string())),
         }
     }
 }
