@@ -46,7 +46,7 @@ pub struct OsuFile {
     pub difficulty: Difficulty,
     /// Beatmap and storyboard graphic events.
     /// Comma-separated lists.
-    pub events: Vec<Event>,
+    pub events: Events,
     /// Timing and control points.
     /// Comma-separated lists.
     pub timing_points: Vec<TimingPoint>,
@@ -252,11 +252,7 @@ impl FromStr for OsuFile {
                                     
                                 }
                                 "Events" => {
-                                    events = section.lines().map(|line| line.parse::<Event>()).collect::<Result<Vec<_>, _>>()
-                                        .map_err(|err| OsuFileParseError::SectionParseError {
-                                            source: Box::new(err),
-                                        })?;
-                                    
+                                    events = section.parse().map_err(|err| OsuFileParseError::SectionParseError { source: Box::new(err) })?;
                                 }
                                 "TimingPoints" => {
                                     timing_points = section

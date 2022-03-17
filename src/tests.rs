@@ -1,10 +1,15 @@
+use std::path::PathBuf;
+
 use rust_decimal_macros::dec;
 
 use crate::osu_file::{
     colours::{Colour, Rgb},
     difficulty::Difficulty,
     editor::Editor,
-    events::{Background, Break, Event, EventParams},
+    events::{
+        storyboard::{Animation, Layer, LoopType, Object, ObjectType, Origin},
+        Background, Break, Event, EventParams,
+    },
     general::{CountdownSpeed, GameMode, General, OverlayPosition, SampleSet},
     metadata::Metadata,
     timingpoint::{self, Effects, SampleIndex, TimingPoint, Volume},
@@ -243,4 +248,35 @@ fn events_parse() {
     ];
 
     assert_eq!(i, e);
+}
+
+#[test]
+fn frame_file_names_test() {
+    let animation = Object {
+        layer: Layer::Background,
+        origin: Origin::BottomCentre,
+        position: Position { x: 0, y: 0 },
+        object_type: ObjectType::Animation(Animation::new(
+            4,
+            0,
+            LoopType,
+            PathBuf::from("testfile.png"),
+        )),
+    };
+
+    if let ObjectType::Animation(animation) = animation.object_type {
+        let file_names = animation.frame_file_names();
+
+        assert_eq!(
+            file_names,
+            vec![
+                "testfile0.png",
+                "testfile1.png",
+                "testfile2.png",
+                "testfile3.png",
+            ]
+        );
+    }
+
+    unreachable!();
 }
