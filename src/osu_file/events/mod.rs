@@ -4,7 +4,7 @@ use std::{error::Error, str::FromStr};
 
 use thiserror::Error;
 
-use self::storyboard::Object;
+use self::storyboard::{Object, ObjectParseError};
 
 use super::{Integer, Position};
 
@@ -41,7 +41,7 @@ impl FromStr for Events {
                     };
                     let header = header;
 
-                    // its a storyboard
+                    // its a storyboard command
                     if header_indent > 0 {
                         match events.0.last_mut() {
                             Some(sprite) => {
@@ -59,34 +59,44 @@ impl FromStr for Events {
                         }
                     }
 
-                    let event_type = header;
+                    // is it a storyboard object?
+                    match line.parse() {
+                        Ok(object) => {
+                            events.0.push(Event::Storyboard(object));
+                            continue;
+                        }
+                        Err(err) => {
+                            if let ObjectParseError::UnknownObjectType(_) = err {
+                                let start_time = s
+                                    .next()
+                                    .ok_or(EventsParseError::MissingField("startTime"))?;
+                                let start_time = start_time.parse().map_err(|err| {
+                                    EventsParseError::FieldParseError {
+                                        source: Box::new(err),
+                                        value: start_time.to_string(),
+                                        field_name: "startTime",
+                                    }
+                                })?;
 
-                    let start_time = s
-                        .next()
-                        .ok_or(EventsParseError::MissingField("startTime"))?;
-                    let start_time =
-                        start_time
-                            .parse()
-                            .map_err(|err| EventsParseError::FieldParseError {
-                                source: Box::new(err),
-                                value: start_time.to_string(),
-                                field_name: "startTime",
-                            })?;
+                                let event_params = EventParams::try_from((header, &mut s))
+                                    .map_err(|err| {
+                                        EventsParseError::FieldParseError {
+                                            source: Box::new(err),
+                                            // TODO does this even work
+                                            value: format!("{}{}", header, s.collect::<String>()),
+                                            field_name: "eventParams",
+                                        }
+                                    })?;
 
-                    let event_params =
-                        EventParams::try_from((event_type, &mut s)).map_err(|err| {
-                            EventsParseError::FieldParseError {
-                                source: Box::new(err),
-                                // TODO does this even work
-                                value: format!("{}{}", event_type, s.collect::<String>()),
-                                field_name: "eventParams",
+                                events.0.push(Event::NormalEvent {
+                                    start_time,
+                                    event_params,
+                                })
+                            } else {
+                                return Err(EventsParseError::StoryboardObjectParseError(err));
                             }
-                        })?;
-
-                    events.0.push(Event::NormalEvent {
-                        start_time,
-                        event_params,
-                    })
+                        }
+                    }
                 }
             }
         }
@@ -126,10 +136,12 @@ pub enum EventsParseError {
     // TODO more specific error
     #[error("A storyboard command was used without defined sprite or animation sprite")]
     StoryboardCmdWithNoSprite,
-    /// There was a problem parsing some `storyboard` element.
-    // TODO more specific error
+    // TODO
     #[error("There was a problem parsing a storyboard element")]
     StoryboardParseError,
+    /// There was a problem parsing some `storyboard` element.
+    #[error(transparent)]
+    StoryboardObjectParseError(#[from] ObjectParseError),
 }
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
@@ -143,7 +155,7 @@ pub struct Background {
 impl Background {
     pub fn new(filename: String, position: Position) -> Self {
         let (filename, filename_has_quotes) =
-            if filename.starts_with('"') && filename.ends_with('"') {
+            if filename.len() > 1 && filename.starts_with('"') && filename.ends_with('"') {
                 (&filename[1..filename.len()], true)
             } else {
                 (filename.as_str(), false)
@@ -192,7 +204,8 @@ where
                     .next()
                     .ok_or(EventParamsParseError::MissingField("filename"))?
                     .trim();
-                let filename_has_quotes = filename.starts_with('"') && filename.ends_with('"');
+                let filename_has_quotes =
+                    filename.len() > 1 && filename.starts_with('"') && filename.ends_with('"');
                 let filename = if filename_has_quotes {
                     &filename[1..filename.len()]
                 } else {

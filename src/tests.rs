@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::Path;
 
 use rust_decimal_macros::dec;
 
@@ -7,7 +7,7 @@ use crate::osu_file::{
     difficulty::Difficulty,
     editor::Editor,
     events::{
-        storyboard::{Animation, Layer, LoopType, Object, ObjectType, Origin},
+        storyboard::{Animation, Layer, LoopType, Object, ObjectType, Origin, Sprite},
         Background, Break, Event, EventParams, Events,
     },
     general::{CountdownSpeed, GameMode, General, OverlayPosition, SampleSet},
@@ -251,7 +251,7 @@ fn events_parse() {
 }
 
 #[test]
-fn frame_file_names_test() {
+fn frame_file_names() {
     let animation = Object {
         layer: Layer::Background,
         origin: Origin::BottomCentre,
@@ -259,8 +259,8 @@ fn frame_file_names_test() {
         object_type: ObjectType::Animation(Animation::new(
             4,
             0,
-            LoopType,
-            PathBuf::from("testfile.png"),
+            LoopType::LoopForever,
+            Path::new("testfile.png"),
         )),
     };
 
@@ -279,4 +279,35 @@ fn frame_file_names_test() {
     }
 
     unreachable!();
+}
+
+#[test]
+fn storyboard_sprites_parse() {
+    let i = "Sprite,Pass,Centre,\"Text\\Play2-HaveFunH.png\",320,240
+Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopForever";
+    let i: Events = i.parse().unwrap();
+
+    let s = Events(vec![
+        Event::Storyboard(Object {
+            layer: Layer::Pass,
+            origin: Origin::Centre,
+            position: Position { x: 320, y: 240 },
+            object_type: ObjectType::Sprite(
+                Sprite::new(Path::new("\"Text\\Play2-HaveFunH.png\"")).unwrap(),
+            ),
+        }),
+        Event::Storyboard(Object {
+            layer: Layer::Fail,
+            origin: Origin::BottomCentre,
+            position: Position { x: 418, y: 108 },
+            object_type: ObjectType::Animation(Animation::new(
+                12,
+                31,
+                LoopType::LoopForever,
+                Path::new("\"Other\\Play3\\explosion.png\""),
+            )),
+        }),
+    ]);
+
+    assert_eq!(i, s)
 }
