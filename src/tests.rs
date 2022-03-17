@@ -7,7 +7,9 @@ use crate::osu_file::{
     difficulty::Difficulty,
     editor::Editor,
     events::{
-        storyboard::{Animation, Layer, LoopType, Object, ObjectType, Origin, Sprite},
+        storyboard::{
+            Animation, Command, Easing, Layer, LoopType, Object, ObjectType, Origin, Sprite,
+        },
         Background, Break, Event, EventParams, Events,
     },
     general::{CountdownSpeed, GameMode, General, OverlayPosition, SampleSet},
@@ -262,9 +264,10 @@ fn frame_file_names() {
             LoopType::LoopForever,
             Path::new("testfile.png"),
         )),
+        commands: Vec::new(),
     };
 
-    if let ObjectType::Animation(animation) = animation.object_type {
+    if let ObjectType::Animation(animation) = &animation.object_type {
         let file_names = animation.frame_file_names();
 
         assert_eq!(
@@ -276,14 +279,16 @@ fn frame_file_names() {
                 "testfile3.png",
             ]
         );
+    } else {
+        unreachable!();
     }
-
-    unreachable!();
 }
 
 #[test]
 fn storyboard_sprites_parse() {
     let i = "Sprite,Pass,Centre,\"Text\\Play2-HaveFunH.png\",320,240
+ F,0,-28,,1
+ S,0,-28,,0.4
 Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopForever";
     let i: Events = i.parse().unwrap();
 
@@ -295,6 +300,28 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
             object_type: ObjectType::Sprite(
                 Sprite::new(Path::new("\"Text\\Play2-HaveFunH.png\"")).unwrap(),
             ),
+            commands: vec![
+                (
+                    Command::Fade {
+                        easing: Easing::from_repr(0).unwrap(),
+                        start_time: -28,
+                        end_time: -28,
+                        start_opacity: dec!(1),
+                        end_opacity: dec!(1),
+                    },
+                    1,
+                ),
+                (
+                    Command::Scale {
+                        easing: Easing::from_repr(0).unwrap(),
+                        start_time: -28,
+                        end_time: -28,
+                        start_scale: dec!(0.4),
+                        end_scale: dec!(0.4),
+                    },
+                    1,
+                ),
+            ],
         }),
         Event::Storyboard(Object {
             layer: Layer::Fail,
@@ -306,6 +333,7 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
                 LoopType::LoopForever,
                 Path::new("\"Other\\Play3\\explosion.png\""),
             )),
+            commands: Vec::new(),
         }),
     ]);
 

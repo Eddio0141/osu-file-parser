@@ -1,13 +1,13 @@
 use std::{
     error::Error,
     fmt::Display,
-    num::{NonZeroU32, ParseIntError},
+    num::{NonZeroUsize, ParseIntError},
     path::{Path, PathBuf},
     str::{FromStr, Split},
 };
 
 use rust_decimal::Decimal;
-use strum_macros::{Display, EnumString};
+use strum_macros::{Display, EnumString, FromRepr};
 use thiserror::Error;
 
 use crate::osu_file::{Integer, Position};
@@ -27,19 +27,30 @@ impl Object {
         cmd: Command,
         indentation: usize,
     ) -> Result<(), CommandPushError> {
-        match self.commands.last() {
+        match self.commands.last_mut() {
             Some((last_cmd, last_indentation)) => {
                 match last_cmd {
-                    Command::Loop => todo!(),
-                    Command::Trigger => todo!(),
-                    _ => {
-                        if indentation != *last_indentation {
+                    Command::Loop { commands, .. } | Command::Trigger { commands, .. } => {
+                        if *last_indentation == indentation {
+                            commands.push(cmd);
+                        } else if *last_indentation - 1 == indentation {
+                            // end of cmds
+                            self.commands.push((cmd, indentation));
+                        } else {
                             return Err(CommandPushError::InvalidIndentation(
                                 *last_indentation,
                                 indentation,
                             ));
-                        } else {
+                        }
+                    }
+                    _ => {
+                        if indentation == *last_indentation {
                             self.commands.push((cmd, indentation));
+                        } else {
+                            return Err(CommandPushError::InvalidIndentation(
+                                *last_indentation,
+                                indentation,
+                            ));
                         }
                     }
                 }
@@ -88,6 +99,7 @@ impl FromStr for Object {
                     origin,
                     position,
                     object_type: ObjectType::Sprite(Sprite { filepath }),
+                    commands: Vec::new(),
                 })
             }
             "Animation" => {
@@ -109,6 +121,7 @@ impl FromStr for Object {
                         loop_type,
                         filepath,
                     }),
+                    commands: Vec::new(),
                 })
             }
             _ => return Err(ObjectParseError::UnknownObjectType(object_type.to_string())),
@@ -482,7 +495,13 @@ pub enum Command {
     },
     MoveX,
     MoveY,
-    Scale,
+    Scale {
+        easing: Easing,
+        start_time: Integer,
+        end_time: Integer,
+        start_scale: Decimal,
+        end_scale: Decimal,
+    },
     VectorScale,
     Rotate,
     Colour,
@@ -498,6 +517,7 @@ pub enum Command {
         end_time: Integer,
         // TODO find out if negative group numbers are fine
         group_number: Option<Integer>,
+        commands: Vec<Command>,
     },
 }
 
@@ -528,14 +548,19 @@ impl FromStr for Command {
                 value: s.to_string(),
             })
         };
-        let end_time_parse = |s: &mut Split<char>| {
+        let end_time_parse = |s: &mut Split<char>, start_time| {
             let s = s
                 .next()
                 .ok_or(CommandParseError::MissingField("end_time"))?;
-            s.parse().map_err(|err| CommandParseError::FieldParseError {
-                source: Box::new(err),
-                value: s.to_string(),
-            })
+
+            if s.trim().is_empty() {
+                Ok(start_time)
+            } else {
+                s.parse().map_err(|err| CommandParseError::FieldParseError {
+                    source: Box::new(err),
+                    value: s.to_string(),
+                })
+            }
         };
 
         let decimal_parse = |s: &mut Split<char>, field_name| {
@@ -547,24 +572,61 @@ impl FromStr for Command {
                 value: s.to_string(),
             })
         };
+        let decimal_optional_parse = |s: &mut Split<char>, none_value| {
+            let s = s.next();
+
+            match s {
+                Some(s) => s.parse().map_err(|err| CommandParseError::FieldParseError {
+                    source: Box::new(err),
+                    value: s.to_string(),
+                }),
+                None => Ok(none_value),
+            }
+        };
 
         match event {
-            "F" => Ok(Command::Fade {
-                easing: easing_parse(&mut s)?,
-                start_time: start_time_parse(&mut s)?,
-                end_time: end_time_parse(&mut s)?,
-                start_opacity: decimal_parse(&mut s, "start_opacity")?,
-                end_opacity: decimal_parse(&mut s, "end_opacity")?,
-            }),
-            "M" => Ok(Command::Move {
-                easing: easing_parse(&mut s)?,
-                start_time: start_time_parse(&mut s)?,
-                end_time: end_time_parse(&mut s)?,
-                start_x: decimal_parse(&mut s, "start_x")?,
-                start_y: decimal_parse(&mut s, "start_y")?,
-                end_x: decimal_parse(&mut s, "end_x")?,
-                end_y: decimal_parse(&mut s, "end_y")?,
-            }),
+            "F" => {
+                let easing = easing_parse(&mut s)?;
+                let start_time = start_time_parse(&mut s)?;
+                let end_time = end_time_parse(&mut s, start_time)?;
+                let start_opacity = decimal_parse(&mut s, "start_opacity")?;
+
+                Ok(Command::Fade {
+                    easing,
+                    start_time,
+                    end_time,
+                    start_opacity,
+                    end_opacity: decimal_optional_parse(&mut s, start_opacity)?,
+                })
+            }
+            "M" => {
+                let easing = easing_parse(&mut s)?;
+                let start_time = start_time_parse(&mut s)?;
+
+                Ok(Command::Move {
+                    easing,
+                    start_time,
+                    end_time: end_time_parse(&mut s, start_time)?,
+                    start_x: decimal_parse(&mut s, "start_x")?,
+                    start_y: decimal_parse(&mut s, "start_y")?,
+                    end_x: decimal_parse(&mut s, "end_x")?,
+                    end_y: decimal_parse(&mut s, "end_y")?,
+                })
+            }
+            "S" => {
+                let easing = easing_parse(&mut s)?;
+                let start_time = start_time_parse(&mut s)?;
+                let end_time = end_time_parse(&mut s, start_time)?;
+                let start_scale = decimal_parse(&mut s, "start_scale")?;
+
+                Ok(Command::Scale {
+                    easing,
+                    start_time,
+                    end_time,
+                    start_scale,
+                    end_scale: decimal_optional_parse(&mut s, start_scale)?,
+                })
+            }
             _ => Err(CommandParseError::UnknownEvent(event.to_string())),
         }
     }
@@ -579,7 +641,7 @@ pub enum TriggerType {
         sample_set: Option<SampleSet>,
         additions_sample_set: Option<SampleSet>,
         addition: Option<Addition>,
-        custom_sample_set: Option<NonZeroU32>,
+        custom_sample_set: Option<NonZeroUsize>,
     },
     Passing,
     Failing,
@@ -604,7 +666,7 @@ impl FromStr for TriggerType {
                             if ch.is_lowercase() || !ch.is_alphabetic() {
                                 builder.push(ch);
                             } else {
-                                fields.push(builder);
+                                fields.push(builder.to_owned());
                                 builder.clear();
                             }
                         }
@@ -625,10 +687,34 @@ impl FromStr for TriggerType {
                     let mut custom_sample_set = None;
 
                     for field in fields {
-                        for i in field_parse_attempt_index..4 {
-                            match i {
+                        loop {
+                            match field_parse_attempt_index {
                                 0 => if let Ok(field) = field.parse() {
                                     sample_set = Some(field);
+                                    break;
+                                } else {
+                                    field_parse_attempt_index += 1;
+                                }
+                                1 => if let Ok(field) = field.parse() {
+                                    additions_sample_set = Some(field);
+                                    break;
+                                } else {
+                                    field_parse_attempt_index += 1;
+                                }
+                                2 => if let Ok(field) = field.parse() {
+                                    addition = Some(field);
+                                    break;
+                                } else {
+                                    field_parse_attempt_index += 1;
+                                }
+                                3 => {
+                                    let field: usize = field.parse()?;
+                                    custom_sample_set = if field == 0 {
+                                        None
+                                    } else {
+                                        Some(NonZeroUsize::new(field).unwrap())
+                                    };
+                                    break;
                                 }
                                 _ => unreachable!("The check for field size is already done so this is impossible to reach")
                             }
@@ -642,7 +728,7 @@ impl FromStr for TriggerType {
                         custom_sample_set,
                     })
                 } else {
-                    Err(todo!())
+                    Err(TriggerTypeParseError::UnknownTriggerType(s.to_string()))
                 }
             }
         }
@@ -676,6 +762,13 @@ impl Display for TriggerType {
 pub enum TriggerTypeParseError {
     #[error("There are too many `HitSound` fields: {0}")]
     TooManyHitSoundFields(usize),
+    #[error("There was a problem parsing a field")]
+    FieldParseError {
+        #[from]
+        source: ParseIntError,
+    },
+    #[error("Unknown trigger type {0}")]
+    UnknownTriggerType(String),
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, EnumString, Display)]
@@ -707,18 +800,59 @@ pub enum CommandParseError {
     },
 }
 
-#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
-pub enum Easing {}
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, FromRepr)]
+pub enum Easing {
+    Linear,
+    EasingOut,
+    EasingIn,
+    QuadIn,
+    QuadOut,
+    QuadInOut,
+    CubicIn,
+    CubicOut,
+    CubicInOut,
+    QuartIn,
+    QuartOut,
+    QuartInOut,
+    QuintIn,
+    QuintOut,
+    QuintInOut,
+    SineIn,
+    SineOut,
+    SineInOut,
+    ExpoIn,
+    ExpoOut,
+    ExpoInOut,
+    CircIn,
+    CircOut,
+    CircInOut,
+    ElasticIn,
+    ElasticOut,
+    ElasticHalfOut,
+    ElasticQuarterOut,
+    ElasticInOut,
+    BackIn,
+    BackOut,
+    BackInOut,
+    BounceIn,
+    BounceOut,
+    BounceInOut,
+}
 
 impl FromStr for Easing {
     type Err = EasingParseError;
 
-    fn from_str(_s: &str) -> Result<Self, Self::Err> {
-        todo!()
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let s = s.parse()?;
+
+        Easing::from_repr(s).ok_or(EasingParseError::UnknownEasingType(s))
     }
 }
 
 #[derive(Debug, Error)]
-#[error("")]
-// TODO
-pub struct EasingParseError;
+pub enum EasingParseError {
+    #[error(transparent)]
+    ValueParseError(#[from] ParseIntError),
+    #[error("Unknown easing type {0}")]
+    UnknownEasingType(usize),
+}

@@ -4,7 +4,7 @@ use std::{error::Error, str::FromStr};
 
 use thiserror::Error;
 
-use self::storyboard::{Object, ObjectParseError};
+use self::storyboard::{CommandParseError, Object, ObjectParseError};
 
 use super::{Integer, Position};
 
@@ -47,18 +47,16 @@ impl FromStr for Events {
                         match events.0.last_mut() {
                             Some(sprite) => {
                                 if let Event::Storyboard(sprite) = sprite {
-                                    sprite.try_push_cmd(
-                                        header.parse().map_err(|_err| {
-                                            EventsParseError::StoryboardParseError
-                                        })?,
-                                        header_indent,
-                                    )?;
+                                    sprite
+                                        .try_push_cmd(line.parse()?, header_indent)
+                                        .map_err(|_err| EventsParseError::StoryboardParseError)?;
                                 } else {
                                     return Err(EventsParseError::StoryboardCmdWithNoSprite);
                                 }
                             }
                             None => return Err(EventsParseError::StoryboardCmdWithNoSprite),
                         }
+                        continue;
                     }
 
                     // is it a storyboard object?
@@ -141,6 +139,8 @@ pub enum EventsParseError {
     // TODO
     #[error("There was a problem parsing a storyboard element")]
     StoryboardParseError,
+    #[error(transparent)]
+    CommandParseError(#[from] CommandParseError),
     /// There was a problem parsing some `storyboard` element.
     #[error(transparent)]
     StoryboardObjectParseError(#[from] ObjectParseError),
