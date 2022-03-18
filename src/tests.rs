@@ -8,7 +8,8 @@ use crate::osu_file::{
     editor::Editor,
     events::{
         storyboard::{
-            Animation, Command, Easing, Layer, LoopType, Object, ObjectType, Origin, Sprite,
+            Animation, Command, CommandProperties, Easing, Layer, LoopType, Object, ObjectType,
+            Origin, Parameter, Sprite, TriggerType,
         },
         Background, Break, Event, EventParams, Events,
     },
@@ -285,10 +286,46 @@ fn frame_file_names() {
 }
 
 #[test]
-fn storyboard_sprites_parse() {
+fn storyboard_sprites_cmd_parse() {
     let i = "Sprite,Pass,Centre,\"Text\\Play2-HaveFunH.png\",320,240
  F,0,-28,,1
+ M,3,100,120,140,180.123123,200,200
+_MX,3,100,120,140,180,123123
+_MY,3,100,120,140,180,123123
  S,0,-28,,0.4
+ V,8,5000,5500,0.5,2,2,0.5
+ R,7,5000,5500,-0.785,0.785
+ C,6,50000,50001,0,0,0,255,255,255
+ P,5,300,350,H
+ P,5,300,350,V
+ P,5,300,350,A
+ L,500,10
+  L,10,10
+   M,3,100,120,140,180.123123,200,200
+___S,0,-28,,0.4
+ T,HitSound,0,10
+  L,10,10
+   M,3,100,120,140,180.123123,200,200
+ T,HitSoundClap,0,10
+  M,3,100,120,140,180.123123,200,200
+ T,HitSoundFinish,0,10
+  M,3,100,120,140,180.123123,200,200
+ T,HitSoundWhistle,0,10
+  M,3,100,120,140,180.123123,200,200
+ T,HitSoundDrumWhistle,0,10
+  M,3,100,120,140,180.123123,200,200
+ T,HitSoundSoft,0,10
+  M,3,100,120,140,180.123123,200,200
+ T,HitSoundAllSoft,0,10
+  M,3,100,120,140,180.123123,200,200
+ T,HitSoundDrumClap0,0,10
+  M,3,100,120,140,180.123123,200,200
+ T,HitSound6,0,10
+  M,3,100,120,140,180.123123,200,200
+ T,HitSoundPassing,0,10
+  M,3,100,120,140,180.123123,200,200
+ T,HitSoundFailing,0,10
+  M,3,100,120,140,180.123123,200,200
 Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopForever";
     let i: Events = i.parse().unwrap();
 
@@ -301,26 +338,194 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
                 Sprite::new(Path::new("\"Text\\Play2-HaveFunH.png\"")).unwrap(),
             ),
             commands: vec![
-                (
-                    Command::Fade {
+                Command {
+                    start_time: -28,
+                    properties: CommandProperties::Fade {
                         easing: Easing::from_repr(0).unwrap(),
-                        start_time: -28,
                         end_time: -28,
                         start_opacity: dec!(1),
                         end_opacity: dec!(1),
                     },
-                    1,
-                ),
-                (
-                    Command::Scale {
+                },
+                Command {
+                    start_time: 100,
+                    properties: CommandProperties::Move {
+                        easing: Easing::from_repr(3).unwrap(),
+                        end_time: 120,
+                        start_x: dec!(140),
+                        start_y: dec!(180.123123),
+                        end_x: dec!(200),
+                        end_y: dec!(200),
+                    },
+                },
+                Command {
+                    start_time: 100,
+                    properties: CommandProperties::MoveX {
+                        easing: Easing::from_repr(3).unwrap(),
+                        end_time: 120,
+                        start_x: dec!(140),
+                        end_x: dec!(180.123123),
+                    },
+                },
+                Command {
+                    start_time: 100,
+                    properties: CommandProperties::MoveY {
+                        easing: Easing::from_repr(3).unwrap(),
+                        end_time: 120,
+                        start_y: dec!(140),
+                        end_y: dec!(180.123123),
+                    },
+                },
+                Command {
+                    start_time: -28,
+                    properties: CommandProperties::Scale {
                         easing: Easing::from_repr(0).unwrap(),
-                        start_time: -28,
                         end_time: -28,
                         start_scale: dec!(0.4),
                         end_scale: dec!(0.4),
                     },
-                    1,
-                ),
+                },
+                Command {
+                    start_time: 5000,
+                    properties: CommandProperties::VectorScale {
+                        easing: Easing::from_repr(8).unwrap(),
+                        end_time: 5500,
+                        start_scale_x: dec!(0.5),
+                        start_scale_y: dec!(2),
+                        end_scale_x: dec!(2),
+                        end_scale_y: dec!(0.5),
+                    },
+                },
+                Command {
+                    start_time: 5000,
+                    properties: CommandProperties::Rotate {
+                        easing: Easing::from_repr(7).unwrap(),
+                        end_time: 5500,
+                        start_rotate: dec!(-0.785),
+                        end_rotate: dec!(0.785),
+                    },
+                },
+                Command {
+                    start_time: 50000,
+                    properties: CommandProperties::Colour {
+                        easing: Easing::from_repr(6).unwrap(),
+                        end_time: 50001,
+                        start_r: 0,
+                        start_g: 0,
+                        start_b: 0,
+                        end_r: 255,
+                        end_g: 255,
+                        end_b: 255,
+                    },
+                },
+                Command {
+                    start_time: 300,
+                    properties: CommandProperties::Parameter {
+                        easing: Easing::from_repr(5).unwrap(),
+                        end_time: 350,
+                        parameter: Parameter::ImageFlipHorizontal,
+                    },
+                },
+                Command {
+                    start_time: 300,
+                    properties: CommandProperties::Parameter {
+                        easing: Easing::from_repr(5).unwrap(),
+                        end_time: 350,
+                        parameter: Parameter::ImageFlipVertical,
+                    },
+                },
+                Command {
+                    start_time: 300,
+                    properties: CommandProperties::Parameter {
+                        easing: Easing::from_repr(5).unwrap(),
+                        end_time: 350,
+                        parameter: Parameter::UseAdditiveColourBlending,
+                    },
+                },
+                Command {
+                    start_time: 500,
+                    properties: CommandProperties::Loop {
+                        loop_count: 10,
+                        commands: vec![Command {
+                            start_time: 10,
+                            properties: CommandProperties::Loop {
+                                loop_count: 10,
+                                commands: vec![
+                                    Command {
+                                        start_time: 100,
+                                        properties: CommandProperties::Move {
+                                            easing: Easing::from_repr(3).unwrap(),
+                                            end_time: 120,
+                                            start_x: dec!(140),
+                                            start_y: dec!(180.123123),
+                                            end_x: dec!(200),
+                                            end_y: dec!(200),
+                                        },
+                                    },
+                                    Command {
+                                        start_time: -28,
+                                        properties: CommandProperties::Scale {
+                                            easing: Easing::from_repr(0).unwrap(),
+                                            end_time: -28,
+                                            start_scale: dec!(0.4),
+                                            end_scale: dec!(0.4),
+                                        },
+                                    },
+                                ],
+                            },
+                        }],
+                    },
+                },
+                Command {
+                    start_time: 0,
+                    properties: CommandProperties::Trigger {
+                        trigger_type: TriggerType::HitSound {
+                            sample_set: None,
+                            additions_sample_set: None,
+                            addition: None,
+                            custom_sample_set: None,
+                        },
+                        end_time: 10,
+                        group_number: None,
+                        commands: vec![Command {
+                            start_time: 10,
+                            properties: CommandProperties::Loop {
+                                loop_count: 10,
+                                commands: vec![Command {
+                                    start_time: 100,
+                                    properties: CommandProperties::Move {
+                                        easing: Easing::from_repr(3).unwrap(),
+                                        end_time: 120,
+                                        start_x: dec!(140),
+                                        start_y: dec!(180.123123),
+                                        end_x: dec!(200),
+                                        end_y: dec!(200),
+                                    },
+                                }],
+                            },
+                        }],
+                    },
+                },
+                //     T,HitSoundClap,0,10
+                //      M,3,100,120,140,180.123123,200,200
+                //     T,HitSoundFinish,0,10
+                //      M,3,100,120,140,180.123123,200,200
+                //     T,HitSoundWhistle,0,10
+                //      M,3,100,120,140,180.123123,200,200
+                //     T,HitSoundDrumWhistle,0,10
+                //      M,3,100,120,140,180.123123,200,200
+                //     T,HitSoundSoft,0,10
+                //      M,3,100,120,140,180.123123,200,200
+                //     T,HitSoundAllSoft,0,10
+                //      M,3,100,120,140,180.123123,200,200
+                //     T,HitSoundDrumClap0,0,10
+                //      M,3,100,120,140,180.123123,200,200
+                //     T,HitSound6,0,10
+                //      M,3,100,120,140,180.123123,200,200
+                //     T,HitSoundPassing,0,10
+                //      M,3,100,120,140,180.123123,200,200
+                //     T,HitSoundFailing,0,10
+                //      M,3,100,120,140,180.123123,200,200
             ],
         }),
         Event::Storyboard(Object {

@@ -7,7 +7,7 @@ use std::{
 };
 
 use rust_decimal::Decimal;
-use strum_macros::{Display, EnumString, FromRepr};
+use strum_macros::{Display, EnumString, FromRepr, IntoStaticStr};
 use thiserror::Error;
 
 use crate::osu_file::{Integer, Position};
@@ -18,7 +18,7 @@ pub struct Object {
     pub origin: Origin,
     pub position: Position,
     pub object_type: ObjectType,
-    pub commands: Vec<(Command, usize)>,
+    pub commands: Vec<Command>,
 }
 
 impl Object {
@@ -27,44 +27,37 @@ impl Object {
         cmd: Command,
         indentation: usize,
     ) -> Result<(), CommandPushError> {
-        match self.commands.last_mut() {
-            Some((last_cmd, last_indentation)) => {
-                match last_cmd {
-                    Command::Loop { commands, .. } | Command::Trigger { commands, .. } => {
-                        if *last_indentation == indentation {
-                            commands.push(cmd);
-                        } else if *last_indentation - 1 == indentation {
-                            // end of cmds
-                            self.commands.push((cmd, indentation));
-                        } else {
-                            return Err(CommandPushError::InvalidIndentation(
-                                *last_indentation,
-                                indentation,
-                            ));
-                        }
-                    }
-                    _ => {
-                        if indentation == *last_indentation {
-                            self.commands.push((cmd, indentation));
-                        } else {
-                            return Err(CommandPushError::InvalidIndentation(
-                                *last_indentation,
-                                indentation,
-                            ));
-                        }
-                    }
-                }
+        if indentation == 1 {
+            // first match no loop required
+            self.commands.push(cmd);
+            Ok(())
+        } else {
+            let mut last_cmds = &mut self.commands;
 
-                Ok(())
-            }
-            None => {
-                if indentation > 1 {
-                    Err(CommandPushError::InvalidIndentation(1, indentation))
-                } else {
-                    self.commands.push((cmd, indentation));
-                    Ok(())
+            for i in 1..indentation {
+                match last_cmds.last_mut() {
+                    Some(last_cmd) => match &mut last_cmd.properties {
+                        CommandProperties::Loop { commands, .. }
+                        | CommandProperties::Trigger { commands, .. } => {
+                            if i == indentation - 1 {
+                                commands.push(cmd);
+                                return Ok(());
+                            } else {
+                                last_cmds = commands;
+                                continue;
+                            }
+                        }
+                        _ => return Err(CommandPushError::InvalidIndentation(i - 1, indentation)),
+                    },
+                    None => {
+                        if i == indentation - 1 {
+                            return Err(CommandPushError::InvalidIndentation(i - 1, indentation));
+                        }
+                    }
                 }
             }
+
+            unreachable!();
         }
     }
 }
@@ -474,46 +467,82 @@ impl FromStr for LoopType {
 #[error("Unknown loop type {0}")]
 pub struct UnknownLoopType(String);
 
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
+pub struct Command {
+    pub start_time: Integer,
+    pub properties: CommandProperties,
+}
+
 // TODO make most enums non-exhaustive
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
-pub enum Command {
+pub enum CommandProperties {
     Fade {
         easing: Easing,
-        start_time: Integer,
         end_time: Integer,
         start_opacity: Decimal,
         end_opacity: Decimal,
     },
     Move {
         easing: Easing,
-        start_time: Integer,
         end_time: Integer,
         start_x: Decimal,
         start_y: Decimal,
         end_x: Decimal,
         end_y: Decimal,
     },
-    MoveX,
-    MoveY,
+    MoveX {
+        easing: Easing,
+        end_time: Integer,
+        start_x: Decimal,
+        end_x: Decimal,
+    },
+    MoveY {
+        easing: Easing,
+        end_time: Integer,
+        start_y: Decimal,
+        end_y: Decimal,
+    },
     Scale {
         easing: Easing,
-        start_time: Integer,
         end_time: Integer,
         start_scale: Decimal,
         end_scale: Decimal,
     },
-    VectorScale,
-    Rotate,
-    Colour,
-    Parameter,
+    VectorScale {
+        easing: Easing,
+        end_time: Integer,
+        start_scale_x: Decimal,
+        start_scale_y: Decimal,
+        end_scale_x: Decimal,
+        end_scale_y: Decimal,
+    },
+    Rotate {
+        easing: Easing,
+        end_time: Integer,
+        start_rotate: Decimal,
+        end_rotate: Decimal,
+    },
+    Colour {
+        easing: Easing,
+        end_time: Integer,
+        start_r: u8,
+        start_g: u8,
+        start_b: u8,
+        end_r: u8,
+        end_g: u8,
+        end_b: u8,
+    },
+    Parameter {
+        easing: Easing,
+        end_time: Integer,
+        parameter: Parameter,
+    },
     Loop {
-        start_time: Integer,
         loop_count: u32,
         commands: Vec<Command>,
     },
     Trigger {
         trigger_type: TriggerType,
-        start_time: Integer,
         end_time: Integer,
         // TODO find out if negative group numbers are fine
         group_number: Option<Integer>,
@@ -583,6 +612,15 @@ impl FromStr for Command {
                 None => Ok(none_value),
             }
         };
+        let u8_parse = |s: &mut Split<char>, field_name| {
+            let s = s
+                .next()
+                .ok_or(CommandParseError::MissingField(field_name))?;
+            s.parse().map_err(|err| CommandParseError::FieldParseError {
+                source: Box::new(err),
+                value: s.to_string(),
+            })
+        };
 
         match event {
             "F" => {
@@ -591,26 +629,58 @@ impl FromStr for Command {
                 let end_time = end_time_parse(&mut s, start_time)?;
                 let start_opacity = decimal_parse(&mut s, "start_opacity")?;
 
-                Ok(Command::Fade {
-                    easing,
+                Ok(Command {
                     start_time,
-                    end_time,
-                    start_opacity,
-                    end_opacity: decimal_optional_parse(&mut s, start_opacity)?,
+                    properties: CommandProperties::Fade {
+                        easing,
+                        end_time,
+                        start_opacity,
+                        end_opacity: decimal_optional_parse(&mut s, start_opacity)?,
+                    },
                 })
             }
             "M" => {
                 let easing = easing_parse(&mut s)?;
                 let start_time = start_time_parse(&mut s)?;
 
-                Ok(Command::Move {
-                    easing,
+                Ok(Command {
                     start_time,
-                    end_time: end_time_parse(&mut s, start_time)?,
-                    start_x: decimal_parse(&mut s, "start_x")?,
-                    start_y: decimal_parse(&mut s, "start_y")?,
-                    end_x: decimal_parse(&mut s, "end_x")?,
-                    end_y: decimal_parse(&mut s, "end_y")?,
+                    properties: CommandProperties::Move {
+                        easing,
+                        end_time: end_time_parse(&mut s, start_time)?,
+                        start_x: decimal_parse(&mut s, "start_x")?,
+                        start_y: decimal_parse(&mut s, "start_y")?,
+                        end_x: decimal_parse(&mut s, "end_x")?,
+                        end_y: decimal_parse(&mut s, "end_y")?,
+                    },
+                })
+            }
+            "MX" => {
+                let easing = easing_parse(&mut s)?;
+                let start_time = start_time_parse(&mut s)?;
+
+                Ok(Command {
+                    start_time,
+                    properties: CommandProperties::MoveX {
+                        easing,
+                        end_time: end_time_parse(&mut s, start_time)?,
+                        start_x: decimal_parse(&mut s, "start_x")?,
+                        end_x: decimal_parse(&mut s, "end_x")?,
+                    },
+                })
+            }
+            "MY" => {
+                let easing = easing_parse(&mut s)?;
+                let start_time = start_time_parse(&mut s)?;
+
+                Ok(Command {
+                    start_time,
+                    properties: CommandProperties::MoveY {
+                        easing,
+                        end_time: end_time_parse(&mut s, start_time)?,
+                        start_y: decimal_parse(&mut s, "start_y")?,
+                        end_y: decimal_parse(&mut s, "end_y")?,
+                    },
                 })
             }
             "S" => {
@@ -619,17 +689,154 @@ impl FromStr for Command {
                 let end_time = end_time_parse(&mut s, start_time)?;
                 let start_scale = decimal_parse(&mut s, "start_scale")?;
 
-                Ok(Command::Scale {
-                    easing,
+                Ok(Command {
                     start_time,
-                    end_time,
-                    start_scale,
-                    end_scale: decimal_optional_parse(&mut s, start_scale)?,
+                    properties: CommandProperties::Scale {
+                        easing,
+                        end_time,
+                        start_scale,
+                        end_scale: decimal_optional_parse(&mut s, start_scale)?,
+                    },
+                })
+            }
+            "V" => {
+                let easing = easing_parse(&mut s)?;
+                let start_time = start_time_parse(&mut s)?;
+                let end_time = end_time_parse(&mut s, start_time)?;
+
+                Ok(Command {
+                    start_time,
+                    properties: CommandProperties::VectorScale {
+                        easing,
+                        end_time,
+                        start_scale_x: decimal_parse(&mut s, "start_scale_x")?,
+                        start_scale_y: decimal_parse(&mut s, "start_scale_y")?,
+                        end_scale_x: decimal_parse(&mut s, "end_scale_x")?,
+                        end_scale_y: decimal_parse(&mut s, "end_scale_x")?,
+                    },
+                })
+            }
+            "R" => {
+                let easing = easing_parse(&mut s)?;
+                let start_time = start_time_parse(&mut s)?;
+                let end_time = end_time_parse(&mut s, start_time)?;
+
+                Ok(Command {
+                    start_time,
+                    properties: CommandProperties::Rotate {
+                        easing,
+                        end_time,
+                        start_rotate: decimal_parse(&mut s, "start_rotate")?,
+                        end_rotate: decimal_parse(&mut s, "end_rotate")?,
+                    },
+                })
+            }
+            "C" => {
+                let easing = easing_parse(&mut s)?;
+                let start_time = start_time_parse(&mut s)?;
+                let end_time = end_time_parse(&mut s, start_time)?;
+
+                Ok(Command {
+                    start_time,
+                    properties: CommandProperties::Colour {
+                        easing,
+                        end_time,
+                        start_r: u8_parse(&mut s, "start_r")?,
+                        start_g: u8_parse(&mut s, "start_g")?,
+                        start_b: u8_parse(&mut s, "start_b")?,
+                        end_r: u8_parse(&mut s, "end_r")?,
+                        end_g: u8_parse(&mut s, "end_g")?,
+                        end_b: u8_parse(&mut s, "end_b")?,
+                    },
+                })
+            }
+            "P" => {
+                let easing = easing_parse(&mut s)?;
+                let start_time = start_time_parse(&mut s)?;
+                let end_time = end_time_parse(&mut s, start_time)?;
+
+                Ok(Command {
+                    start_time,
+                    properties: CommandProperties::Parameter {
+                        easing,
+                        end_time,
+                        parameter: {
+                            let s = s
+                                .next()
+                                .ok_or(CommandParseError::MissingField("parameter"))?;
+                            s.parse()
+                                .map_err(|err| CommandParseError::FieldParseError {
+                                    source: Box::new(err),
+                                    value: s.to_string(),
+                                })?
+                        },
+                    },
+                })
+            }
+            "L" => Ok(Command {
+                start_time: start_time_parse(&mut s)?,
+                properties: CommandProperties::Loop {
+                    loop_count: {
+                        let s = s
+                            .next()
+                            .ok_or(CommandParseError::MissingField("loopcount"))?;
+                        s.parse()
+                            .map_err(|err| CommandParseError::FieldParseError {
+                                source: Box::new(err),
+                                value: s.to_string(),
+                            })?
+                    },
+                    commands: Vec::new(),
+                },
+            }),
+            "T" => {
+                let trigger_type = {
+                    let s = s
+                        .next()
+                        .ok_or(CommandParseError::MissingField("triggerType"))?;
+                    s.parse()
+                        .map_err(|err| CommandParseError::FieldParseError {
+                            source: Box::new(err),
+                            value: s.to_string(),
+                        })?
+                };
+                let start_time = start_time_parse(&mut s)?;
+
+                Ok(Command {
+                    start_time: start_time_parse(&mut s)?,
+                    properties: CommandProperties::Trigger {
+                        trigger_type,
+                        end_time: end_time_parse(&mut s, start_time)?,
+                        group_number: {
+                            let s = s.next();
+
+                            match s {
+                                Some(s) => Some(s.parse().map_err(|err| {
+                                    CommandParseError::FieldParseError {
+                                        source: Box::new(err),
+                                        value: s.to_string(),
+                                    }
+                                })?),
+                                None => None,
+                            }
+                        },
+                        commands: Vec::new(),
+                    },
                 })
             }
             _ => Err(CommandParseError::UnknownEvent(event.to_string())),
         }
     }
+}
+
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, IntoStaticStr, EnumString)]
+pub enum Parameter {
+    #[strum(serialize = "H")]
+    ImageFlipHorizontal,
+    #[strum(serialize = "V")]
+    ImageFlipVertical,
+    #[strum(serialize = "A")]
+    UseAdditiveColourBlending,
 }
 
 // TODO what is group_number
