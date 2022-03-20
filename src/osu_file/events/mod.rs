@@ -4,7 +4,7 @@ use std::{error::Error, str::FromStr};
 
 use thiserror::Error;
 
-use self::storyboard::{CommandParseError, Object, ObjectParseError};
+use self::storyboard::{CommandParseError, CommandPushError, Object, ObjectParseError};
 
 use super::{Integer, Position};
 
@@ -46,9 +46,7 @@ impl FromStr for Events {
                     if header_indent > 0 {
                         match events.0.last_mut() {
                             Some(Event::Storyboard(sprite)) => {
-                                sprite
-                                    .try_push_cmd(line.parse()?, header_indent)
-                                    .map_err(|_err| EventsParseError::StoryboardParseError)?;
+                                sprite.try_push_cmd(line.parse()?, header_indent)?;
                             }
                             _ => return Err(EventsParseError::StoryboardCmdWithNoSprite),
                         }
@@ -129,12 +127,10 @@ pub enum EventsParseError {
     #[error("The input is empty")]
     EmptyString,
     /// A `storyboard` `command` was used without defined sprite or animation sprite.
-    // TODO more specific error
     #[error("A storyboard command was used without defined sprite or animation sprite")]
     StoryboardCmdWithNoSprite,
-    // TODO
-    #[error("There was a problem parsing a storyboard element")]
-    StoryboardParseError,
+    #[error(transparent)]
+    CommandPushError(#[from] CommandPushError),
     #[error(transparent)]
     CommandParseError(#[from] CommandParseError),
     /// There was a problem parsing some `storyboard` element.

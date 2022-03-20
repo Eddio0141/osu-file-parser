@@ -1,7 +1,7 @@
 use std::{
     error::Error,
     fmt::Display,
-    num::{NonZeroUsize, ParseIntError},
+    num::ParseIntError,
     path::{Path, PathBuf},
     str::{FromStr, Split},
 };
@@ -32,32 +32,44 @@ impl Object {
             self.commands.push(cmd);
             Ok(())
         } else {
-            let mut last_cmds = &mut self.commands;
+            let mut last_cmd = match self.commands.last_mut() {
+                Some(last_cmd) => last_cmd,
+                None => return Err(CommandPushError::InvalidIndentation(1, indentation)),
+            };
 
             for i in 1..indentation {
-                match last_cmds.last_mut() {
-                    Some(last_cmd) => match &mut last_cmd.properties {
-                        CommandProperties::Loop { commands, .. }
-                        | CommandProperties::Trigger { commands, .. } => {
-                            if i == indentation - 1 {
-                                commands.push(cmd);
-                                return Ok(());
-                            } else {
-                                last_cmds = commands;
-                                continue;
+                last_cmd = if let CommandProperties::Loop { commands, .. }
+                | CommandProperties::Trigger { commands, .. } =
+                    &mut last_cmd.properties
+                {
+                    if i + 1 == indentation {
+                        // last item
+                        commands.push(cmd);
+                        return Ok(());
+                    } else {
+                        match commands.last_mut() {
+                            Some(sub_cmd) => sub_cmd,
+                            None => {
+                                return Err(CommandPushError::InvalidIndentation(
+                                    i - 1,
+                                    indentation,
+                                ))
                             }
                         }
-                        _ => return Err(CommandPushError::InvalidIndentation(i - 1, indentation)),
-                    },
-                    None => {
-                        if i == indentation - 1 {
-                            return Err(CommandPushError::InvalidIndentation(i - 1, indentation));
-                        }
                     }
-                }
+                } else {
+                    return Err(CommandPushError::InvalidIndentation(1, indentation));
+                };
             }
 
             unreachable!();
+
+            // if let CommandProperties::Loop { commands, .. }
+            // | CommandProperties::Trigger { commands, .. } = &mut last_cmd.properties
+            // {
+            // } else {
+            //     unreachable!();
+            // }
         }
     }
 }
@@ -559,7 +571,8 @@ impl FromStr for Command {
         let event = s
             .next()
             .ok_or(CommandParseError::MissingField("event"))?
-            .trim();
+            // TODO what happens if its alternating like "_ _ __"
+            .trim_matches(|c| c == ' ' || c == '_');
 
         let easing_parse = |s: &mut Split<char>| {
             let s = s.next().ok_or(CommandParseError::MissingField("easing"))?;
@@ -803,7 +816,7 @@ impl FromStr for Command {
                 let start_time = start_time_parse(&mut s)?;
 
                 Ok(Command {
-                    start_time: start_time_parse(&mut s)?,
+                    start_time,
                     properties: CommandProperties::Trigger {
                         trigger_type,
                         end_time: end_time_parse(&mut s, start_time)?,
@@ -848,7 +861,7 @@ pub enum TriggerType {
         sample_set: Option<SampleSet>,
         additions_sample_set: Option<SampleSet>,
         addition: Option<Addition>,
-        custom_sample_set: Option<NonZeroUsize>,
+        custom_sample_set: Option<usize>,
     },
     Passing,
     Failing,
@@ -860,28 +873,35 @@ impl FromStr for TriggerType {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let s = s.trim();
 
-        match s {
-            "Passing" => Ok(TriggerType::Passing),
-            "Failing" => Ok(TriggerType::Failing),
-            _ => {
-                if let Some(s) = s.strip_prefix("HitSound") {
+        match s.strip_prefix("HitSound") {
+            Some(s) => match s {
+                "Passing" => Ok(TriggerType::Passing),
+                "Failing" => Ok(TriggerType::Failing),
+                "" => Ok(TriggerType::HitSound {
+                    sample_set: None,
+                    additions_sample_set: None,
+                    addition: None,
+                    custom_sample_set: None,
+                }),
+                _ => {
                     let fields = {
                         let mut fields = Vec::new();
                         let mut builder = String::with_capacity(256);
 
-                        for ch in s.chars() {
-                            if ch.is_lowercase() || !ch.is_alphabetic() {
-                                builder.push(ch);
-                            } else {
+                        for (i, ch) in s.chars().enumerate() {
+                            if i != 0 && (ch.is_uppercase() || ch.is_numeric()) {
                                 fields.push(builder.to_owned());
                                 builder.clear();
                             }
+                            builder.push(ch);
                         }
+
+                        fields.push(builder);
 
                         fields
                     };
 
-                    // TODO for the project, make sure all fields are used
+                    // TODO for the project, make sure all fields are used in iterator next call
                     if fields.len() > 4 {
                         return Err(TriggerTypeParseError::TooManyHitSoundFields(fields.len()));
                     }
@@ -898,33 +918,29 @@ impl FromStr for TriggerType {
                             match field_parse_attempt_index {
                                 0 => if let Ok(field) = field.parse() {
                                     sample_set = Some(field);
-                                    break;
-                                } else {
                                     field_parse_attempt_index += 1;
+                                    break;
                                 }
                                 1 => if let Ok(field) = field.parse() {
                                     additions_sample_set = Some(field);
-                                    break;
-                                } else {
                                     field_parse_attempt_index += 1;
+                                    break;
                                 }
                                 2 => if let Ok(field) = field.parse() {
                                     addition = Some(field);
+                                    field_parse_attempt_index += 1;
+                                    break;
+                                }
+                                3 => if let Ok(field) = field.parse() {
+                                    custom_sample_set = Some(field);
+                                    field_parse_attempt_index += 1;
                                     break;
                                 } else {
-                                    field_parse_attempt_index += 1;
-                                }
-                                3 => {
-                                    let field: usize = field.parse()?;
-                                    custom_sample_set = if field == 0 {
-                                        None
-                                    } else {
-                                        Some(NonZeroUsize::new(field).unwrap())
-                                    };
-                                    break;
+                                    return Err(TriggerTypeParseError::UnknownHitSoundType(s.to_string()))
                                 }
                                 _ => unreachable!("The check for field size is already done so this is impossible to reach")
                             }
+                            field_parse_attempt_index += 1;
                         }
                     }
 
@@ -934,10 +950,9 @@ impl FromStr for TriggerType {
                         addition,
                         custom_sample_set,
                     })
-                } else {
-                    Err(TriggerTypeParseError::UnknownTriggerType(s.to_string()))
                 }
-            }
+            },
+            None => Err(TriggerTypeParseError::UnknownTriggerType(s.to_string())),
         }
     }
 }
@@ -976,6 +991,8 @@ pub enum TriggerTypeParseError {
     },
     #[error("Unknown trigger type {0}")]
     UnknownTriggerType(String),
+    #[error("Unknown `HitSound` type {0}")]
+    UnknownHitSoundType(String),
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, EnumString, Display)]
