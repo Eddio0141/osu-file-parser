@@ -58,17 +58,14 @@ pub fn parse_zero_one_bool(value: &str) -> Result<bool, ParseBoolError> {
     }
 }
 
-/// Error for when having a problem parsing 0 or 1 as a boolean
 #[derive(Debug, Error)]
 pub enum ParseBoolError {
     #[error("Error parsing {value} as an Integer")]
-    /// There was an error trying to parse `str` into an `Integer`.
     ValueParseError {
         #[source]
         source: ParseIntError,
         value: String,
     },
     #[error("Error parsing {0} as `true` or `false`, expected value of 0 or 1")]
-    /// The value attempted to parse wasn't 0 or 1.
     InvalidValue(Integer),
 }
