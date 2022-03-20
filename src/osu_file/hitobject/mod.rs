@@ -14,6 +14,7 @@ use super::Position;
 
 type ComboSkipCount = u8;
 
+// TODO remove this since its pointless
 /// An interface that represents a hitobject.
 ///
 /// All hitobjects will have the properties: `x`, `y`, `time`, `type`, `hitsound`, `hitsample`.
