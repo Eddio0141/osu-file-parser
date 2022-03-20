@@ -7,9 +7,10 @@ use std::{
 
 use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
+use strum_macros::FromRepr;
 use thiserror::Error;
 
-use super::{Integer, SECTION_DELIMITER, helper::parse_zero_one_bool};
+use super::{helper::parse_zero_one_bool, Integer, SECTION_DELIMITER};
 
 /// A struct representing the general section of the .osu file.
 #[derive(PartialEq, Debug, Clone, Eq, Hash)]
@@ -266,7 +267,7 @@ impl Display for General {
         key_value.push(format!("AudioLeadIn: {}", self.audio_lead_in));
         key_value.push(format!("AudioHash: {}", self.audio_hash));
         key_value.push(format!("PreviewTime: {}", self.preview_time));
-        key_value.push(format!("Countdown: {}", self.countdown));
+        key_value.push(format!("Countdown: {}", self.countdown as Integer));
         key_value.push(format!("SampleSet: {}", self.sample_set));
         key_value.push(format!("StackLeniency: {}", self.stack_leniency));
         key_value.push(format!("Mode: {}", self.mode));
@@ -326,7 +327,7 @@ pub enum GeneralParseError {
 }
 
 /// Speed of the countdown before the first hitobject.
-#[derive(PartialEq, Eq, Debug, Clone, Copy, Hash)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy, Hash, FromRepr)]
 pub enum CountdownSpeed {
     /// No countdown.
     NoCountdown,
@@ -338,39 +339,12 @@ pub enum CountdownSpeed {
     Double,
 }
 
-impl Display for CountdownSpeed {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let value = match self {
-            CountdownSpeed::NoCountdown => 0,
-            CountdownSpeed::Normal => 1,
-            CountdownSpeed::Half => 2,
-            CountdownSpeed::Double => 3,
-        };
-
-        write!(f, "{value}")
-    }
-}
-
 impl FromStr for CountdownSpeed {
     type Err = CountdownSpeedParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let s: Integer = s.parse()?;
-        s.try_into()
-    }
-}
-
-impl TryFrom<i32> for CountdownSpeed {
-    type Error = CountdownSpeedParseError;
-
-    fn try_from(value: i32) -> Result<Self, Self::Error> {
-        match value {
-            0 => Ok(CountdownSpeed::NoCountdown),
-            1 => Ok(CountdownSpeed::Normal),
-            2 => Ok(CountdownSpeed::Half),
-            3 => Ok(CountdownSpeed::Double),
-            _ => Err(CountdownSpeedParseError::UnknownType(value)),
-        }
+        let s = s.parse()?;
+        CountdownSpeed::from_repr(s).ok_or(CountdownSpeedParseError::UnknownType(s))
     }
 }
 
@@ -379,7 +353,7 @@ impl TryFrom<i32> for CountdownSpeed {
 pub enum CountdownSpeedParseError {
     #[error("Expected `CountdownSpeed` to be value from 0 ~ 3, got value {0}")]
     /// The integer value is an unknown `CountdownSpeed` type.
-    UnknownType(Integer),
+    UnknownType(usize),
     #[error("There was a problem parsing the `str` as an `Integer`")]
     /// There was a problem converting from `str` to an `Integer`.
     ParseError(#[from] ParseIntError),

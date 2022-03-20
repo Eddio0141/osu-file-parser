@@ -1,6 +1,10 @@
 pub mod storyboard;
 
-use std::{error::Error, str::FromStr};
+use std::{
+    error::Error,
+    path::{Path, PathBuf},
+    str::FromStr,
+};
 
 use thiserror::Error;
 
@@ -140,24 +144,14 @@ pub enum EventsParseError {
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Background {
-    pub filename: String,
-    // only used to make resulting output match the input file.
-    filename_has_quotes: bool,
+    pub filename: PathBuf,
     pub position: Position,
 }
 
 impl Background {
-    pub fn new(filename: String, position: Position) -> Self {
-        let (filename, filename_has_quotes) =
-            if filename.len() > 1 && filename.starts_with('"') && filename.ends_with('"') {
-                (&filename[1..filename.len()], true)
-            } else {
-                (filename.as_str(), false)
-            };
-
+    pub fn new(filename: &Path, position: Position) -> Self {
         Self {
-            filename: filename.to_string(),
-            filename_has_quotes,
+            filename: filename.to_path_buf(),
             position,
         }
     }
@@ -165,9 +159,7 @@ impl Background {
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Video {
-    pub filename: String,
-    // only used to make resulting output match the input file.
-    filename_has_quotes: bool,
+    pub filename: PathBuf,
     pub position: Position,
 }
 
@@ -231,18 +223,16 @@ where
                     Position { x, y }
                 };
 
-                let filename = filename.to_string();
+                let filename = Path::new(filename);
 
                 if event_type == "0" {
                     Ok(EventParams::Background(Background {
-                        filename,
-                        filename_has_quotes,
+                        filename: filename.to_path_buf(),
                         position,
                     }))
                 } else {
                     Ok(EventParams::Video(Video {
-                        filename,
-                        filename_has_quotes,
+                        filename: filename.to_path_buf(),
                         position,
                     }))
                 }

@@ -29,6 +29,7 @@ use self::metadata::Metadata;
 use self::timingpoint::TimingPoint;
 
 /// An .osu file represented as a struct.
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct OsuFile {
     /// Version of the file format.
     pub version: Integer,
@@ -137,14 +138,18 @@ impl FromStr for OsuFile {
             let mut in_section = false;
 
             for line in lines {
+                if line.is_empty() {
+                    continue;
+                }
+
                 let mut line_is_section_name = false;
 
                 if in_section {
                     if line.starts_with(SECTION_OPEN) {
                         line_is_section_name = true;
-
                         sections.push(section_content.join("\n"));
                         section_content.clear();
+                        in_section = false;
                     } else {
                         section_content.push(line);
                     }
@@ -155,7 +160,7 @@ impl FromStr for OsuFile {
 
                     if line.starts_with(SECTION_OPEN) {
                         if line.ends_with(SECTION_CLOSE) {
-                            section_names.push(&line[1..section_names.len()]);
+                            section_names.push(&line[1..line.len() - 1]);
                         } else {
                             return Err(OsuFileParseError::SectionNameNoCloseBracket(
                                 line.to_string(),
@@ -169,6 +174,10 @@ impl FromStr for OsuFile {
 
                     in_section = true;
                 }
+            }
+
+            if in_section {
+                sections.push(section_content.join("\n"));
             }
 
             (section_names, sections)

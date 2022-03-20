@@ -2,7 +2,7 @@
 
 use std::{fmt::Display, num::NonZeroUsize, str::FromStr};
 
-use crate::osu_file::{Integer, Position, helper::nth_bit_state_i64};
+use crate::osu_file::{helper::nth_bit_state_i64, Integer, Position};
 
 use super::error::*;
 
@@ -269,6 +269,15 @@ impl Display for HitSound {
 }
 
 impl HitSound {
+    pub fn new(normal: bool, whistle: bool, finish: bool, clap: bool) -> Self {
+        Self {
+            normal,
+            whistle,
+            finish,
+            clap,
+        }
+    }
+
     /// Returns the `normal` flag. Also will return `true` if no sound flags are set.
     pub fn normal(&self) -> bool {
         if !self.normal && !self.whistle && !self.finish && !self.clap {
@@ -407,6 +416,22 @@ impl Display for HitSample {
 }
 
 impl HitSample {
+    pub fn new(
+        normal_set: SampleSet,
+        addition_set: SampleSet,
+        index: Option<NonZeroUsize>,
+        volume: Volume,
+        filename: String,
+    ) -> Self {
+        Self {
+            normal_set,
+            addition_set,
+            index,
+            volume,
+            filename,
+        }
+    }
+
     /// Returns the sample set of the normal sound.
     pub fn normal_set(&self) -> SampleSet {
         self.normal_set

@@ -6,8 +6,8 @@ use std::fmt::Display;
 use rust_decimal::Decimal;
 
 use self::error::*;
-use super::helper::*;
 use self::types::*;
+use super::helper::*;
 
 use super::Integer;
 use super::Position;
@@ -191,9 +191,7 @@ pub fn try_parse_hitobject(hitobject: &str) -> Result<HitObjectWrapper, HitObjec
     let hitsample = |obj_properties: &mut dyn Iterator<Item = &str>| {
         let property = obj_properties
             .next()
-            .ok_or_else(|| HitObjectParseError::MissingProperty(
-                "HitSample".to_string(),
-            ))?;
+            .ok_or_else(|| HitObjectParseError::MissingProperty("HitSample".to_string()))?;
 
         property
             .parse()
@@ -221,13 +219,9 @@ pub fn try_parse_hitobject(hitobject: &str) -> Result<HitObjectWrapper, HitObjec
             // idk why ppy decided to just put in curve type without the usual , splitter
             let (curve_type, curve_points) = obj_properties
                 .next()
-                .ok_or_else(|| HitObjectParseError::MissingProperty(
-                    "CurveType".to_string(),
-                ))?
+                .ok_or_else(|| HitObjectParseError::MissingProperty("CurveType".to_string()))?
                 .split_once('|')
-                .ok_or_else(|| HitObjectParseError::MissingProperty(
-                    "CurvePoints".to_string(),
-                ))?;
+                .ok_or_else(|| HitObjectParseError::MissingProperty("CurvePoints".to_string()))?;
 
             let curve_type =
                 curve_type
@@ -266,9 +260,7 @@ pub fn try_parse_hitobject(hitobject: &str) -> Result<HitObjectWrapper, HitObjec
 
             let edge_sounds = obj_properties
                 .next()
-                .ok_or_else(|| HitObjectParseError::MissingProperty(
-                    "EdgeSounds".to_string(),
-                ))?;
+                .ok_or_else(|| HitObjectParseError::MissingProperty("EdgeSounds".to_string()))?;
             let edge_sounds = str_to_pipe_vec(edge_sounds).map_err(|err| {
                 HitObjectParseError::ValueParseError {
                     value: edge_sounds.to_string(),
@@ -334,9 +326,7 @@ pub fn try_parse_hitobject(hitobject: &str) -> Result<HitObjectWrapper, HitObjec
                 .next()
                 .ok_or_else(|| HitObjectParseError::MissingProperty("EndTime".to_string()))?
                 .split_once(':')
-                .ok_or_else(|| HitObjectParseError::MissingProperty(
-                    "HitSample".to_string(),
-                ))?;
+                .ok_or_else(|| HitObjectParseError::MissingProperty("HitSample".to_string()))?;
 
             let end_time =
                 end_time
