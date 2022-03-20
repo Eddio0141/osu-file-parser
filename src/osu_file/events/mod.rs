@@ -188,15 +188,7 @@ where
             "0" | "1" | "Video" => {
                 let filename = event_params
                     .next()
-                    .ok_or(EventParamsParseError::MissingField("filename"))?
-                    .trim();
-                let filename_has_quotes =
-                    filename.len() > 1 && filename.starts_with('"') && filename.ends_with('"');
-                let filename = if filename_has_quotes {
-                    &filename[1..filename.len()]
-                } else {
-                    filename
-                };
+                    .ok_or(EventParamsParseError::MissingField("filename"))?;
                 let position = {
                     let x = event_params
                         .next()
