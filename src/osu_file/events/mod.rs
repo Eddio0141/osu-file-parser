@@ -2,18 +2,35 @@ pub mod storyboard;
 
 use std::{
     error::Error,
+    fmt::Display,
     path::{Path, PathBuf},
     str::FromStr,
 };
 
 use thiserror::Error;
 
-use self::storyboard::{CommandParseError, CommandPushError, Object, ObjectParseError};
+use crate::osu_file::events::storyboard::CommandProperties;
+
+use self::storyboard::{Command, CommandParseError, CommandPushError, Object, ObjectParseError};
 
 use super::{Integer, Position};
 
 #[derive(Default, Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Events(pub Vec<Event>);
+
+impl Display for Events {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            self.0
+                .iter()
+                .map(|i| i.to_string())
+                .collect::<Vec<_>>()
+                .join("\n")
+        )
+    }
+}
 
 impl FromStr for Events {
     type Err = EventsParseError;
@@ -111,6 +128,92 @@ pub enum Event {
         event_params: EventParams,
     },
     Storyboard(Object),
+}
+
+impl Display for Event {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let event_str = match self {
+            Event::Comment(comment) => format!("//{comment}"),
+            // TODO do normal event type's value storage such as if being 0, it will remember that for 1:1 matching
+            Event::NormalEvent {
+                start_time,
+                event_params,
+            } => match event_params {
+                EventParams::Background(background) => format!(
+                    "0,{start_time},{},{},{}",
+                    background.filename.to_string_lossy(),
+                    background.position.x,
+                    background.position.y
+                ),
+                EventParams::Video(video) => format!(
+                    "1,{start_time},{},{},{}",
+                    video.filename.to_string_lossy(),
+                    video.position.x,
+                    video.position.y
+                ),
+                EventParams::Break(_break) => format!("2,{start_time},{}", _break.end_time),
+            },
+            Event::Storyboard(object) => {
+                let pos_str = format!("{},{}", object.position.x, object.position.y);
+
+                let object_str = match &object.object_type {
+                    storyboard::ObjectType::Sprite(sprite) => format!(
+                        "Sprite,{},{},{},{}",
+                        object.layer,
+                        object.origin,
+                        // TODO make sure if the filepath has spaces, use the quotes no matter what, but don't add quotes if it already has
+                        sprite.filepath.to_string_lossy(),
+                        pos_str
+                    ),
+                    storyboard::ObjectType::Animation(anim) => {
+                        format!(
+                            "Animation,{},{},{},{},{},{},{}",
+                            object.layer,
+                            object.origin,
+                            anim.filepath.to_string_lossy(),
+                            pos_str,
+                            anim.frame_count,
+                            anim.frame_delay,
+                            anim.loop_type
+                        )
+                    }
+                };
+
+                let cmds = {
+                    if object.commands.is_empty() {
+                        None
+                    } else {
+                        Some(command_recursive_display(&object.commands, 1).join("\n"))
+                    }
+                };
+
+                match cmds {
+                    Some(cmds) => format!("{object_str}\n{cmds}"),
+                    None => object_str,
+                }
+            }
+        };
+
+        write!(f, "{event_str}")
+    }
+}
+
+fn command_recursive_display(commands: &Vec<Command>, indentation: usize) -> Vec<String> {
+    let mut cmd_lines = Vec::with_capacity(commands.len());
+
+    for cmd in commands {
+        cmd_lines.push(format!("{}{cmd}", " ".repeat(indentation)));
+
+        if let CommandProperties::Loop { commands, .. }
+        | CommandProperties::Trigger { commands, .. } = &cmd.properties
+        {
+            for command_str in command_recursive_display(commands, indentation + 1) {
+                cmd_lines.push(command_str);
+            }
+        }
+    }
+
+    cmd_lines
 }
 
 /// Errors used when there was a problem parsing an [`Event`] from a `str`.

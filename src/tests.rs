@@ -77,6 +77,33 @@ SamplesMatchPlaybackRate: 1";
 }
 
 #[test]
+fn general_parse_back() {
+    let i = "AudioFilename: test.mp3
+AudioLeadIn: 555
+AudioHash: no.mp3
+PreviewTime: 5
+Countdown: 3
+SampleSet: Soft
+StackLeniency: 0.9
+Mode: 1
+LetterboxInBreaks: 1
+StoryFireInFront: 0
+UseSkinSprites: 1
+AlwaysShowPlayfield: 0
+OverlayPosition: Above
+SkinPreference: myskin
+EpilepsyWarning: 1
+CountdownOffset: 120
+SpecialStyle: 1
+WidescreenStoryboard: 1
+SamplesMatchPlaybackRate: 1"
+        .replace('\n', "\r\n");
+    let g = i.parse::<General>().unwrap();
+
+    assert_eq!(i, g.to_string());
+}
+
+#[test]
 fn editor_parse() {
     let i = "Bookmarks: 11018,21683,32349,37683,48349,59016,69683,80349,91016
 DistanceSpacing: 0.8
@@ -96,6 +123,19 @@ TimelineZoom: 2";
     };
 
     assert_eq!(i, e);
+}
+
+#[test]
+fn editor_parse_back() {
+    let i = "Bookmarks: 11018,21683,32349,37683,48349,59016,69683,80349,91016
+DistanceSpacing: 0.8
+BeatDivisor: 12
+GridSize: 8
+TimelineZoom: 2"
+        .replace('\n', "\r\n");
+    let e: Editor = i.parse().unwrap();
+
+    assert_eq!(i, e.to_string());
 }
 
 #[test]
@@ -138,6 +178,24 @@ BeatmapSetID:1499093";
 }
 
 #[test]
+fn metadata_parse_back() {
+    let i = "Title:LOVE IS ORANGE
+TitleUnicode:LOVE IS ORANGE
+Artist:Orange Lounge
+ArtistUnicode:Orange Lounge
+Creator:Xnery
+Version:Bittersweet Love
+Source:beatmania IIDX 8th style
+Tags:famoss 舟木智介 tomosuke funaki 徳井志津江 videogame ハードシャンソン Tart&Toffee
+BeatmapID:3072232
+BeatmapSetID:1499093"
+        .replace('\n', "\r\n");
+    let m: Metadata = i.parse().unwrap();
+
+    assert_eq!(i, m.to_string());
+}
+
+#[test]
 fn difficulty_parse() {
     let i = "HPDrainRate:8
 CircleSize:5
@@ -157,6 +215,20 @@ SliderTickRate:1";
     };
 
     assert_eq!(i, d);
+}
+
+#[test]
+fn difficulty_parse_back() {
+    let i = "HPDrainRate:8
+CircleSize:5
+OverallDifficulty:8
+ApproachRate:5
+SliderMultiplier:1.4
+SliderTickRate:1"
+        .replace('\n', "\r\n");
+    let d: Difficulty = i.parse().unwrap();
+
+    assert_eq!(i, d.to_string());
 }
 
 #[test]
@@ -188,6 +260,22 @@ SliderBorder : 120,130,140";
     ];
 
     assert_eq!(i, c);
+}
+
+#[test]
+fn colours_parse_back() {
+    let i = "Combo1 : 255,128,255
+SliderTrackOverride : 100,99,70
+SliderBorder : 120,130,140";
+    let c: Vec<Colour> = i.lines().map(|line| line.parse().unwrap()).collect();
+
+    assert_eq!(
+        i,
+        c.iter()
+            .map(|c| c.to_string())
+            .collect::<Vec<_>>()
+            .join("\n")
+    );
 }
 
 #[test]
@@ -230,6 +318,24 @@ fn timing_points_parse() {
 }
 
 #[test]
+fn timing_points_parse_back() {
+    let i = "10000,333.33,4,0,0,100,1,1
+12000,-25,4,3,0,100,0,1";
+    let t: Vec<TimingPoint> = i
+        .lines()
+        .map(|timing_point| timing_point.parse().unwrap())
+        .collect();
+
+    assert_eq!(
+        i,
+        t.iter()
+            .map(|t| t.to_string())
+            .collect::<Vec<_>>()
+            .join("\n")
+    );
+}
+
+#[test]
 fn events_parse() {
     let i = "0,0,\"bg2.jpg\",0,0
 0,0,bg2.jpg,0,0
@@ -260,6 +366,18 @@ fn events_parse() {
     ]);
 
     assert_eq!(i, e);
+}
+
+#[test]
+fn events_parse_back() {
+    let i = "0,0,\"bg2.jpg\",0,0
+0,0,bg2.jpg,0,0
+//Break Periods
+2,100,163"
+        .replace('\n', "\r\n");
+    let e: Events = i.parse().unwrap();
+
+    assert_eq!(i, e.to_string());
 }
 
 #[test]

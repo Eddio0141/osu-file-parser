@@ -198,10 +198,10 @@ pub enum ObjectParseError {
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Animation {
     // TODO what types are those counts
-    frame_count: u32,
-    frame_delay: u32,
-    loop_type: LoopType,
-    filepath: PathBuf,
+    pub frame_count: u32,
+    pub frame_delay: u32,
+    pub loop_type: LoopType,
+    pub filepath: PathBuf,
 }
 
 impl Animation {
@@ -483,6 +483,122 @@ pub struct UnknownLoopType(String);
 pub struct Command {
     pub start_time: Integer,
     pub properties: CommandProperties,
+}
+
+impl Display for Command {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let cmd_str = match &self.properties {
+            CommandProperties::Fade {
+                easing,
+                end_time,
+                start_opacity,
+                end_opacity,
+            } => format!(
+                "F,{},{},{end_time},{start_opacity},{end_opacity}",
+                *easing as usize, self.start_time
+            ),
+            CommandProperties::Move {
+                easing,
+                end_time,
+                start_x,
+                start_y,
+                end_x,
+                end_y,
+            } => format!(
+                "M,{},{},{end_time},{start_x},{start_y},{end_x},{end_y}",
+                *easing as usize, self.start_time
+            ),
+            CommandProperties::MoveX {
+                easing,
+                end_time,
+                start_x,
+                end_x,
+            } => format!(
+                "MX,{},{},{end_time},{start_x},{end_x}",
+                *easing as usize, self.start_time
+            ),
+            CommandProperties::MoveY {
+                easing,
+                end_time,
+                start_y,
+                end_y,
+            } => format!(
+                "MY,{},{},{end_time},{start_y},{end_y}",
+                *easing as usize, self.start_time
+            ),
+            CommandProperties::Scale {
+                easing,
+                end_time,
+                start_scale,
+                end_scale,
+            } => format!(
+                "S,{},{},{end_time},{start_scale},{end_scale}",
+                *easing as usize, self.start_time
+            ),
+            CommandProperties::VectorScale {
+                easing,
+                end_time,
+                start_scale_x,
+                start_scale_y,
+                end_scale_x,
+                end_scale_y,
+            } => format!(
+                "V,{},{},{end_time},{start_scale_x},{start_scale_y},{end_scale_x},{end_scale_y}",
+                *easing as usize, self.start_time
+            ),
+            CommandProperties::Rotate {
+                easing,
+                end_time,
+                start_rotate,
+                end_rotate,
+            } => format!(
+                "R,{},{},{end_time},{start_rotate},{end_rotate}",
+                *easing as usize, self.start_time
+            ),
+            CommandProperties::Colour {
+                easing,
+                end_time,
+                start_r,
+                start_g,
+                start_b,
+                end_r,
+                end_g,
+                end_b,
+            } => format!(
+                "C,{},{},{end_time},{start_r},{start_g},{start_b},{end_r},{end_g},{end_b}",
+                *easing as usize, self.start_time
+            ),
+            CommandProperties::Parameter {
+                easing,
+                end_time,
+                parameter,
+            } => format!(
+                "P,{},{},{end_time},{parameter}",
+                *easing as usize, self.start_time
+            ),
+            CommandProperties::Loop {
+                loop_count,
+                // ignore commands since its handled separately
+                commands: _,
+            } => format!("L,{},{loop_count}", self.start_time),
+            CommandProperties::Trigger {
+                trigger_type,
+                end_time,
+                group_number,
+                // ignore commands since its handled separately
+                commands: _,
+            } => format!(
+                "T,{trigger_type},{},{end_time}{}",
+                self.start_time,
+                match group_number {
+                    Some(group_number) => format!(",{group_number}"),
+                    None => String::new(),
+                }
+            ),
+        };
+
+        write!(f, "{cmd_str}")
+    }
 }
 
 // TODO make most enums non-exhaustive
@@ -842,7 +958,7 @@ impl FromStr for Command {
     }
 }
 
-#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, IntoStaticStr, EnumString)]
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, IntoStaticStr, EnumString, Display)]
 pub enum Parameter {
     #[strum(serialize = "H")]
     ImageFlipHorizontal,
