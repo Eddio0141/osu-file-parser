@@ -63,13 +63,6 @@ impl Object {
             }
 
             unreachable!();
-
-            // if let CommandProperties::Loop { commands, .. }
-            // | CommandProperties::Trigger { commands, .. } = &mut last_cmd.properties
-            // {
-            // } else {
-            //     unreachable!();
-            // }
         }
     }
 }
@@ -267,7 +260,8 @@ pub enum ObjectType {
     Animation(Animation),
 }
 
-#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+// TODO investivage if integer form is valid
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, Display, FromRepr, EnumString)]
 pub enum Layer {
     Background,
     Fail,
@@ -275,74 +269,8 @@ pub enum Layer {
     Foreground,
 }
 
-impl TryFrom<Integer> for Layer {
-    type Error = LayerParseError;
-
-    fn try_from(value: Integer) -> Result<Self, Self::Error> {
-        match value {
-            0 => Ok(Layer::Background),
-            1 => Ok(Layer::Fail),
-            2 => Ok(Layer::Pass),
-            3 => Ok(Layer::Foreground),
-            _ => Err(LayerParseError::UnknownLayerType(value)),
-        }
-    }
-}
-
-impl From<Layer> for Integer {
-    fn from(layer: Layer) -> Self {
-        match layer {
-            Layer::Background => 0,
-            Layer::Fail => 1,
-            Layer::Pass => 2,
-            Layer::Foreground => 3,
-        }
-    }
-}
-
-impl Display for Layer {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", Integer::from(*self))
-    }
-}
-
-impl FromStr for Layer {
-    type Err = LayerParseError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "Background" => Ok(Layer::Background),
-            "Fail" => Ok(Layer::Fail),
-            "Pass" => Ok(Layer::Pass),
-            "Foreground" => Ok(Layer::Foreground),
-            _ => {
-                // TODO is this even the case? find out
-                // attempt integer parse
-
-                let s: Integer = s.parse().map_err(|err| LayerParseError::ValueParseError {
-                    source: err,
-                    value: s.to_string(),
-                })?;
-
-                Layer::try_from(s)
-            }
-        }
-    }
-}
-
-#[derive(Debug, Error)]
-pub enum LayerParseError {
-    #[error("Unknown layer type {0}")]
-    UnknownLayerType(Integer),
-    #[error("There was a problem converting a `str` into an `Integer`")]
-    ValueParseError {
-        #[source]
-        source: ParseIntError,
-        value: String,
-    },
-}
-
-#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+// TODO investigate if integer form is valid
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, Display, FromRepr, EnumString)]
 pub enum Origin {
     TopLeft,
     Centre,
@@ -356,91 +284,7 @@ pub enum Origin {
     BottomRight,
 }
 
-impl TryFrom<Integer> for Origin {
-    type Error = OriginParseError;
-
-    fn try_from(value: Integer) -> Result<Self, Self::Error> {
-        match value {
-            0 => Ok(Origin::TopLeft),
-            1 => Ok(Origin::Centre),
-            2 => Ok(Origin::CentreLeft),
-            3 => Ok(Origin::TopRight),
-            4 => Ok(Origin::BottomCentre),
-            5 => Ok(Origin::TopCentre),
-            6 => Ok(Origin::Custom),
-            7 => Ok(Origin::CentreRight),
-            8 => Ok(Origin::BottomLeft),
-            9 => Ok(Origin::BottomRight),
-            _ => Err(OriginParseError::UnknownOriginType(value)),
-        }
-    }
-}
-
-impl From<Origin> for Integer {
-    fn from(origin: Origin) -> Self {
-        match origin {
-            Origin::TopLeft => 0,
-            Origin::Centre => 1,
-            Origin::CentreLeft => 2,
-            Origin::TopRight => 3,
-            Origin::BottomCentre => 4,
-            Origin::TopCentre => 5,
-            Origin::Custom => 6,
-            Origin::CentreRight => 7,
-            Origin::BottomLeft => 8,
-            Origin::BottomRight => 9,
-        }
-    }
-}
-
-impl Display for Origin {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", Integer::from(*self))
-    }
-}
-
-impl FromStr for Origin {
-    type Err = OriginParseError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "TopLeft" => Ok(Origin::TopLeft),
-            "Centre" => Ok(Origin::Centre),
-            "CentreLeft" => Ok(Origin::CentreLeft),
-            "TopRight" => Ok(Origin::TopRight),
-            "BottomCentre" => Ok(Origin::BottomCentre),
-            "TopCentre" => Ok(Origin::TopCentre),
-            "Custom" => Ok(Origin::Custom),
-            "CentreRight" => Ok(Origin::CentreRight),
-            "BottomLeft" => Ok(Origin::BottomLeft),
-            "BottomRight" => Ok(Origin::BottomRight),
-            _ => {
-                // TODO is this ever used?
-                // attempt int parse
-                let s: Integer = s.parse().map_err(|err| OriginParseError::ValueParseError {
-                    source: err,
-                    value: s.to_string(),
-                })?;
-
-                Origin::try_from(s)
-            }
-        }
-    }
-}
-
-#[derive(Debug, Error)]
-pub enum OriginParseError {
-    #[error("Unknown origin type {0}")]
-    UnknownOriginType(Integer),
-    #[error("Failed to parse the `str` {value} into an `Integer`")]
-    ValueParseError {
-        #[source]
-        source: ParseIntError,
-        value: String,
-    },
-}
-
-#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, Display, EnumString)]
 pub enum LoopType {
     LoopForever,
     LoopOnce,
@@ -451,33 +295,6 @@ impl Default for LoopType {
         Self::LoopForever
     }
 }
-
-impl Display for LoopType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let loop_type = match self {
-            LoopType::LoopForever => "LoopForever",
-            LoopType::LoopOnce => "LoopOnce",
-        };
-
-        write!(f, "{loop_type}")
-    }
-}
-
-impl FromStr for LoopType {
-    type Err = UnknownLoopType;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "LoopForever" => Ok(LoopType::LoopForever),
-            "LoopOnce" => Ok(LoopType::LoopOnce),
-            _ => Err(UnknownLoopType(s.to_string())),
-        }
-    }
-}
-
-#[derive(Debug, Error)]
-#[error("Unknown loop type {0}")]
-pub struct UnknownLoopType(String);
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Command {
@@ -692,10 +509,13 @@ impl FromStr for Command {
 
         let easing_parse = |s: &mut Split<char>| {
             let s = s.next().ok_or(CommandParseError::MissingField("easing"))?;
-            s.parse().map_err(|err| CommandParseError::FieldParseError {
-                source: Box::new(err),
-                value: s.to_string(),
-            })
+            let s = s
+                .parse()
+                .map_err(|err| CommandParseError::FieldParseError {
+                    source: Box::new(err),
+                    value: s.to_string(),
+                })?;
+            Easing::from_repr(s).ok_or(CommandParseError::InvalidEasing(s))
         };
         let start_time_parse = |s: &mut Split<char>| {
             let s = s
@@ -1138,8 +958,11 @@ pub enum CommandParseError {
         source: Box<dyn Error>,
         value: String,
     },
+    #[error("Invalid easing, {0}")]
+    InvalidEasing(usize),
 }
 
+// TODO does this have integer form?
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, FromRepr)]
 pub enum Easing {
     Linear,
@@ -1177,16 +1000,6 @@ pub enum Easing {
     BounceIn,
     BounceOut,
     BounceInOut,
-}
-
-impl FromStr for Easing {
-    type Err = EasingParseError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let s = s.parse()?;
-
-        Easing::from_repr(s).ok_or(EasingParseError::UnknownEasingType(s))
-    }
 }
 
 #[derive(Debug, Error)]
