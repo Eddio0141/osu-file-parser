@@ -1088,8 +1088,8 @@ impl Display for TriggerType {
                 addition.map_or(String::new(), |s| s.to_string()),
                 custom_sample_set.map_or(String::new(), |s| s.to_string())
             ),
-            TriggerType::Passing => "Passing".to_string(),
-            TriggerType::Failing => "Failing".to_string(),
+            TriggerType::Passing => "HitSoundPassing".to_string(),
+            TriggerType::Failing => "HitSoundFailing".to_string(),
         };
 
         write!(f, "{trigger_type}")

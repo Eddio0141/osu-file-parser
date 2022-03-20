@@ -869,6 +869,54 @@ ___S,0,-28,,0.4
 }
 
 #[test]
+fn storyboard_sprites_cmd_parse_back() {
+    let i = "
+Sprite,Pass,Centre,\"Text\\Play2-HaveFunH.png\",320,240
+ F,0,-28,,1
+ M,3,100,120,140,180.123123,200,200
+_MX,3,100,120,140,180.123123
+_MY,3,100,120,140,180.123123
+ S,0,-28,,0.4
+ V,8,5000,5500,0.5,2,2,0.5
+ R,7,5000,5500,-0.785,0.785
+ C,6,50000,50001,0,0,0,255,255,255
+ P,5,300,350,H
+ P,5,300,350,V
+ P,5,300,350,A
+ L,500,10
+  L,10,10
+   M,3,100,120,140,180.123123,200,200
+___S,0,-28,,0.4
+ T,HitSound,0,10
+  L,10,10
+   M,3,100,120,140,180.123123,200,200
+ T,HitSoundClap,0,10
+  M,3,100,120,140,180.123123,200,200
+ T,HitSoundFinish,0,10
+  M,3,100,120,140,180.123123,200,200
+ T,HitSoundWhistle,0,10
+  M,3,100,120,140,180.123123,200,200
+ T,HitSoundDrumWhistle,0,10
+  M,3,100,120,140,180.123123,200,200
+ T,HitSoundSoft,0,10
+  M,3,100,120,140,180.123123,200,200
+ T,HitSoundAllSoft,0,10
+  M,3,100,120,140,180.123123,200,200
+ T,HitSoundDrumClap0,0,10
+  M,3,100,120,140,180.123123,200,200
+ T,HitSound6,0,10
+  M,3,100,120,140,180.123123,200,200
+ T,HitSoundPassing,0,10
+  M,3,100,120,140,180.123123,200,200
+ T,HitSoundFailing,0,10
+  M,3,100,120,140,180.123123,200,200"
+        .replace('\n', "\r\n");
+    let e: Events = i.parse().unwrap();
+
+    assert_eq!(i, e.to_string())
+}
+
+#[test]
 fn storyboard_sprites_parse() {
     let i = "Sprite,Pass,Centre,\"Text\\Play2-HaveFunH.png\",320,240
 Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopForever";
@@ -901,6 +949,18 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
     assert_eq!(i, s)
 }
 
+#[test]
+fn storyboard_sprites_parse_back() {
+    let i = "Sprite,Pass,Centre,\"Text\\Play2-HaveFunH.png\",320,240
+Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopForever"
+        .replace('\n', "\r\n");
+    let e: Events = i.parse().unwrap();
+
+    assert_eq!(i, e.to_string())
+}
+
+// TODO make all fields optional
+// TODO make the struct remember new line counts
 #[test]
 fn some_osu_file_parse() {
     let i = "osu file format v14
@@ -960,7 +1020,7 @@ SliderTickRate:1
 
     let osu_file = OsuFile {
         version: 14,
-        general: General {
+        general: Some(General {
             audio_filename: "audio.mp3".to_string(),
             audio_lead_in: 0,
             preview_time: 48349,
@@ -973,8 +1033,8 @@ SliderTickRate:1
             widescreen_storyboard: false,
             samples_match_playback_rate: false,
             ..Default::default()
-        },
-        editor: Editor {
+        }),
+        editor: Some(Editor {
             bookmarks: vec![
                 11018, 21683, 32349, 37683, 48349, 59016, 69683, 80349, 91016,
             ],
@@ -982,8 +1042,8 @@ SliderTickRate:1
             beat_divisor: dec!(12),
             grid_size: 8,
             timeline_zoom: dec!(2),
-        },
-        metadata: Metadata {
+        }),
+        metadata: Some(Metadata {
             title: "LOVE IS ORANGE".to_string(),
             title_unicode: "LOVE IS ORANGE".to_string(),
             artist: "Orange Lounge".to_string(),
@@ -1004,16 +1064,16 @@ SliderTickRate:1
             ],
             beatmap_id: 3072232,
             beatmap_set_id: 1499093,
-        },
-        difficulty: Difficulty {
+        }),
+        difficulty: Some(Difficulty {
             hp_drain_rate: dec!(8),
             circle_size: dec!(5),
             overall_difficulty: dec!(8),
             approach_rate: dec!(5),
             slider_multiplier: dec!(1.4),
             slider_tickrate: dec!(1),
-        },
-        events: Events(vec![
+        }),
+        events: Some(Events(vec![
             Event::Comment("Background and Video events".to_string()),
             Event::NormalEvent {
                 start_time: 0,
@@ -1022,8 +1082,8 @@ SliderTickRate:1
                     position: Position { x: 0, y: 0 },
                 }),
             },
-        ]),
-        timing_points: vec![TimingPoint::new_uninherited(
+        ])),
+        timing_points: Some(vec![TimingPoint::new_uninherited(
             350,
             dec!(333.333333333333),
             4,
@@ -1034,9 +1094,9 @@ SliderTickRate:1
                 kiai_time_enabled: false,
                 no_first_barline_in_taiko_mania: false,
             },
-        )],
-        colours: Default::default(),
-        hitobjects: vec![
+        )]),
+        colours: None,
+        hitobjects: Some(vec![
             HitObjectWrapper::HitCircle(HitCircle::new(
                 Position { x: 256, y: 192 },
                 8016,
@@ -1065,8 +1125,68 @@ SliderTickRate:1
                 false,
                 0,
             )),
-        ],
+        ]),
     };
 
     assert_eq!(i, osu_file);
+}
+
+#[test]
+fn some_osu_file_parse_back() {
+    let i = "osu file format v14
+
+[General]
+AudioFilename: audio.mp3
+AudioLeadIn: 0
+PreviewTime: 48349
+Countdown: 0
+SampleSet: Soft
+StackLeniency: 0.2
+Mode: 3
+LetterboxInBreaks: 0
+SpecialStyle: 0
+WidescreenStoryboard: 0
+
+[Editor]
+Bookmarks: 11018,21683,32349,37683,48349,59016,69683,80349,91016
+DistanceSpacing: 0.8
+BeatDivisor: 12
+GridSize: 8
+TimelineZoom: 2
+
+[Metadata]
+Title:LOVE IS ORANGE
+TitleUnicode:LOVE IS ORANGE
+Artist:Orange Lounge
+ArtistUnicode:Orange Lounge
+Creator:Xnery
+Version:Bittersweet Love
+Source:beatmania IIDX 8th style
+Tags:famoss 舟木智介 tomosuke funaki 徳井志津江 shizue tokui ddr dancedancerevolution
+BeatmapID:3072232
+BeatmapSetID:1499093
+
+[Difficulty]
+HPDrainRate:8
+CircleSize:5
+OverallDifficulty:8
+ApproachRate:5
+SliderMultiplier:1.4
+SliderTickRate:1
+
+[Events]
+//Background and Video events
+0,0,\"bg.jpg\",0,0
+
+[TimingPoints]
+350,333.333333333333,4,2,1,60,1,0
+
+[HitObjects]
+256,192,8016,1,0,0:0:0:0:
+153,192,8183,1,2,0:0:0:0:"
+        .replace('\n', "\r\n");
+
+    let o: OsuFile = i.parse().unwrap();
+
+    assert_eq!(i, o.to_string());
 }

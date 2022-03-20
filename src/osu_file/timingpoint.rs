@@ -240,7 +240,8 @@ impl Display for TimingPoint {
             self.sample_set.to_string(),
             self.sample_index.to_string(),
             self.volume.to_string(),
-            self.uninherited.to_string(),
+            // TODO check all bool types to be integer
+            (self.uninherited as u8).to_string(),
             self.effects.to_string(),
         ];
 

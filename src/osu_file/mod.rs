@@ -3,18 +3,15 @@ pub mod difficulty;
 pub mod editor;
 pub mod events;
 pub mod general;
+mod helper;
 pub mod hitobject;
 pub mod metadata;
 pub mod timingpoint;
-mod helper;
 
+use std::fmt::Display;
 use std::hash::Hash;
 use std::num::ParseIntError;
-use std::{
-    collections::{HashMap},
-    error::Error,
-    str::FromStr,
-};
+use std::{error::Error, str::FromStr};
 
 use thiserror::Error;
 
@@ -35,28 +32,93 @@ pub struct OsuFile {
     pub version: Integer,
     /// General information about the beatmap.
     /// - `key`: `value` pairs.
-    pub general: General,
+    pub general: Option<General>,
     /// Saved settings for the beatmap editor.
     /// - `key`: `value` pairs.
-    pub editor: Editor,
+    pub editor: Option<Editor>,
     /// Information used to identify the beatmap.
     /// - `key`:`value` pairs.
-    pub metadata: Metadata,
+    pub metadata: Option<Metadata>,
     /// Difficulty settings.
     /// - `key`:`value` pairs.
-    pub difficulty: Difficulty,
+    pub difficulty: Option<Difficulty>,
     /// Beatmap and storyboard graphic events.
     /// Comma-separated lists.
-    pub events: Events,
+    pub events: Option<Events>,
     /// Timing and control points.
     /// Comma-separated lists.
-    pub timing_points: Vec<TimingPoint>,
+    pub timing_points: Option<Vec<TimingPoint>>,
     /// Combo and skin colours.
     /// `key` : `value` pairs.
-    pub colours: Vec<Colour>,
+    pub colours: Option<Vec<Colour>>,
     /// Hit objects.
     /// Comma-separated lists.
-    pub hitobjects: Vec<HitObjectWrapper>,
+    pub hitobjects: Option<Vec<HitObjectWrapper>>,
+}
+
+impl Display for OsuFile {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // TODO .osb file too
+
+        let sections = vec![
+            format!("osu file format v{}", self.version),
+            match &self.general {
+                Some(general) => format!("[General]\r\n{}", general),
+                None => String::new(),
+            },
+            match &self.editor {
+                Some(editor) => format!("[Editor]\r\n{}", editor),
+                None => String::new(),
+            },
+            match &self.metadata {
+                Some(metadata) => format!("[Metadata]\r\n{}", metadata),
+                None => String::new(),
+            },
+            match &self.difficulty {
+                Some(difficulty) => format!("[Difficulty]\r\n{}", difficulty),
+                None => String::new(),
+            },
+            match &self.events {
+                Some(events) => format!("[Events]\r\n{}", events),
+                None => String::new(),
+            },
+            match &self.timing_points {
+                Some(timing_points) => format!(
+                    "[TimingPoints]\r\n{}",
+                    timing_points
+                        .iter()
+                        .map(|t| t.to_string())
+                        .collect::<Vec<_>>()
+                        .join("\r\n")
+                ),
+                None => String::new(),
+            },
+            match &self.colours {
+                Some(colours) => format!(
+                    "[Colours]\r\n{}",
+                    colours
+                        .iter()
+                        .map(|t| t.to_string())
+                        .collect::<Vec<_>>()
+                        .join("\r\n")
+                ),
+                None => String::new(),
+            },
+            match &self.hitobjects {
+                Some(hitobjects) => format!(
+                    "[HitObjects]\r\n{}",
+                    hitobjects
+                        .iter()
+                        .map(|t| t.to_string())
+                        .collect::<Vec<_>>()
+                        .join("\r\n")
+                ),
+                None => String::new(),
+            },
+        ];
+
+        write!(f, "{}", sections.join("\r\n"))
+    }
 }
 
 // TODO clean up error stuff
@@ -183,17 +245,6 @@ impl FromStr for OsuFile {
             (section_names, sections)
         };
 
-        let mut section_name_check = HashMap::from([
-            ("General", None),
-            ("Editor", None),
-            ("Metadata", None),
-            ("Difficulty", None),
-            ("Events", None),
-            ("TimingPoints", None),
-            ("Colours", None),
-            ("HitObjects", None),
-        ]);
-
         let (
             mut general,
             mut editor,
@@ -214,94 +265,94 @@ impl FromStr for OsuFile {
             Default::default(),
         );
 
+        let mut parsed_sections = Vec::with_capacity(8);
+
         for (i, section_name) in section_names.iter().enumerate() {
+            if parsed_sections.contains(section_name) {
+                return Err(OsuFileParseError::DuplicateSections(
+                    section_name.to_string(),
+                ));
+            }
+
             let section = &sections[i];
 
-            let prev_parsed_index = section_name_check.get_mut(section_name);
-
-            match prev_parsed_index {
-                Some(prev_parsed_index) => match prev_parsed_index {
-                    Some(prev_parsed_index) => {
-                        return Err(OsuFileParseError::DuplicateSections {
-                            first: *prev_parsed_index,
-                            second: i,
-                            name: section_name.to_string(),
-                        })
-                    }
-                    None => {
-                        match *section_name {
-                                "General" => {
-                                    general = section.parse().map_err(|err| {
-                                        OsuFileParseError::SectionParseError {
-                                            source: Box::new(err),
-                                        }
-                                    })?
-                                }
-                                "Editor" => {
-                                    editor = section
-                                        .parse()
-                                        .map_err(|err| OsuFileParseError::SectionParseError {
-                                            source: Box::new(err),
-                                        })?;
-                                    
-                                }
-                                "Metadata" => {
-                                    metadata = section
-                                        .parse()
-                                        .map_err(|err| OsuFileParseError::SectionParseError {
-                                            source: Box::new(err),
-                                        })?;
-                                    
-                                }
-                                "Difficulty" => {
-                                    difficulty = section
-                                        .parse()
-                                        .map_err(|err| OsuFileParseError::SectionParseError {
-                                            source: Box::new(err),
-                                        })?;
-                                    
-                                }
-                                "Events" => {
-                                    events = section.parse().map_err(|err| OsuFileParseError::SectionParseError { source: Box::new(err) })?;
-                                }
-                                "TimingPoints" => {
-                                    timing_points = section
-                                        .lines()
-                                        .map(|line| line.parse::<TimingPoint>())
-                                        .collect::<Result<Vec<_>, _>>()
-                                        .map_err(|err| OsuFileParseError::SectionParseError {
-                                            source: Box::new(err),
-                                        })?;
-                
-                                    
-                                }
-                                "Colours" => {
-                                    colours = section.lines().map(|line| line.parse::<Colour>()).collect::<Result<Vec<_>, _>>()
-                                        .map_err(|err| OsuFileParseError::SectionParseError {
-                                            source: Box::new(err),
-                                        })?;
-                                    
-                                }
-                                "HitObjects" => {
-                                    hitobjects = section
-                                        .lines()
-                                        .map(try_parse_hitobject)
-                                        .collect::<Result<Vec<_>, _>>()
-                                        .map_err(|err| OsuFileParseError::SectionParseError {
-                                            source: Box::new(err),
-                                        })?;
-                                }
-                                _ => unreachable!("Section name is already checked if valid, so this should never reach")
-                            }
-                        *prev_parsed_index = Some(i);
-                    }
-                },
-                None => {
+            match *section_name {
+                "General" => {
+                    general = Some(section.parse().map_err(|err| {
+                        OsuFileParseError::SectionParseError {
+                            source: Box::new(err),
+                        }
+                    })?)
+                }
+                "Editor" => {
+                    editor = Some(section.parse().map_err(|err| {
+                        OsuFileParseError::SectionParseError {
+                            source: Box::new(err),
+                        }
+                    })?)
+                }
+                "Metadata" => {
+                    metadata = Some(section.parse().map_err(|err| {
+                        OsuFileParseError::SectionParseError {
+                            source: Box::new(err),
+                        }
+                    })?)
+                }
+                "Difficulty" => {
+                    difficulty = Some(section.parse().map_err(|err| {
+                        OsuFileParseError::SectionParseError {
+                            source: Box::new(err),
+                        }
+                    })?)
+                }
+                "Events" => {
+                    events = Some(section.parse().map_err(|err| {
+                        OsuFileParseError::SectionParseError {
+                            source: Box::new(err),
+                        }
+                    })?)
+                }
+                "TimingPoints" => {
+                    timing_points = Some(
+                        section
+                            .lines()
+                            .map(|line| line.parse::<TimingPoint>())
+                            .collect::<Result<Vec<_>, _>>()
+                            .map_err(|err| OsuFileParseError::SectionParseError {
+                                source: Box::new(err),
+                            })?,
+                    )
+                }
+                "Colours" => {
+                    colours = Some(
+                        section
+                            .lines()
+                            .map(|line| line.parse::<Colour>())
+                            .collect::<Result<Vec<_>, _>>()
+                            .map_err(|err| OsuFileParseError::SectionParseError {
+                                source: Box::new(err),
+                            })?,
+                    )
+                }
+                "HitObjects" => {
+                    hitobjects = Some(
+                        section
+                            .lines()
+                            .map(try_parse_hitobject)
+                            .collect::<Result<Vec<_>, _>>()
+                            .map_err(|err| OsuFileParseError::SectionParseError {
+                                source: Box::new(err),
+                            })?,
+                    )
+                }
+                _ => {
                     return Err(OsuFileParseError::InvalidSectionName(
                         section_name.to_string(),
                     ))
                 }
             }
+
+            parsed_sections.push(section_name);
         }
 
         Ok(OsuFile {
@@ -359,16 +410,9 @@ pub enum OsuFileParseError {
     /// File contains no sections.
     #[error("No sections found")]
     NoSectionsFound,
-    /// There are sections missing from the file.
-    #[error("Missing sections: {0}")]
-    MissingSections(String),
     /// Duplicate section names defined.
-    #[error("There are duplicate sections at line {first} and {second}, both having the section name {name}")]
-    DuplicateSections {
-        first: usize,
-        second: usize,
-        name: String,
-    },
+    #[error("There are multiple sections with the same name {0}")]
+    DuplicateSections(String),
     /// Invalid section name defined.
     #[error("There is an invalid section name `{0}`")]
     InvalidSectionName(String),
