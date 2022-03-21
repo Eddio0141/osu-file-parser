@@ -6,6 +6,7 @@ pub mod general;
 mod helper;
 pub mod hitobject;
 pub mod metadata;
+mod parsers;
 pub mod timingpoint;
 
 use std::fmt::Display;
@@ -13,6 +14,12 @@ use std::hash::Hash;
 use std::num::ParseIntError;
 use std::{error::Error, str::FromStr};
 
+use nom::bytes::complete::{tag, take_till, take_until};
+use nom::character::complete::{char, digit1};
+use nom::character::is_newline;
+use nom::combinator::map_res;
+use nom::sequence::{delimited, tuple};
+use nom::IResult;
 use thiserror::Error;
 
 use self::colours::Colour;
@@ -23,6 +30,7 @@ use self::general::General;
 use self::hitobject::{try_parse_hitobject, HitObjectWrapper};
 use self::metadata::Metadata;
 
+use self::parsers::{leading_ws, ws};
 use self::timingpoint::TimingPoint;
 
 // TODO use the crate https://crates.io/crates/nom
@@ -127,8 +135,22 @@ impl FromStr for OsuFile {
     type Err = OsuFileParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let version_text = "osu file format v";
+        let version_text = tag::<_, _, nom::error::ErrorKind>("osu file format v");
+        let version_number = map_res(take_until("\n"), |s: &str| s.parse::<Integer>());
 
+        let section_open = char('[');
+        let section_close = char(']');
+        let section_name_inner = take_till(|c: char| c == ']' || is_newline(c as u8));
+        let section_name = delimited(section_open, section_name_inner, section_close);
+
+        let section_inner = take_until("[");
+
+        // TODO errors
+        let (s, (_, version)) = tuple((leading_ws(version_text), version_number))(s).unwrap();
+
+        let (s, (name, inner)) = tuple((ws(section_name), section_inner))(s).unwrap();
+
+        /*
         let mut lines = s.lines().peekable();
 
         let version = match lines.next() {
@@ -367,6 +389,9 @@ impl FromStr for OsuFile {
             colours,
             hitobjects,
         })
+
+        */
+        unimplemented!()
     }
 }
 
@@ -433,7 +458,7 @@ pub enum OsuFileParseError {
 const LATEST_VERSION: Integer = 14;
 
 /// Delimiter for the `key: value` pair.
-const SECTION_DELIMITER: char = ':';
+const SECTION_DELIMITER: &str = ":";
 /// Section name open bracket.
 const SECTION_OPEN: char = '[';
 /// Section name close bracket.
