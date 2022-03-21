@@ -25,6 +25,7 @@ use self::metadata::Metadata;
 
 use self::timingpoint::TimingPoint;
 
+// TODO use the crate https://crates.io/crates/nom
 /// An .osu file represented as a struct.
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct OsuFile {
@@ -346,7 +347,7 @@ impl FromStr for OsuFile {
                     )
                 }
                 _ => {
-                    return Err(OsuFileParseError::InvalidSectionName(
+                    return Err(OsuFileParseError::UnknownSectionName(
                         section_name.to_string(),
                     ))
                 }
@@ -389,6 +390,7 @@ impl Default for OsuFile {
 /// Error for when there's a problem parsing an .osu file.
 pub enum OsuFileParseError {
     /// File version is invalid.
+    // TODO multiple file versions for this crate somehow
     #[error("Invalid file version, expected {LATEST_VERSION}, got {0}")]
     InvalidFileVersion(Integer),
     /// File version parsing failed.
@@ -407,15 +409,12 @@ pub enum OsuFileParseError {
     /// File version not defined in line 1.
     #[error("Found file version definition, but in the line {0}, expected to be in line 1")]
     FileVersionInWrongLine(usize),
-    /// File contains no sections.
-    #[error("No sections found")]
-    NoSectionsFound,
     /// Duplicate section names defined.
-    #[error("There are multiple sections with the same name {0}")]
+    #[error("There are multiple sections defined as the same name {0}")]
     DuplicateSections(String),
-    /// Invalid section name defined.
-    #[error("There is an invalid section name `{0}`")]
-    InvalidSectionName(String),
+    /// Unknown section name defined.
+    #[error("There is an unknown section name `{0}`")]
+    UnknownSectionName(String),
     /// Error parsing a section.
     #[error(transparent)]
     SectionParseError {
