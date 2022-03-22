@@ -4,6 +4,41 @@ use thiserror::Error;
 
 use super::Integer;
 
+#[derive(Clone, Debug, Default, Hash, PartialEq, Eq)]
+pub struct Colours(pub Vec<Colour>);
+
+impl Display for Colours {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            self.0
+                .iter()
+                .map(|c| c.to_string())
+                .collect::<Vec<_>>()
+                .join("\r\n")
+        )
+    }
+}
+
+impl FromStr for Colours {
+    type Err = ColoursParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut colours = Vec::new();
+
+        for s in s.lines() {
+            colours.push(s.parse()?);
+        }
+
+        Ok(Colours(colours))
+    }
+}
+
+#[derive(Debug, Error)]
+#[error(transparent)]
+pub struct ColoursParseError(#[from] ColourParseError);
+
 /// Struct representing a single `colour` component in the `Colours` section.
 #[derive(Clone, Copy, Hash, PartialEq, Eq, Debug)]
 pub enum Colour {

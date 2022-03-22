@@ -183,12 +183,12 @@ impl Display for Event {
                     if object.commands.is_empty() {
                         None
                     } else {
-                        Some(command_recursive_display(&object.commands, 1).join("\n"))
+                        Some(command_recursive_display(&object.commands, 1).join("\r\n"))
                     }
                 };
 
                 match cmds {
-                    Some(cmds) => format!("{object_str}\n{cmds}"),
+                    Some(cmds) => format!("{object_str}\r\n{cmds}"),
                     None => object_str,
                 }
             }
@@ -198,7 +198,7 @@ impl Display for Event {
     }
 }
 
-fn command_recursive_display(commands: &Vec<Command>, indentation: usize) -> Vec<String> {
+fn command_recursive_display(commands: &[Command], indentation: usize) -> Vec<String> {
     let mut cmd_lines = Vec::with_capacity(commands.len());
 
     for cmd in commands {

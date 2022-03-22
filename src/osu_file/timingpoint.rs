@@ -14,6 +14,41 @@ use super::{
     Integer,
 };
 
+#[derive(Clone, Debug, Default, Hash, PartialEq, Eq)]
+pub struct TimingPoints(pub Vec<TimingPoint>);
+
+impl FromStr for TimingPoints {
+    type Err = TimingPointsParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut timing_points = Vec::new();
+
+        for s in s.lines() {
+            timing_points.push(s.parse()?);
+        }
+
+        Ok(TimingPoints(timing_points))
+    }
+}
+
+impl Display for TimingPoints {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            self.0
+                .iter()
+                .map(|p| p.to_string())
+                .collect::<Vec<_>>()
+                .join("\r\n")
+        )
+    }
+}
+
+#[derive(Debug, Error)]
+#[error(transparent)]
+pub struct TimingPointsParseError(#[from] TimingPointParseError);
+
 /// Struct representing a timing point.
 /// Each timing point influences a specified portion of the map, commonly called a `timing section`.
 /// The .osu file format requires these to be sorted in chronological order.

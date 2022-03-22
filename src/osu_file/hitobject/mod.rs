@@ -2,8 +2,10 @@ pub mod error;
 pub mod types;
 
 use std::fmt::Display;
+use std::str::FromStr;
 
 use rust_decimal::Decimal;
+use thiserror::Error;
 
 use self::error::*;
 use self::types::*;
@@ -13,6 +15,41 @@ use super::Integer;
 use super::Position;
 
 type ComboSkipCount = u8;
+
+#[derive(Clone, Debug, Default, Hash, PartialEq, Eq)]
+pub struct HitObjects(pub Vec<HitObjectWrapper>);
+
+impl Display for HitObjects {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            self.0
+                .iter()
+                .map(|h| h.to_string())
+                .collect::<Vec<_>>()
+                .join("\r\n")
+        )
+    }
+}
+
+impl FromStr for HitObjects {
+    type Err = HitObjectsParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut hitobjects = Vec::new();
+
+        for s in s.lines() {
+            hitobjects.push(try_parse_hitobject(s)?);
+        }
+
+        Ok(HitObjects(hitobjects))
+    }
+}
+
+#[derive(Debug, Error)]
+#[error(transparent)]
+pub struct HitObjectsParseError(#[from] HitObjectParseError);
 
 // TODO remove this since its pointless
 /// An interface that represents a hitobject.

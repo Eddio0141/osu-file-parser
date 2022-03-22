@@ -21,10 +21,10 @@ use crate::osu_file::{
     hitobject::{
         self,
         types::{HitSample, HitSound},
-        HitCircle, HitObjectWrapper,
+        HitCircle, HitObjectWrapper, HitObjects,
     },
     metadata::Metadata,
-    timingpoint::{self, Effects, SampleIndex, TimingPoint, Volume},
+    timingpoint::{self, Effects, SampleIndex, TimingPoint, TimingPoints, Volume},
     OsuFile, Position,
 };
 
@@ -1083,7 +1083,7 @@ SliderTickRate:1
                 }),
             },
         ])),
-        timing_points: Some(vec![TimingPoint::new_uninherited(
+        timing_points: Some(TimingPoints(vec![TimingPoint::new_uninherited(
             350,
             dec!(333.333333333333),
             4,
@@ -1094,9 +1094,9 @@ SliderTickRate:1
                 kiai_time_enabled: false,
                 no_first_barline_in_taiko_mania: false,
             },
-        )]),
+        )])),
         colours: None,
-        hitobjects: Some(vec![
+        hitobjects: Some(HitObjects(vec![
             HitObjectWrapper::HitCircle(HitCircle::new(
                 Position { x: 256, y: 192 },
                 8016,
@@ -1125,7 +1125,7 @@ SliderTickRate:1
                 false,
                 0,
             )),
-        ]),
+        ])),
     };
 
     assert_eq!(i, osu_file);

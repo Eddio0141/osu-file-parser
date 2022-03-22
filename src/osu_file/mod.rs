@@ -12,26 +12,26 @@ pub mod timingpoint;
 use std::fmt::Display;
 use std::hash::Hash;
 use std::num::ParseIntError;
-use std::{error::Error, str::FromStr};
+use std::str::FromStr;
 
 use nom::bytes::complete::{tag, take_till, take_until};
-use nom::character::complete::{char, digit1};
+use nom::character::complete::char;
 use nom::character::is_newline;
 use nom::combinator::map_res;
+use nom::multi::many0;
 use nom::sequence::{delimited, tuple};
-use nom::IResult;
 use thiserror::Error;
 
-use self::colours::Colour;
-use self::difficulty::Difficulty;
-use self::editor::Editor;
-use self::events::Events;
-use self::general::General;
-use self::hitobject::{try_parse_hitobject, HitObjectWrapper};
-use self::metadata::Metadata;
+use self::colours::{Colours, ColoursParseError};
+use self::difficulty::{Difficulty, DifficultyParseError};
+use self::editor::{Editor, EditorParseError};
+use self::events::{Events, EventsParseError};
+use self::general::{General, GeneralParseError};
+use self::hitobject::{HitObjects, HitObjectsParseError};
+use self::metadata::{Metadata, MetadataParseError};
 
 use self::parsers::{leading_ws, ws};
-use self::timingpoint::TimingPoint;
+use self::timingpoint::{TimingPoints, TimingPointsParseError};
 
 // TODO use the crate https://crates.io/crates/nom
 /// An .osu file represented as a struct.
@@ -56,13 +56,13 @@ pub struct OsuFile {
     pub events: Option<Events>,
     /// Timing and control points.
     /// Comma-separated lists.
-    pub timing_points: Option<Vec<TimingPoint>>,
+    pub timing_points: Option<TimingPoints>,
     /// Combo and skin colours.
     /// `key` : `value` pairs.
-    pub colours: Option<Vec<Colour>>,
+    pub colours: Option<Colours>,
     /// Hit objects.
     /// Comma-separated lists.
-    pub hitobjects: Option<Vec<HitObjectWrapper>>,
+    pub hitobjects: Option<HitObjects>,
 }
 
 impl Display for OsuFile {
@@ -92,36 +92,15 @@ impl Display for OsuFile {
                 None => String::new(),
             },
             match &self.timing_points {
-                Some(timing_points) => format!(
-                    "[TimingPoints]\r\n{}",
-                    timing_points
-                        .iter()
-                        .map(|t| t.to_string())
-                        .collect::<Vec<_>>()
-                        .join("\r\n")
-                ),
+                Some(timing_points) => format!("[TimingPoints]\r\n{}", timing_points),
                 None => String::new(),
             },
             match &self.colours {
-                Some(colours) => format!(
-                    "[Colours]\r\n{}",
-                    colours
-                        .iter()
-                        .map(|t| t.to_string())
-                        .collect::<Vec<_>>()
-                        .join("\r\n")
-                ),
+                Some(colours) => format!("[Colours]\r\n{}", colours),
                 None => String::new(),
             },
             match &self.hitobjects {
-                Some(hitobjects) => format!(
-                    "[HitObjects]\r\n{}",
-                    hitobjects
-                        .iter()
-                        .map(|t| t.to_string())
-                        .collect::<Vec<_>>()
-                        .join("\r\n")
-                ),
+                Some(hitobjects) => format!("[HitObjects]\r\n{}", hitobjects),
                 None => String::new(),
             },
         ];
@@ -130,143 +109,26 @@ impl Display for OsuFile {
     }
 }
 
-// TODO clean up error stuff
 impl FromStr for OsuFile {
     type Err = OsuFileParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let version_text = tag::<_, _, nom::error::ErrorKind>("osu file format v");
+        let version_text = tag::<_, _, nom::error::Error<_>>("osu file format v");
         let version_number = map_res(take_until("\n"), |s: &str| s.parse::<Integer>());
 
-        let section_open = char('[');
+        let section_open = char::<_, nom::error::Error<_>>('[');
         let section_close = char(']');
         let section_name_inner = take_till(|c: char| c == ']' || is_newline(c as u8));
         let section_name = delimited(section_open, section_name_inner, section_close);
 
-        let section_inner = take_until("[");
+        let section_until = take_till(|c| c == '[');
+        let section = tuple((ws(section_name), section_until));
 
         // TODO errors
         let (s, (_, version)) = tuple((leading_ws(version_text), version_number))(s).unwrap();
+        let (_, sections) = many0(section)(s).unwrap();
 
-        let (s, (name, inner)) = tuple((ws(section_name), section_inner))(s).unwrap();
-
-        /*
-        let mut lines = s.lines().peekable();
-
-        let version = match lines.next() {
-            Some(version) => match version.trim().strip_prefix(version_text) {
-                Some(version) => match version.parse() {
-                    Ok(version) => {
-                        if version > LATEST_VERSION {
-                            return Err(OsuFileParseError::InvalidFileVersion(version));
-                        } else {
-                            version
-                        }
-                    }
-                    Err(err) => {
-                        return Err(OsuFileParseError::FileVersionParseError {
-                            source: err,
-                            value: version.to_string(),
-                        })
-                    }
-                },
-                None => {
-                    // check what type of error it is
-                    let mut version_index = None;
-
-                    for (i, line) in s.lines().enumerate() {
-                        if line.trim().starts_with(version_text) {
-                            version_index = Some(i);
-                            break;
-                        }
-                    }
-
-                    match version_index {
-                        Some(version_index) => {
-                            return Err(OsuFileParseError::FileVersionInWrongLine(version_index))
-                        }
-                        None => return Err(OsuFileParseError::NoFileVersion),
-                    }
-                }
-            },
-            None => return Err(OsuFileParseError::NoFileVersion),
-        };
-
-        let mut lines_no_version = lines.clone();
-
-        if let Some(version_index) =
-            lines_no_version.position(|s| s.trim().starts_with(version_text))
-        {
-            let mut all_version_defs = lines_no_version
-                .enumerate()
-                .filter_map(|(i, s)| {
-                    if s.trim().starts_with(version_text) {
-                        Some(i.to_string())
-                    } else {
-                        None
-                    }
-                })
-                .collect::<Vec<_>>();
-            all_version_defs.insert(0, version_index.to_string());
-
-            return Err(OsuFileParseError::MultipleFileVersions(format!(
-                "lines {}",
-                all_version_defs.join(", ")
-            )));
-        }
-
-        let (section_names, sections) = {
-            let mut section_names = Vec::new();
-            let mut sections = Vec::new();
-            let mut section_content = Vec::new();
-
-            let mut in_section = false;
-
-            for line in lines {
-                if line.is_empty() {
-                    continue;
-                }
-
-                let mut line_is_section_name = false;
-
-                if in_section {
-                    if line.starts_with(SECTION_OPEN) {
-                        line_is_section_name = true;
-                        sections.push(section_content.join("\n"));
-                        section_content.clear();
-                        in_section = false;
-                    } else {
-                        section_content.push(line);
-                    }
-                }
-
-                if !in_section || line_is_section_name {
-                    let line = line.trim();
-
-                    if line.starts_with(SECTION_OPEN) {
-                        if line.ends_with(SECTION_CLOSE) {
-                            section_names.push(&line[1..line.len() - 1]);
-                        } else {
-                            return Err(OsuFileParseError::SectionNameNoCloseBracket(
-                                line.to_string(),
-                            ));
-                        }
-                    } else {
-                        return Err(OsuFileParseError::SectionNameNoOpenBracket(
-                            line.to_string(),
-                        ));
-                    }
-
-                    in_section = true;
-                }
-            }
-
-            if in_section {
-                sections.push(section_content.join("\n"));
-            }
-
-            (section_names, sections)
-        };
+        let mut section_parsed = Vec::with_capacity(8);
 
         let (
             mut general,
@@ -288,86 +150,22 @@ impl FromStr for OsuFile {
             Default::default(),
         );
 
-        let mut parsed_sections = Vec::with_capacity(8);
-
-        for (i, section_name) in section_names.iter().enumerate() {
-            if parsed_sections.contains(section_name) {
+        for (section_name, section) in sections {
+            if section_parsed.contains(&section_name) {
                 return Err(OsuFileParseError::DuplicateSections(
                     section_name.to_string(),
                 ));
             }
 
-            let section = &sections[i];
-
-            match *section_name {
-                "General" => {
-                    general = Some(section.parse().map_err(|err| {
-                        OsuFileParseError::SectionParseError {
-                            source: Box::new(err),
-                        }
-                    })?)
-                }
-                "Editor" => {
-                    editor = Some(section.parse().map_err(|err| {
-                        OsuFileParseError::SectionParseError {
-                            source: Box::new(err),
-                        }
-                    })?)
-                }
-                "Metadata" => {
-                    metadata = Some(section.parse().map_err(|err| {
-                        OsuFileParseError::SectionParseError {
-                            source: Box::new(err),
-                        }
-                    })?)
-                }
-                "Difficulty" => {
-                    difficulty = Some(section.parse().map_err(|err| {
-                        OsuFileParseError::SectionParseError {
-                            source: Box::new(err),
-                        }
-                    })?)
-                }
-                "Events" => {
-                    events = Some(section.parse().map_err(|err| {
-                        OsuFileParseError::SectionParseError {
-                            source: Box::new(err),
-                        }
-                    })?)
-                }
-                "TimingPoints" => {
-                    timing_points = Some(
-                        section
-                            .lines()
-                            .map(|line| line.parse::<TimingPoint>())
-                            .collect::<Result<Vec<_>, _>>()
-                            .map_err(|err| OsuFileParseError::SectionParseError {
-                                source: Box::new(err),
-                            })?,
-                    )
-                }
-                "Colours" => {
-                    colours = Some(
-                        section
-                            .lines()
-                            .map(|line| line.parse::<Colour>())
-                            .collect::<Result<Vec<_>, _>>()
-                            .map_err(|err| OsuFileParseError::SectionParseError {
-                                source: Box::new(err),
-                            })?,
-                    )
-                }
-                "HitObjects" => {
-                    hitobjects = Some(
-                        section
-                            .lines()
-                            .map(try_parse_hitobject)
-                            .collect::<Result<Vec<_>, _>>()
-                            .map_err(|err| OsuFileParseError::SectionParseError {
-                                source: Box::new(err),
-                            })?,
-                    )
-                }
+            match section_name {
+                "General" => general = Some(section.parse()?),
+                "Editor" => editor = Some(section.parse()?),
+                "Metadata" => metadata = Some(section.parse()?),
+                "Difficulty" => difficulty = Some(section.parse()?),
+                "Events" => events = Some(section.parse()?),
+                "TimingPoints" => timing_points = Some(section.parse()?),
+                "Colours" => colours = Some(section.parse()?),
+                "HitObjects" => hitobjects = Some(section.parse()?),
                 _ => {
                     return Err(OsuFileParseError::UnknownSectionName(
                         section_name.to_string(),
@@ -375,7 +173,7 @@ impl FromStr for OsuFile {
                 }
             }
 
-            parsed_sections.push(section_name);
+            section_parsed.push(section_name);
         }
 
         Ok(OsuFile {
@@ -389,9 +187,6 @@ impl FromStr for OsuFile {
             colours,
             hitobjects,
         })
-
-        */
-        unimplemented!()
     }
 }
 
@@ -440,18 +235,60 @@ pub enum OsuFileParseError {
     /// Unknown section name defined.
     #[error("There is an unknown section name `{0}`")]
     UnknownSectionName(String),
-    /// Error parsing a section.
-    #[error(transparent)]
-    SectionParseError {
-        #[from]
-        source: Box<dyn Error>,
-    },
     /// Error used when the opening bracket for the section is missing.
     #[error("The opening bracket of the section is missing, expected `{SECTION_OPEN}` before {0}")]
     SectionNameNoOpenBracket(String),
     /// Error used when the closing bracket for the section is missing.
     #[error("The closing bracket of the section is missing, expected `{SECTION_CLOSE}` after {0}")]
     SectionNameNoCloseBracket(String),
+    /// Error parsing the general section.
+    #[error(transparent)]
+    GeneralParseError {
+        #[from]
+        source: GeneralParseError,
+    },
+    /// Error parsing the editor section.
+    #[error(transparent)]
+    EditorParseError {
+        #[from]
+        source: EditorParseError,
+    },
+    /// Error parsing the metadata section.
+    #[error(transparent)]
+    MetadataParseError {
+        #[from]
+        source: MetadataParseError,
+    },
+    /// Error parsing the difficulty section.
+    #[error(transparent)]
+    DifficultyParseError {
+        #[from]
+        source: DifficultyParseError,
+    },
+    /// Error parsing the events section.
+    #[error(transparent)]
+    EventsParseError {
+        #[from]
+        source: EventsParseError,
+    },
+    /// Error parsing the timingpoints section.
+    #[error(transparent)]
+    TimingPointsParseError {
+        #[from]
+        source: TimingPointsParseError,
+    },
+    /// Error parsing the colours section.
+    #[error(transparent)]
+    ColoursParseError {
+        #[from]
+        source: ColoursParseError,
+    },
+    /// Error parsing the hitobjects section.
+    #[error(transparent)]
+    HitObjectsParseError {
+        #[from]
+        source: HitObjectsParseError,
+    },
 }
 
 /// Latest file version.
