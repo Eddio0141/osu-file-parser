@@ -193,7 +193,7 @@ impl FromStr for OsuFile {
 impl Default for OsuFile {
     fn default() -> Self {
         Self {
-            version: 14,
+            version: LATEST_VERSION,
             general: Default::default(),
             editor: Default::default(),
             metadata: Default::default(),
