@@ -65,6 +65,22 @@ pub struct OsuFile {
     pub hitobjects: Option<HitObjects>,
 }
 
+impl OsuFile {
+    pub fn empty() -> Self {
+        Self {
+            version: Default::default(),
+            general: None,
+            editor: None,
+            metadata: None,
+            difficulty: None,
+            events: None,
+            timing_points: None,
+            colours: None,
+            hitobjects: None,
+        }
+    }
+}
+
 impl Display for OsuFile {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         // TODO .osb file too
@@ -194,14 +210,14 @@ impl Default for OsuFile {
     fn default() -> Self {
         Self {
             version: LATEST_VERSION,
-            general: Default::default(),
-            editor: Default::default(),
-            metadata: Default::default(),
-            difficulty: Default::default(),
-            events: Default::default(),
-            timing_points: Default::default(),
-            colours: Default::default(),
-            hitobjects: Default::default(),
+            general: Some(Default::default()),
+            editor: Some(Default::default()),
+            metadata: Some(Default::default()),
+            difficulty: Some(Default::default()),
+            events: Some(Default::default()),
+            timing_points: Some(Default::default()),
+            colours: Some(Default::default()),
+            hitobjects: Some(Default::default()),
         }
     }
 }

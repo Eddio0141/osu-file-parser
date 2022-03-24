@@ -1,5 +1,4 @@
 use std::{
-    error::Error,
     fmt::{Debug, Display},
     num::ParseIntError,
     str::FromStr,
@@ -7,91 +6,123 @@ use std::{
 
 use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
-use strum_macros::FromRepr;
+use strum::ParseError;
+use strum_macros::{Display, EnumString, FromRepr};
 use thiserror::Error;
 
-use super::{helper::parse_zero_one_bool, Integer, SECTION_DELIMITER};
+use crate::osu_file::{helper::display_colon_fields, parsers::get_colon_field_value_lines};
+
+use super::{
+    helper::{parse_zero_one_bool, ParseZeroOneBoolError},
+    Integer,
+};
 
 /// A struct representing the general section of the .osu file.
 #[derive(PartialEq, Debug, Clone, Eq, Hash)]
 pub struct General {
     /// Location of the audio file relative to the current folder.
-    pub audio_filename: String,
+    pub audio_filename: Option<String>,
     /// Milliseconds of silence before the audio starts playing.
-    pub audio_lead_in: Integer,
+    pub audio_lead_in: Option<Integer>,
     /// Deprecated.
-    pub audio_hash: String,
+    pub audio_hash: Option<String>,
     /// Time in milliseconds when the audio preview should start.
     /// - Defaults to `-1`.
-    pub preview_time: Integer,
+    pub preview_time: Option<Integer>,
     /// Speed of the countdown before the first hit object.
     /// - Defaults to `Normal`.
-    pub countdown: CountdownSpeed,
+    pub countdown: Option<CountdownSpeed>,
     /// Sample set that will be used if timing points do not override it.
     /// - Defaults to `Normal`.
-    pub sample_set: SampleSet,
+    pub sample_set: Option<SampleSet>,
     /// Multiplier for the threshold in time where hit objects placed close together stack.
     /// - Defaults to `0.7`.
-    pub stack_leniency: Decimal,
+    pub stack_leniency: Option<Decimal>,
     /// Game mode.
     /// - Defaults to `osu`.
-    pub mode: GameMode,
+    pub mode: Option<GameMode>,
     /// Whether or not breaks have a letterboxing effect.
     /// - Defaults to `false`.
-    pub letterbox_in_breaks: bool,
+    pub letterbox_in_breaks: Option<bool>,
     /// Deprecated.
     /// - Defaults to `true`.
-    pub story_fire_in_front: bool,
+    pub story_fire_in_front: Option<bool>,
     /// Whether or not the storyboard can use the user's skin images.
     /// - Defaults to `false`.
-    pub use_skin_sprites: bool,
+    pub use_skin_sprites: Option<bool>,
     /// Deprecated.
     /// - Defaults to `false`.
-    pub always_show_playfield: bool,
+    pub always_show_playfield: Option<bool>,
     /// Draw order of hit circle overlays compared to hit numbers.
     /// - Defaults to `NoChange`.
-    pub overlay_position: OverlayPosition,
+    pub overlay_position: Option<OverlayPosition>,
     /// Preferred skin to use during gameplay.
-    pub skin_preference: String,
+    pub skin_preference: Option<String>,
     /// Whether or not a warning about flashing colours should be shown at the beginning of the map.
     /// - Defaults to `false`.
-    pub epilepsy_warning: bool,
+    pub epilepsy_warning: Option<bool>,
     /// Time in beats that the countdown starts before the first hit object.
     /// - Defaults to `false`.
-    pub countdown_offset: Integer,
+    pub countdown_offset: Option<Integer>,
     /// Whether or not the "N+1" style key layout is used for osu!mania.
     /// - Defaults to `false`.
-    pub special_style: bool,
+    pub special_style: Option<bool>,
     /// Whether or not the storyboard allows widescreen viewing.
     /// - Defaults to `false`.
-    pub widescreen_storyboard: bool,
+    pub widescreen_storyboard: Option<bool>,
     /// Whether or not sound samples will change rate when playing with speed-changing mods.
     /// - Defaults to `false`.
-    pub samples_match_playback_rate: bool,
+    pub samples_match_playback_rate: Option<bool>,
+}
+
+impl General {
+    pub fn empty() -> Self {
+        Self {
+            audio_filename: None,
+            audio_lead_in: None,
+            audio_hash: None,
+            preview_time: None,
+            countdown: None,
+            sample_set: None,
+            stack_leniency: None,
+            mode: None,
+            letterbox_in_breaks: None,
+            story_fire_in_front: None,
+            use_skin_sprites: None,
+            always_show_playfield: None,
+            overlay_position: None,
+            skin_preference: None,
+            epilepsy_warning: None,
+            countdown_offset: None,
+            special_style: None,
+            widescreen_storyboard: None,
+            samples_match_playback_rate: None,
+        }
+    }
 }
 
 impl Default for General {
     fn default() -> Self {
         Self {
-            audio_filename: Default::default(),
-            audio_lead_in: Default::default(),
-            audio_hash: Default::default(),
-            preview_time: -1,
-            countdown: Default::default(),
-            sample_set: Default::default(),
-            stack_leniency: dec!(0.7),
-            mode: Default::default(),
-            letterbox_in_breaks: Default::default(),
-            story_fire_in_front: true,
-            use_skin_sprites: Default::default(),
-            always_show_playfield: Default::default(),
-            overlay_position: Default::default(),
-            skin_preference: Default::default(),
-            epilepsy_warning: Default::default(),
-            countdown_offset: Default::default(),
-            special_style: Default::default(),
-            widescreen_storyboard: Default::default(),
-            samples_match_playback_rate: Default::default(),
+            audio_filename: Some(Default::default()),
+            audio_lead_in: Some(Default::default()),
+            audio_hash: Some(Default::default()),
+            preview_time: Some(-1),
+            countdown: Some(Default::default()),
+            sample_set: Some(Default::default()),
+            stack_leniency: Some(dec!(0.7)),
+            mode: Some(Default::default()),
+            letterbox_in_breaks: Some(Default::default()),
+            story_fire_in_front: Some(true),
+            use_skin_sprites: Some(Default::default()),
+            always_show_playfield: Some(Default::default()),
+            overlay_position: Some(Default::default()),
+            skin_preference: Some(Default::default()),
+            epilepsy_warning: Some(Default::default()),
+            countdown_offset: Some(Default::default()),
+            special_style: Some(Default::default()),
+            widescreen_storyboard: Some(Default::default()),
+            samples_match_playback_rate: Some(Default::default()),
         }
     }
 }
@@ -100,158 +131,144 @@ impl FromStr for General {
     type Err = GeneralParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut general = Self::default();
+        let mut general = General::empty();
 
-        let s = s.trim();
+        let (s, fields) = get_colon_field_value_lines(s).unwrap();
 
-        for line in s.lines() {
-            match line.split_once(SECTION_DELIMITER) {
-                Some((key, value)) => {
-                    let value = value.trim();
+        if !s.trim().is_empty() {
+            return Err(GeneralParseError::InvalidColonSet(s.to_string()));
+        }
 
-                    match key.trim() {
-                        "AudioFilename" => {
-                            general.audio_filename = value.to_owned();
-                        }
-                        "AudioLeadIn" => {
-                            general.audio_lead_in = value.parse().map_err(|err| {
-                                GeneralParseError::SectionParseError {
-                                    source: Box::new(err),
-                                    name: "AudioLeadIn",
-                                }
-                            })?
-                        }
-                        "AudioHash" => general.audio_hash = value.to_owned(),
-                        "PreviewTime" => {
-                            general.preview_time = value.parse().map_err(|err| {
-                                GeneralParseError::SectionParseError {
-                                    source: Box::new(err),
-                                    name: "PreviewTime",
-                                }
-                            })?
-                        }
-                        "Countdown" => {
-                            general.countdown = value.parse().map_err(|err| {
-                                GeneralParseError::SectionParseError {
-                                    source: Box::new(err),
-                                    name: "Countdown",
-                                }
-                            })?;
-                        }
-                        "SampleSet" => {
-                            general.sample_set = value.parse().map_err(|err| {
-                                GeneralParseError::SectionParseError {
-                                    source: Box::new(err),
-                                    name: "SampleSet",
-                                }
-                            })?
-                        }
-                        "StackLeniency" => {
-                            general.stack_leniency = value.parse().map_err(|err| {
-                                GeneralParseError::SectionParseError {
-                                    source: Box::new(err),
-                                    name: "StackLeniency",
-                                }
-                            })?
-                        }
-                        "Mode" => {
-                            general.mode = value.parse().map_err(|err| {
-                                GeneralParseError::SectionParseError {
-                                    source: Box::new(err),
-                                    name: "Mode",
-                                }
-                            })?
-                        }
-                        "LetterboxInBreaks" => {
-                            general.letterbox_in_breaks =
-                                parse_zero_one_bool(value).map_err(|err| {
-                                    GeneralParseError::SectionParseError {
-                                        source: Box::new(err),
-                                        name: "LetterboxInBreaks",
-                                    }
-                                })?
-                        }
-                        "StoryFireInFront" => {
-                            general.story_fire_in_front =
-                                parse_zero_one_bool(value).map_err(|err| {
-                                    GeneralParseError::SectionParseError {
-                                        source: Box::new(err),
-                                        name: "StoryFireInFront",
-                                    }
-                                })?
-                        }
-                        "UseSkinSprites" => {
-                            general.use_skin_sprites =
-                                parse_zero_one_bool(value).map_err(|err| {
-                                    GeneralParseError::SectionParseError {
-                                        source: Box::new(err),
-                                        name: "UseSkinSprites",
-                                    }
-                                })?
-                        }
-                        "AlwaysShowPlayfield" => {
-                            general.always_show_playfield =
-                                parse_zero_one_bool(value).map_err(|err| {
-                                    GeneralParseError::SectionParseError {
-                                        source: Box::new(err),
-                                        name: "AlwaysShowPlayfield",
-                                    }
-                                })?
-                        }
-                        "OverlayPosition" => {
-                            general.overlay_position = value.parse().map_err(|err| {
-                                GeneralParseError::SectionParseError {
-                                    source: Box::new(err),
-                                    name: "OverlayPosition",
-                                }
-                            })?
-                        }
-                        "SkinPreference" => general.skin_preference = value.to_owned(),
-                        "EpilepsyWarning" => {
-                            general.epilepsy_warning =
-                                parse_zero_one_bool(value).map_err(|err| {
-                                    GeneralParseError::SectionParseError {
-                                        source: Box::new(err),
-                                        name: "EpilepsyWarning",
-                                    }
-                                })?
-                        }
-                        "CountdownOffset" => {
-                            general.countdown_offset = value.parse().map_err(|err| {
-                                GeneralParseError::SectionParseError {
-                                    source: Box::new(err),
-                                    name: "CountdownOffset",
-                                }
-                            })?
-                        }
-                        "SpecialStyle" => {
-                            general.special_style = parse_zero_one_bool(value).map_err(|err| {
-                                GeneralParseError::SectionParseError {
-                                    source: Box::new(err),
-                                    name: "SpecialStyle",
-                                }
-                            })?
-                        }
-                        "WidescreenStoryboard" => {
-                            general.widescreen_storyboard =
-                                parse_zero_one_bool(value).map_err(|err| {
-                                    GeneralParseError::SectionParseError {
-                                        source: Box::new(err),
-                                        name: "WidescreenStoryboard",
-                                    }
-                                })?
-                        }
-                        "SamplesMatchPlaybackRate" => {
-                            general.samples_match_playback_rate = parse_zero_one_bool(value)
-                                .map_err(|err| GeneralParseError::SectionParseError {
-                                    source: Box::new(err),
-                                    name: "SamplesMatchPlaybackRate",
-                                })?
-                        }
-                        _ => return Err(GeneralParseError::InvalidKey(key.to_string())),
-                    }
+        for (name, value) in fields {
+            match name {
+                "AudioFilename" => general.audio_filename = Some(value.to_owned()),
+                "AudioLeadIn" => {
+                    general.audio_lead_in =
+                        Some(value.parse().map_err(|err| FieldError::AudioLeadIn {
+                            source: err,
+                            value: value.to_string(),
+                        })?)
                 }
-                None => return Err(GeneralParseError::MissingValue(line.to_owned())),
+                "AudioHash" => general.audio_hash = Some(value.to_owned()),
+                "PreviewTime" => {
+                    general.preview_time =
+                        Some(value.parse().map_err(|err| FieldError::PreviewTime {
+                            source: err,
+                            value: value.to_string(),
+                        })?)
+                }
+                "Countdown" => {
+                    general.countdown =
+                        Some(value.parse().map_err(|err| FieldError::Countdown {
+                            source: err,
+                            value: value.to_string(),
+                        })?)
+                }
+                "SampleSet" => {
+                    general.sample_set =
+                        Some(value.parse().map_err(|err| FieldError::SampleSet {
+                            source: err,
+                            value: value.to_string(),
+                        })?)
+                }
+                "StackLeniency" => {
+                    general.stack_leniency =
+                        Some(value.parse().map_err(|err| FieldError::StackLeniency {
+                            source: err,
+                            value: value.to_string(),
+                        })?)
+                }
+                "Mode" => {
+                    general.mode = Some(value.parse().map_err(|err| FieldError::Mode {
+                        source: err,
+                        value: value.to_string(),
+                    })?)
+                }
+                "LetterboxInBreaks" => {
+                    general.letterbox_in_breaks =
+                        Some(parse_zero_one_bool(value).map_err(|err| {
+                            FieldError::LetterboxInBreaks {
+                                source: err,
+                                value: value.to_string(),
+                            }
+                        })?)
+                }
+                "StoryFireInFront" => {
+                    general.story_fire_in_front =
+                        Some(parse_zero_one_bool(value).map_err(|err| {
+                            FieldError::StoryFireInFront {
+                                source: err,
+                                value: value.to_string(),
+                            }
+                        })?)
+                }
+                "UseSkinSprites" => {
+                    general.use_skin_sprites = Some(parse_zero_one_bool(value).map_err(|err| {
+                        FieldError::UseSkinSprites {
+                            source: err,
+                            value: value.to_string(),
+                        }
+                    })?)
+                }
+                "AlwaysShowPlayfield" => {
+                    general.always_show_playfield =
+                        Some(parse_zero_one_bool(value).map_err(|err| {
+                            FieldError::AlwaysShowPlayfield {
+                                source: err,
+                                value: value.to_string(),
+                            }
+                        })?)
+                }
+                "OverlayPosition" => {
+                    general.overlay_position =
+                        Some(value.parse().map_err(|err| FieldError::OverlayPosition {
+                            source: err,
+                            value: value.to_string(),
+                        })?)
+                }
+                "SkinPreference" => general.skin_preference = Some(value.to_owned()),
+                "EpilepsyWarning" => {
+                    general.epilepsy_warning = Some(parse_zero_one_bool(value).map_err(|err| {
+                        FieldError::EpilepsyWarning {
+                            source: err,
+                            value: value.to_string(),
+                        }
+                    })?)
+                }
+                "CountdownOffset" => {
+                    general.countdown_offset =
+                        Some(value.parse().map_err(|err| FieldError::CountdownOffset {
+                            source: err,
+                            value: value.to_string(),
+                        })?)
+                }
+                "SpecialStyle" => {
+                    general.special_style = Some(parse_zero_one_bool(value).map_err(|err| {
+                        FieldError::SpecialStyle {
+                            source: err,
+                            value: value.to_string(),
+                        }
+                    })?)
+                }
+                "WidescreenStoryboard" => {
+                    general.widescreen_storyboard =
+                        Some(parse_zero_one_bool(value).map_err(|err| {
+                            FieldError::WidescreenStoryboard {
+                                source: err,
+                                value: value.to_string(),
+                            }
+                        })?)
+                }
+                "SamplesMatchPlaybackRate" => {
+                    general.samples_match_playback_rate =
+                        Some(parse_zero_one_bool(value).map_err(|err| {
+                            FieldError::SamplesMatchPlaybackRate {
+                                source: err,
+                                value: value.to_string(),
+                            }
+                        })?)
+                }
+                _ => return Err(GeneralParseError::InvalidKey(name.to_string())),
             }
         }
 
@@ -261,69 +278,191 @@ impl FromStr for General {
 
 impl Display for General {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut key_value = Vec::new();
+        let fields = [
+            ("AudioFilename", &self.audio_filename),
+            ("AudioLeadIn", &self.audio_lead_in.map(|v| v.to_string())),
+            ("AudioHash", &self.audio_hash),
+            ("PreviewTime", &self.preview_time.map(|v| v.to_string())),
+            (
+                "Countdown",
+                &self.countdown.map(|v| (v as Integer).to_string()),
+            ),
+            ("SampleSet", &self.sample_set.map(|v| v.to_string())),
+            ("StackLeniency", &self.stack_leniency.map(|v| v.to_string())),
+            ("Mode", &self.mode.map(|v| (v as Integer).to_string())),
+            (
+                "LetterboxInBreaks",
+                &self.letterbox_in_breaks.map(|v| (v as Integer).to_string()),
+            ),
+            (
+                "StoryFireInFront",
+                &self.story_fire_in_front.map(|v| (v as Integer).to_string()),
+            ),
+            (
+                "UseSkinSprites",
+                &self.use_skin_sprites.map(|v| (v as Integer).to_string()),
+            ),
+            (
+                "AlwaysShowPlayfield",
+                &self
+                    .always_show_playfield
+                    .map(|v| (v as Integer).to_string()),
+            ),
+            (
+                "OverlayPosition",
+                &self.overlay_position.map(|v| v.to_string()),
+            ),
+            (
+                "SkinPreference",
+                &self.skin_preference.as_ref().map(|v| v.to_string()),
+            ),
+            (
+                "EpilepsyWarning",
+                &self.epilepsy_warning.map(|v| (v as Integer).to_string()),
+            ),
+            (
+                "CountdownOffset",
+                &self.countdown_offset.map(|v| v.to_string()),
+            ),
+            (
+                "SpecialStyle",
+                &self.special_style.map(|v| (v as Integer).to_string()),
+            ),
+            (
+                "WidescreenStoryboard",
+                &self
+                    .widescreen_storyboard
+                    .map(|v| (v as Integer).to_string()),
+            ),
+            (
+                "SamplesMatchPlaybackRate",
+                &self
+                    .samples_match_playback_rate
+                    .map(|v| (v as Integer).to_string()),
+            ),
+        ];
 
-        key_value.push(format!("AudioFilename: {}", self.audio_filename));
-        key_value.push(format!("AudioLeadIn: {}", self.audio_lead_in));
-        key_value.push(format!("AudioHash: {}", self.audio_hash));
-        key_value.push(format!("PreviewTime: {}", self.preview_time));
-        key_value.push(format!("Countdown: {}", self.countdown as Integer));
-        key_value.push(format!("SampleSet: {}", self.sample_set));
-        key_value.push(format!("StackLeniency: {}", self.stack_leniency));
-        key_value.push(format!("Mode: {}", self.mode));
-        key_value.push(format!(
-            "LetterboxInBreaks: {}",
-            self.letterbox_in_breaks as Integer
-        ));
-        key_value.push(format!(
-            "StoryFireInFront: {}",
-            self.story_fire_in_front as Integer
-        ));
-        key_value.push(format!(
-            "UseSkinSprites: {}",
-            self.use_skin_sprites as Integer
-        ));
-        key_value.push(format!(
-            "AlwaysShowPlayfield: {}",
-            self.always_show_playfield as Integer
-        ));
-        key_value.push(format!("OverlayPosition: {}", self.overlay_position));
-        key_value.push(format!("SkinPreference: {}", self.skin_preference));
-        key_value.push(format!(
-            "EpilepsyWarning: {}",
-            self.epilepsy_warning as Integer
-        ));
-        key_value.push(format!("CountdownOffset: {}", self.countdown_offset));
-        key_value.push(format!("SpecialStyle: {}", self.special_style as Integer));
-        key_value.push(format!(
-            "WidescreenStoryboard: {}",
-            self.widescreen_storyboard as Integer
-        ));
-        key_value.push(format!(
-            "SamplesMatchPlaybackRate: {}",
-            self.samples_match_playback_rate as Integer
-        ));
-
-        write!(f, "{}", key_value.join("\r\n"))
+        display_colon_fields(f, &fields, true, "\r\n")
     }
 }
 
 #[derive(Debug, Error)]
 /// Error used when there was a problem parsing the `General` section.
 pub enum GeneralParseError {
-    #[error("There was a problem parsing the `{name}` property from a `str`")]
     /// A section in `General` failed to parse.
+    #[error(transparent)]
     SectionParseError {
-        #[source]
-        source: Box<dyn Error>,
-        name: &'static str,
+        #[from]
+        field: FieldError,
     },
+    #[error("Invalid colon set: {0}")]
+    InvalidColonSet(String),
     #[error("The key {0} doesn't exist in `General`")]
     /// Invalid key name was used.
     InvalidKey(String),
     #[error("The key {0} has no value set")]
     /// The value is missing from the `key: value` set.
     MissingValue(String),
+}
+
+#[derive(Debug, Error)]
+pub enum FieldError {
+    #[error("The `AudioLeadIn` field failed to parse from {value}")]
+    AudioLeadIn {
+        #[source]
+        source: ParseIntError,
+        value: String,
+    },
+    #[error("The `PreviewTime` field failed to parse from {value}")]
+    PreviewTime {
+        #[source]
+        source: ParseIntError,
+        value: String,
+    },
+    #[error("The `Countdown` field failed to parse from {value}")]
+    Countdown {
+        #[source]
+        source: CountdownSpeedParseError,
+        value: String,
+    },
+    #[error("The `SampleSet` field failed to parse from {value}")]
+    SampleSet {
+        #[source]
+        source: ParseError,
+        value: String,
+    },
+    #[error("The `StackLeniency` field failed to parse from {value}")]
+    StackLeniency {
+        #[source]
+        source: rust_decimal::Error,
+        value: String,
+    },
+    #[error("The `Mode` field failed to parse from {value}")]
+    Mode {
+        #[source]
+        source: GameModeParseError,
+        value: String,
+    },
+    #[error("The `LetterboxInBreaks` field failed to parse from {value}")]
+    LetterboxInBreaks {
+        #[source]
+        source: ParseZeroOneBoolError,
+        value: String,
+    },
+    #[error("The `StoryFireInFront` field failed to parse from {value}")]
+    StoryFireInFront {
+        #[source]
+        source: ParseZeroOneBoolError,
+        value: String,
+    },
+    #[error("The `UseSkinSprites` field failed to parse from {value}")]
+    UseSkinSprites {
+        #[source]
+        source: ParseZeroOneBoolError,
+        value: String,
+    },
+    #[error("The `AlwaysShowPlayfield` field failed to parse from {value}")]
+    AlwaysShowPlayfield {
+        #[source]
+        source: ParseZeroOneBoolError,
+        value: String,
+    },
+    #[error("The `OverlayPosition` field failed to parse from {value}")]
+    OverlayPosition {
+        #[source]
+        source: ParseError,
+        value: String,
+    },
+    #[error("The `EpilepsyWarning` field failed to parse from {value}")]
+    EpilepsyWarning {
+        #[source]
+        source: ParseZeroOneBoolError,
+        value: String,
+    },
+    #[error("The `CountdownOffset` field failed to parse from {value}")]
+    CountdownOffset {
+        #[source]
+        source: ParseIntError,
+        value: String,
+    },
+    #[error("The `SpecialStyle` field failed to parse from {value}")]
+    SpecialStyle {
+        #[source]
+        source: ParseZeroOneBoolError,
+        value: String,
+    },
+    #[error("The `WidescreenStoryboard` field failed to parse from {value}")]
+    WidescreenStoryboard {
+        #[source]
+        source: ParseZeroOneBoolError,
+        value: String,
+    },
+    #[error("The `SamplesMatchPlaybackRate` field failed to parse from {value}")]
+    SamplesMatchPlaybackRate {
+        #[source]
+        source: ParseZeroOneBoolError,
+        value: String,
+    },
 }
 
 /// Speed of the countdown before the first hitobject.
@@ -337,6 +476,12 @@ pub enum CountdownSpeed {
     Half,
     /// Double speed.
     Double,
+}
+
+impl From<CountdownSpeed> for Integer {
+    fn from(c: CountdownSpeed) -> Self {
+        c as Integer
+    }
 }
 
 impl FromStr for CountdownSpeed {
@@ -366,7 +511,7 @@ impl Default for CountdownSpeed {
 }
 
 /// Sample set that will be used if timing points do not override it
-#[derive(PartialEq, Eq, Debug, Clone, Copy, Hash)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy, Hash, Display, EnumString)]
 pub enum SampleSet {
     /// The `Normal` sample set.
     Normal,
@@ -376,44 +521,14 @@ pub enum SampleSet {
     Drum,
 }
 
-impl Display for SampleSet {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let value = match self {
-            SampleSet::Normal => "Normal",
-            SampleSet::Soft => "Soft",
-            SampleSet::Drum => "Drum",
-        };
-
-        write!(f, "{value}")
-    }
-}
-
 impl Default for SampleSet {
     fn default() -> Self {
         SampleSet::Normal
     }
 }
 
-impl FromStr for SampleSet {
-    type Err = SampleSetParseError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "Normal" => Ok(SampleSet::Normal),
-            "Soft" => Ok(SampleSet::Soft),
-            "Drum" => Ok(SampleSet::Drum),
-            _ => Err(SampleSetParseError(s.to_string())),
-        }
-    }
-}
-
-/// Error used when there's an error parsing the string as enum
-#[derive(Debug, Error)]
-#[error("Expected SampleSet `Normal`, `Soft`, or `Drum, got {0}")]
-pub struct SampleSetParseError(String);
-
 /// Game mode of the .osu file
-#[derive(PartialEq, Eq, Debug, Clone, Copy, Hash)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy, Hash, FromRepr)]
 pub enum GameMode {
     /// Osu! gamemode.
     Osu,
@@ -425,36 +540,9 @@ pub enum GameMode {
     Mania,
 }
 
-impl Display for GameMode {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let value = match self {
-            GameMode::Osu => 0,
-            GameMode::Taiko => 1,
-            GameMode::Catch => 2,
-            GameMode::Mania => 3,
-        };
-
-        write!(f, "{value}")
-    }
-}
-
 impl Default for GameMode {
     fn default() -> Self {
         Self::Osu
-    }
-}
-
-impl TryFrom<i32> for GameMode {
-    type Error = GameModeParseError;
-
-    fn try_from(value: i32) -> Result<Self, Self::Error> {
-        match value {
-            0 => Ok(GameMode::Osu),
-            1 => Ok(GameMode::Taiko),
-            2 => Ok(GameMode::Catch),
-            3 => Ok(GameMode::Mania),
-            _ => Err(GameModeParseError::UnknownType(value)),
-        }
     }
 }
 
@@ -462,8 +550,14 @@ impl FromStr for GameMode {
     type Err = GameModeParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let s: Integer = s.parse()?;
-        s.try_into()
+        let s = s.parse()?;
+        GameMode::from_repr(s).ok_or(GameModeParseError::UnknownType(s))
+    }
+}
+
+impl From<GameMode> for Integer {
+    fn from(value: GameMode) -> Self {
+        value as Integer
     }
 }
 
@@ -472,14 +566,14 @@ impl FromStr for GameMode {
 pub enum GameModeParseError {
     /// Error when the `GameMode` isn't the value between 0 ~ 3.
     #[error("Expected `GameMode` to be value from 0 ~ 3, got value {0}")]
-    UnknownType(Integer),
+    UnknownType(usize),
     /// Error trying to parse the `str` into an `Integer`.
     #[error("There was a problem parsing the `str` as an `Integer`")]
     ParseError(#[from] ParseIntError),
 }
 
 /// Draw order of hit circle overlays compared to hit numbers
-#[derive(PartialEq, Eq, Debug, Clone, Copy, Hash)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy, Hash, Display, EnumString)]
 pub enum OverlayPosition {
     /// Use skin setting
     NoChange,
@@ -489,38 +583,8 @@ pub enum OverlayPosition {
     Above,
 }
 
-impl Display for OverlayPosition {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let value = match self {
-            OverlayPosition::NoChange => "NoChange",
-            OverlayPosition::Below => "Below",
-            OverlayPosition::Above => "Above",
-        };
-
-        write!(f, "{value}")
-    }
-}
-
 impl Default for OverlayPosition {
     fn default() -> Self {
         Self::NoChange
     }
 }
-
-impl FromStr for OverlayPosition {
-    type Err = OverlayPositionParseError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "NoChange" => Ok(OverlayPosition::NoChange),
-            "Below" => Ok(OverlayPosition::Below),
-            "Above" => Ok(OverlayPosition::Above),
-            _ => Err(OverlayPositionParseError(s.to_string())),
-        }
-    }
-}
-
-/// Error used when there's an error parsing the string as enum.
-#[derive(Debug, Error)]
-#[error("Expected `NoChange` or `Below` or `Above` as `OverlayPosition`, got {0}")]
-pub struct OverlayPositionParseError(String);

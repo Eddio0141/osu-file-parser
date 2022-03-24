@@ -1,4 +1,4 @@
-use std::{error::Error, str::FromStr, num::ParseIntError};
+use std::{error::Error, num::ParseIntError, str::FromStr};
 
 use thiserror::Error;
 
@@ -43,10 +43,10 @@ pub fn nth_bit_state_i64(value: i64, nth_bit: u8) -> bool {
     value >> nth_bit & 1 == 1
 }
 
-pub fn parse_zero_one_bool(value: &str) -> Result<bool, ParseBoolError> {
+pub fn parse_zero_one_bool(value: &str) -> Result<bool, ParseZeroOneBoolError> {
     let value = value
         .parse()
-        .map_err(|err| ParseBoolError::ValueParseError {
+        .map_err(|err| ParseZeroOneBoolError::ValueParseError {
             source: err,
             value: value.to_string(),
         })?;
@@ -54,12 +54,12 @@ pub fn parse_zero_one_bool(value: &str) -> Result<bool, ParseBoolError> {
     match value {
         0 => Ok(false),
         1 => Ok(true),
-        _ => Err(ParseBoolError::InvalidValue(value)),
+        _ => Err(ParseZeroOneBoolError::InvalidValue(value)),
     }
 }
 
 #[derive(Debug, Error)]
-pub enum ParseBoolError {
+pub enum ParseZeroOneBoolError {
     #[error("Error parsing {value} as an Integer")]
     ValueParseError {
         #[source]
@@ -68,4 +68,25 @@ pub enum ParseBoolError {
     },
     #[error("Error parsing {0} as `true` or `false`, expected value of 0 or 1")]
     InvalidValue(Integer),
+}
+
+pub fn display_colon_fields(
+    f: &mut std::fmt::Formatter,
+    fields: &[(&str, &Option<String>)],
+    space_after_colon: bool,
+    new_line: &str,
+) -> std::fmt::Result {
+    let mut fields_str_builder = Vec::with_capacity(fields.len());
+    let space_after_colon = if space_after_colon { 1usize } else { 0usize };
+
+    for (field_name, field) in fields {
+        if let Some(field) = field {
+            fields_str_builder.push(format!(
+                "{field_name}:{}{field}",
+                " ".repeat(space_after_colon)
+            ));
+        }
+    }
+
+    write!(f, "{}", fields_str_builder.join(new_line))
 }
