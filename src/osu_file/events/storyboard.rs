@@ -504,7 +504,6 @@ impl FromStr for Command {
         let event = s
             .next()
             .ok_or(CommandParseError::MissingField("event"))?
-            // TODO what happens if its alternating like "_ _ __"
             .trim_matches(|c| c == ' ' || c == '_');
 
         let easing_parse = |s: &mut Split<char>| {

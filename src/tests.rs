@@ -22,7 +22,7 @@ use crate::osu_file::{
     hitobject::{
         self,
         types::{HitSample, HitSound},
-        HitCircle, HitObjectWrapper, HitObjects,
+        HitObjects,
     },
     metadata::Metadata,
     timingpoint::{self, Effects, SampleIndex, TimingPoint, TimingPoints, Volume},
