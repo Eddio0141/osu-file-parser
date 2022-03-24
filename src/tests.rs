@@ -22,7 +22,7 @@ use crate::osu_file::{
     hitobject::{
         self,
         types::{HitSample, HitSound},
-        HitObjects,
+        HitObject, HitObjectParams, HitObjects,
     },
     metadata::Metadata,
     timingpoint::{self, Effects, SampleIndex, TimingPoint, TimingPoints, Volume},
@@ -1089,34 +1089,36 @@ SliderTickRate:1
         )])),
         colours: None,
         hitobjects: Some(HitObjects(vec![
-            HitObjectWrapper::HitCircle(HitCircle::new(
-                Position { x: 256, y: 192 },
-                8016,
-                HitSound::new(false, false, false, false),
-                HitSample::new(
+            HitObject {
+                position: Position { x: 256, y: 192 },
+                time: 8016,
+                obj_params: HitObjectParams::HitCircle,
+                new_combo: false,
+                combo_skip_count: 0,
+                hitsound: HitSound::new(false, false, false, false),
+                hitsample: HitSample::new(
                     hitobject::types::SampleSet::NoCustomSampleSet,
                     hitobject::types::SampleSet::NoCustomSampleSet,
                     None,
                     hitobject::types::Volume::new(None).unwrap(),
                     "".to_string(),
                 ),
-                false,
-                0,
-            )),
-            HitObjectWrapper::HitCircle(HitCircle::new(
-                Position { x: 153, y: 192 },
-                8183,
-                HitSound::new(false, true, false, false),
-                HitSample::new(
+            },
+            HitObject {
+                position: Position { x: 153, y: 192 },
+                time: 8183,
+                obj_params: HitObjectParams::HitCircle,
+                new_combo: false,
+                combo_skip_count: 0,
+                hitsound: HitSound::new(false, true, false, false),
+                hitsample: HitSample::new(
                     hitobject::types::SampleSet::NoCustomSampleSet,
                     hitobject::types::SampleSet::NoCustomSampleSet,
                     None,
                     hitobject::types::Volume::new(None).unwrap(),
                     "".to_string(),
                 ),
-                false,
-                0,
-            )),
+            },
         ])),
     };
 

@@ -4,11 +4,10 @@ pub mod types;
 use std::fmt::Display;
 use std::str::FromStr;
 
-use nom::bytes::complete::take_till;
-use nom::character::complete::char;
-use nom::multi::many0;
-use nom::multi::many_m_n;
-use nom::sequence::terminated;
+use nom::bytes::complete::is_not;
+use nom::character::streaming::char;
+use nom::combinator::map_res;
+use nom::sequence::tuple;
 use rust_decimal::Decimal;
 use thiserror::Error;
 
@@ -133,17 +132,63 @@ impl HitObject {
 
         bit_flag.to_string()
     }
+
+    pub fn hitcircle_default() -> Self {
+        Self {
+            position: Default::default(),
+            time: Default::default(),
+            obj_params: HitObjectParams::HitCircle,
+            new_combo: Default::default(),
+            combo_skip_count: Default::default(),
+            hitsound: Default::default(),
+            hitsample: Default::default(),
+        }
+    }
+
+    pub fn spinner_default() -> Self {
+        Self {
+            position: Default::default(),
+            time: Default::default(),
+            obj_params: HitObjectParams::Spinner {
+                end_time: Default::default(),
+            },
+            new_combo: Default::default(),
+            combo_skip_count: Default::default(),
+            hitsound: Default::default(),
+            hitsample: Default::default(),
+        }
+    }
+
+    pub fn osu_mania_hold_default() -> Self {
+        Self {
+            position: Position {
+                x: 0,
+                ..Default::default()
+            },
+            time: Default::default(),
+            obj_params: HitObjectParams::OsuManiaHold {
+                end_time: Default::default(),
+            },
+            new_combo: Default::default(),
+            combo_skip_count: Default::default(),
+            hitsound: Default::default(),
+            hitsample: Default::default(),
+        }
+    }
 }
 
 impl FromStr for HitObject {
     type Err = HitObjectParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let comma = |c| c == ',';
-        let property = terminated(take_till(comma), many_m_n(0, 1, char(',')));
-        let properties = many0(property)(s).unwrap();
+        let colon = char::<_, nom::error::Error<_>>(',');
+        let int = map_res(is_not(","), |f: &str| f.parse::<Integer>());
 
-        println!("{:#?}", properties);
+        let (s, (x, _, y, _)) = tuple((int, colon, int, colon))(s).unwrap();
+        // let (s, (x, _)) = tuple((int, colon))(s).unwrap();
+        // let (s, (y, _)) = tuple((int, colon))(s).unwrap();
+
+        // let (s, (x, _, y)) = tuple((test, colon, test))(s).unwrap();
 
         todo!();
         // let mut obj_properties = s.trim().split(',');
@@ -412,6 +457,53 @@ impl FromStr for HitObject {
     }
 }
 
+impl Display for HitObject {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut properties: Vec<String> = vec![
+            self.position.x.to_string(),
+            self.position.y.to_string(),
+            self.time.to_string(),
+            self.type_to_string(),
+            self.hitsound.to_string(),
+        ];
+
+        match &self.obj_params {
+            HitObjectParams::HitCircle => (),
+            HitObjectParams::Slider {
+                curve_type,
+                curve_points,
+                slides,
+                length,
+                edge_sounds,
+                edge_sets,
+            } => {
+                properties.push(curve_type.to_string());
+
+                let properties_2 = vec![
+                    pipe_vec_to_string(curve_points),
+                    slides.to_string(),
+                    length.to_string(),
+                    pipe_vec_to_string(edge_sounds),
+                    pipe_vec_to_string(edge_sets),
+                    self.hitsample.to_string(),
+                ];
+
+                return write!(f, "{}|{}", properties.join(","), properties_2.join(","));
+            }
+            HitObjectParams::Spinner { end_time } => properties.push(end_time.to_string()),
+            HitObjectParams::OsuManiaHold { end_time } => {
+                properties.push(end_time.to_string());
+
+                return write!(f, "{}:{}", properties.join(","), self.hitsample);
+            }
+        }
+
+        properties.push(self.hitsample.to_string());
+
+        write!(f, "{}", properties.join(","))
+    }
+}
+
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum HitObjectParams {
@@ -424,123 +516,10 @@ pub enum HitObjectParams {
         edge_sounds: Vec<HitSound>,
         edge_sets: Vec<EdgeSet>,
     },
-    Spinner { end_time: Integer },
-    OsuManiaHold { end_time: Integer },
-}
-
-impl Default for HitCircle {
-    fn default() -> Self {
-        Self {
-            position: Default::default(),
-            time: Default::default(),
-            obj_type: HitObjectType::HitCircle,
-            hitsound: Default::default(),
-            hitsample: Default::default(),
-            new_combo: Default::default(),
-            combo_skip_count: Default::default(),
-        }
-    }
-}
-
-impl Display for HitCircle {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let properties: Vec<String> = vec![
-            self.position.x.to_string(),
-            self.position.y.to_string(),
-            self.time.to_string(),
-            self.type_to_string(),
-            self.hitsound.to_string(),
-            self.hitsample.to_string(),
-        ];
-
-        write!(f, "{}", properties.join(","))
-    }
-}
-
-impl Display for Slider {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let properties = vec![
-            self.position.x.to_string(),
-            self.position.y.to_string(),
-            self.time.to_string(),
-            self.type_to_string(),
-            self.hitsound.to_string(),
-            self.curve_type.to_string(),
-        ];
-
-        let properties_2 = vec![
-            pipe_vec_to_string(&self.curve_points),
-            self.slides.to_string(),
-            self.length.to_string(),
-            pipe_vec_to_string(&self.edge_sounds),
-            pipe_vec_to_string(&self.edge_sets),
-            self.hitsample.to_string(),
-        ];
-
-        write!(f, "{}|{}", properties.join(","), properties_2.join(","))
-    }
-}
-
-impl Display for Spinner {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let properties: Vec<String> = vec![
-            self.position.x.to_string(),
-            self.position.y.to_string(),
-            self.time.to_string(),
-            self.type_to_string(),
-            self.hitsound.to_string(),
-            self.end_time.to_string(),
-            self.hitsample.to_string(),
-        ];
-
-        write!(f, "{}", properties.join(","))
-    }
-}
-
-impl Default for Spinner {
-    fn default() -> Self {
-        Self {
-            position: Default::default(),
-            time: Default::default(),
-            obj_type: HitObjectType::Spinner,
-            hitsound: Default::default(),
-            hitsample: Default::default(),
-            new_combo: Default::default(),
-            combo_skip_count: Default::default(),
-            end_time: Default::default(),
-        }
-    }
-}
-
-impl Display for OsuManiaHold {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let properties: Vec<String> = vec![
-            self.position.x.to_string(),
-            self.position.y.to_string(),
-            self.time.to_string(),
-            self.type_to_string(),
-            self.hitsound.to_string(),
-            self.end_time.to_string(),
-        ];
-
-        write!(f, "{}:{}", properties.join(","), self.hitsample)
-    }
-}
-
-impl Default for OsuManiaHold {
-    fn default() -> Self {
-        Self {
-            position: Position {
-                x: Default::default(),
-                ..Default::default()
-            },
-            time: Default::default(),
-            obj_type: HitObjectType::OsuManiaHold,
-            hitsound: Default::default(),
-            hitsample: Default::default(),
-            new_combo: Default::default(),
-            combo_skip_count: Default::default(),
-            end_time: Default::default(),
-        }
-    }
+    Spinner {
+        end_time: Integer,
+    },
+    OsuManiaHold {
+        end_time: Integer,
+    },
 }
