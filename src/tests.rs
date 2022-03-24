@@ -1,3 +1,4 @@
+#[cfg(test)]
 use pretty_assertions::assert_eq;
 use std::{
     num::NonZeroUsize,
@@ -130,8 +131,7 @@ fn editor_parse_back() {
 DistanceSpacing: 0.8
 BeatDivisor: 12
 GridSize: 8
-TimelineZoom: 2"
-        .replace('\n', "\r\n");
+TimelineZoom: 2";
     let e: Editor = i.parse().unwrap();
 
     assert_eq!(i, e.to_string());
@@ -187,8 +187,7 @@ Version:Bittersweet Love
 Source:beatmania IIDX 8th style
 Tags:famoss 舟木智介 tomosuke funaki 徳井志津江 videogame ハードシャンソン Tart&Toffee
 BeatmapID:3072232
-BeatmapSetID:1499093"
-        .replace('\n', "\r\n");
+BeatmapSetID:1499093";
     let m: Metadata = i.parse().unwrap();
 
     assert_eq!(i, m.to_string());
@@ -223,8 +222,7 @@ CircleSize:5
 OverallDifficulty:8
 ApproachRate:5
 SliderMultiplier:1.4
-SliderTickRate:1"
-        .replace('\n', "\r\n");
+SliderTickRate:1";
     let d: Difficulty = i.parse().unwrap();
 
     assert_eq!(i, d.to_string());
@@ -372,8 +370,7 @@ fn events_parse_back() {
     let i = "0,0,\"bg2.jpg\",0,0
 0,0,bg2.jpg,0,0
 //Break Periods
-2,100,163"
-        .replace('\n', "\r\n");
+2,100,163";
     let e: Events = i.parse().unwrap();
 
     assert_eq!(i, e.to_string());
@@ -908,8 +905,7 @@ ___S,0,-28,,0.4
  T,HitSoundPassing,0,10
   M,3,100,120,140,180.123123,200,200
  T,HitSoundFailing,0,10
-  M,3,100,120,140,180.123123,200,200"
-        .replace('\n', "\r\n");
+  M,3,100,120,140,180.123123,200,200";
     let e: Events = i.parse().unwrap();
 
     assert_eq!(i, e.to_string())
@@ -951,15 +947,13 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
 #[test]
 fn storyboard_sprites_parse_back() {
     let i = "Sprite,Pass,Centre,\"Text\\Play2-HaveFunH.png\",320,240
-Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopForever"
-        .replace('\n', "\r\n");
+Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopForever";
     let e: Events = i.parse().unwrap();
 
     assert_eq!(i, e.to_string())
 }
 
 // TODO make all fields optional
-// TODO make the struct remember new line counts
 #[test]
 fn osu_file_parse() {
     let i = "osu file format v14
@@ -1030,7 +1024,6 @@ SliderTickRate:1
             letterbox_in_breaks: Some(false),
             special_style: Some(false),
             widescreen_storyboard: Some(false),
-            samples_match_playback_rate: Some(false),
             ..General::empty()
         }),
         editor: Some(Editor {

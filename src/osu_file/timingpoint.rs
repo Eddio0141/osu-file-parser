@@ -24,7 +24,9 @@ impl FromStr for TimingPoints {
         let mut timing_points = Vec::new();
 
         for s in s.lines() {
-            timing_points.push(s.parse()?);
+            if !s.is_empty() {
+                timing_points.push(s.parse()?);
+            }
         }
 
         Ok(TimingPoints(timing_points))
@@ -40,7 +42,7 @@ impl Display for TimingPoints {
                 .iter()
                 .map(|p| p.to_string())
                 .collect::<Vec<_>>()
-                .join("\r\n")
+                .join("\n")
         )
     }
 }

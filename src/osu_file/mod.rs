@@ -30,7 +30,7 @@ use self::general::General;
 use self::hitobject::{HitObjects, HitObjectsParseError};
 use self::metadata::{Metadata, MetadataParseError};
 
-use self::parsers::ws;
+use self::parsers::{trailing_ws, ws};
 use self::timingpoint::{TimingPoints, TimingPointsParseError};
 
 // TODO use the crate https://crates.io/crates/nom
@@ -115,7 +115,7 @@ impl Display for OsuFile {
             sections.push(format!("[HitObjects]\n{}", hitobjects));
         }
 
-        write!(f, "{}", sections.join("\n"))
+        write!(f, "{}", sections.join("\n\n"))
     }
 }
 
@@ -124,9 +124,10 @@ impl FromStr for OsuFile {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let version_text = tag::<_, _, nom::error::Error<_>>("osu file format v");
-        let version_number = map_res(take_till(|ch| is_newline(ch as u8)), |s: &str| {
-            s.parse::<Integer>()
-        });
+        let version_number = map_res(
+            trailing_ws(take_till(|ch| ch == '\r' || ch == '\n')),
+            |s: &str| s.parse::<Integer>(),
+        );
 
         let section_open = char::<_, nom::error::Error<_>>('[');
         let section_close = char(']');

@@ -16,7 +16,7 @@ impl Display for Colours {
                 .iter()
                 .map(|c| c.to_string())
                 .collect::<Vec<_>>()
-                .join("\r\n")
+                .join("\n")
         )
     }
 }

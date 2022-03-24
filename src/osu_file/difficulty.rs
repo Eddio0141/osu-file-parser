@@ -102,7 +102,7 @@ impl Display for Difficulty {
         key_value.push(format!("SliderMultiplier:{}", self.slider_multiplier));
         key_value.push(format!("SliderTickRate:{}", self.slider_tickrate));
 
-        write!(f, "{}", key_value.join("\r\n"))
+        write!(f, "{}", key_value.join("\n"))
     }
 }
 

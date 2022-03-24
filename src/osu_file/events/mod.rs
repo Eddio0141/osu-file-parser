@@ -183,12 +183,12 @@ impl Display for Event {
                     if object.commands.is_empty() {
                         None
                     } else {
-                        Some(command_recursive_display(&object.commands, 1).join("\r\n"))
+                        Some(command_recursive_display(&object.commands, 1).join("\n"))
                     }
                 };
 
                 match cmds {
-                    Some(cmds) => format!("{object_str}\r\n{cmds}"),
+                    Some(cmds) => format!("{object_str}\n{cmds}"),
                     None => object_str,
                 }
             }

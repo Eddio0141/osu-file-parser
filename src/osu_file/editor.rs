@@ -120,7 +120,7 @@ impl Display for Editor {
         key_value.push(format!("GridSize: {}", self.grid_size));
         key_value.push(format!("TimelineZoom: {}", self.timeline_zoom));
 
-        write!(f, "{}", key_value.join("\r\n"))
+        write!(f, "{}", key_value.join("\n"))
     }
 }
 

@@ -98,7 +98,7 @@ impl Display for Metadata {
         key_value.push(format!("BeatmapID:{}", self.beatmap_id));
         key_value.push(format!("BeatmapSetID:{}", self.beatmap_set_id));
 
-        write!(f, "{}", key_value.join("\r\n"))
+        write!(f, "{}", key_value.join("\n"))
     }
 }
 

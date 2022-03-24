@@ -28,7 +28,7 @@ impl Display for HitObjects {
                 .iter()
                 .map(|h| h.to_string())
                 .collect::<Vec<_>>()
-                .join("\r\n")
+                .join("\n")
         )
     }
 }
