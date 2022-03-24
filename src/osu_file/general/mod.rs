@@ -18,6 +18,7 @@ use super::{helper::parse_zero_one_bool, Integer};
 
 /// A struct representing the general section of the .osu file.
 #[derive(PartialEq, Debug, Clone, Eq, Hash)]
+#[non_exhaustive]
 pub struct General {
     /// Location of the audio file relative to the current folder.
     pub audio_filename: Option<String>,
@@ -344,12 +345,13 @@ impl Display for General {
             ),
         ];
 
-        display_colon_fields(f, &fields, true, "\r\n")
+        display_colon_fields(f, &fields, true)
     }
 }
 
 /// Speed of the countdown before the first hitobject.
 #[derive(PartialEq, Eq, Debug, Clone, Copy, Hash, FromRepr)]
+#[non_exhaustive]
 pub enum CountdownSpeed {
     /// No countdown.
     NoCountdown,
@@ -384,6 +386,7 @@ impl Default for CountdownSpeed {
 
 /// Sample set that will be used if timing points do not override it
 #[derive(PartialEq, Eq, Debug, Clone, Copy, Hash, Display, EnumString)]
+#[non_exhaustive]
 pub enum SampleSet {
     /// The `Normal` sample set.
     Normal,
@@ -401,6 +404,7 @@ impl Default for SampleSet {
 
 /// Game mode of the .osu file
 #[derive(PartialEq, Eq, Debug, Clone, Copy, Hash, FromRepr)]
+#[non_exhaustive]
 pub enum GameMode {
     /// Osu! gamemode.
     Osu,
@@ -435,6 +439,7 @@ impl From<GameMode> for Integer {
 
 /// Draw order of hit circle overlays compared to hit numbers
 #[derive(PartialEq, Eq, Debug, Clone, Copy, Hash, Display, EnumString)]
+#[non_exhaustive]
 pub enum OverlayPosition {
     /// Use skin setting.
     NoChange,

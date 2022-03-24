@@ -74,7 +74,6 @@ pub fn display_colon_fields(
     f: &mut std::fmt::Formatter,
     fields: &[(&str, &Option<String>)],
     space_after_colon: bool,
-    new_line: &str,
 ) -> std::fmt::Result {
     let mut fields_str_builder = Vec::with_capacity(fields.len());
     let space_after_colon = if space_after_colon { 1usize } else { 0usize };
@@ -88,5 +87,5 @@ pub fn display_colon_fields(
         }
     }
 
-    write!(f, "{}", fields_str_builder.join(new_line))
+    write!(f, "{}", fields_str_builder.join("\n"))
 }
