@@ -4,18 +4,18 @@ use nom::{
     character::complete::multispace0,
     error::ParseError,
     multi::many0,
-    sequence::{delimited, preceded, terminated, tuple},
+    sequence::{delimited, terminated, tuple},
     IResult,
 };
 
-pub fn leading_ws<'a, F: 'a, O, E: ParseError<&'a str>>(
-    inner: F,
-) -> impl FnMut(&'a str) -> IResult<&'a str, O, E>
-where
-    F: Fn(&'a str) -> IResult<&'a str, O, E>,
-{
-    preceded(multispace0, inner)
-}
+// pub fn leading_ws<'a, F: 'a, O, E: ParseError<&'a str>>(
+//     inner: F,
+// ) -> impl FnMut(&'a str) -> IResult<&'a str, O, E>
+// where
+//     F: Fn(&'a str) -> IResult<&'a str, O, E>,
+// {
+//     preceded(multispace0, inner)
+// }
 
 pub fn trailing_ws<'a, F: 'a, O, E: ParseError<&'a str>>(
     inner: F,

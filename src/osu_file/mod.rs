@@ -11,10 +11,9 @@ pub mod timingpoint;
 
 use std::fmt::Display;
 use std::hash::Hash;
-use std::num::ParseIntError;
 use std::str::FromStr;
 
-use nom::bytes::complete::{tag, take_till, take_until};
+use nom::bytes::complete::{tag, take_till};
 use nom::character::complete::char;
 use nom::character::is_newline;
 use nom::combinator::map_res;
@@ -31,7 +30,7 @@ use self::general::General;
 use self::hitobject::{HitObjects, HitObjectsParseError};
 use self::metadata::{Metadata, MetadataParseError};
 
-use self::parsers::{leading_ws, ws};
+use self::parsers::ws;
 use self::timingpoint::{TimingPoints, TimingPointsParseError};
 
 // TODO use the crate https://crates.io/crates/nom
@@ -87,41 +86,34 @@ impl Display for OsuFile {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         // TODO .osb file too
 
-        let sections = vec![
-            format!("osu file format v{}", self.version),
-            match &self.general {
-                Some(general) => format!("[General]\n{}", general),
-                None => String::new(),
-            },
-            match &self.editor {
-                Some(editor) => format!("[Editor]\n{}", editor),
-                None => String::new(),
-            },
-            match &self.metadata {
-                Some(metadata) => format!("[Metadata]\n{}", metadata),
-                None => String::new(),
-            },
-            match &self.difficulty {
-                Some(difficulty) => format!("[Difficulty]\n{}", difficulty),
-                None => String::new(),
-            },
-            match &self.events {
-                Some(events) => format!("[Events]\n{}", events),
-                None => String::new(),
-            },
-            match &self.timing_points {
-                Some(timing_points) => format!("[TimingPoints]\n{}", timing_points),
-                None => String::new(),
-            },
-            match &self.colours {
-                Some(colours) => format!("[Colours]\n{}", colours),
-                None => String::new(),
-            },
-            match &self.hitobjects {
-                Some(hitobjects) => format!("[HitObjects]\n{}", hitobjects),
-                None => String::new(),
-            },
-        ];
+        let mut sections = Vec::with_capacity(9);
+
+        sections.push(format!("osu file format v{}", self.version));
+
+        if let Some(general) = &self.general {
+            sections.push(format!("[General]\n{}", general));
+        }
+        if let Some(editor) = &self.editor {
+            sections.push(format!("[Editor]\n{}", editor));
+        }
+        if let Some(metadata) = &self.metadata {
+            sections.push(format!("[Metadata]\n{}", metadata));
+        }
+        if let Some(difficulty) = &self.difficulty {
+            sections.push(format!("[Difficulty]\n{}", difficulty));
+        }
+        if let Some(events) = &self.events {
+            sections.push(format!("[Events]\n{}", events));
+        }
+        if let Some(timing_points) = &self.timing_points {
+            sections.push(format!("[TimingPoints]\n{}", timing_points));
+        }
+        if let Some(colours) = &self.colours {
+            sections.push(format!("[Colours]\n{}", colours));
+        }
+        if let Some(hitobjects) = &self.hitobjects {
+            sections.push(format!("[HitObjects]\n{}", hitobjects));
+        }
 
         write!(f, "{}", sections.join("\n"))
     }
@@ -132,7 +124,9 @@ impl FromStr for OsuFile {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let version_text = tag::<_, _, nom::error::Error<_>>("osu file format v");
-        let version_number = map_res(take_until("\n"), |s: &str| s.parse::<Integer>());
+        let version_number = map_res(take_till(|ch| is_newline(ch as u8)), |s: &str| {
+            s.parse::<Integer>()
+        });
 
         let section_open = char::<_, nom::error::Error<_>>('[');
         let section_close = char(']');
@@ -142,8 +136,45 @@ impl FromStr for OsuFile {
         let section_until = take_till(|c| c == '[');
         let section = tuple((ws(section_name), section_until));
 
-        // TODO errors
-        let (s, (_, version)) = tuple((leading_ws(version_text), version_number))(s).unwrap();
+        let (s, (_, version)) = match tuple((version_text, version_number))(s) {
+            Ok(ok) => ok,
+            Err(err) => {
+                // wrong line?
+                if s.starts_with('\n') || s.starts_with("\r\n") {
+                    return Err(OsuFileParseError::FileVersionInWrongLine);
+                } else {
+                    if let nom::Err::Error(err) = err {
+                        let err = match err.code {
+                            nom::error::ErrorKind::Tag => {
+                                Err(OsuFileParseError::FileVersionDefinedWrong)
+                            }
+                            nom::error::ErrorKind::MapRes => {
+                                Err(OsuFileParseError::InvalidFileVersion(
+                                    s.lines()
+                                        .next()
+                                        .unwrap()
+                                        .strip_prefix("osu file format v")
+                                        .unwrap()
+                                        .to_string(),
+                                ))
+                            }
+                            _ => {
+                                unreachable!("Not possible to have the error kind {:#?}", err.code)
+                            }
+                        };
+
+                        return err;
+                    } else {
+                        unreachable!("Not possible to reach when the errors are already handled");
+                    }
+                }
+            }
+        };
+
+        if version > LATEST_VERSION {
+            return Err(OsuFileParseError::InvalidFileVersion(version.to_string()));
+        }
+
         let (_, sections) = many0(section)(s).unwrap();
 
         let mut section_parsed = Vec::with_capacity(8);
@@ -230,24 +261,15 @@ impl Default for OsuFile {
 pub enum OsuFileParseError {
     /// File version is invalid.
     // TODO multiple file versions for this crate somehow
-    #[error("Invalid file version, expected {LATEST_VERSION}, got {0}")]
-    InvalidFileVersion(Integer),
-    /// File version parsing failed.
-    #[error("Invalid file version, expected version in an `Integer` form, got {value}")]
-    FileVersionParseError {
-        #[source]
-        source: ParseIntError,
-        value: String,
-    },
-    /// No file version defined.
-    #[error("No file version defined, expected `osu file format v..` at the first line")]
-    NoFileVersion,
-    /// More than 1 file version defined.
-    #[error("Multiple file versions defined, only requires one file version: {0}")]
-    MultipleFileVersions(String),
+    // TODO first file version number?
+    #[error("Invalid file version, expected integer from 1 ~ {LATEST_VERSION}, got {0}")]
+    InvalidFileVersion(String),
+    /// File version is defined wrong.
+    #[error("File version defined wrong, expected `osu file format v..` at the first line")]
+    FileVersionDefinedWrong,
     /// File version not defined in line 1.
-    #[error("Found file version definition, but in the line {0}, expected to be in line 1")]
-    FileVersionInWrongLine(usize),
+    #[error("Found file version definition, but not defined at the first line")]
+    FileVersionInWrongLine,
     /// Duplicate section names defined.
     #[error("There are multiple sections defined as the same name {0}")]
     DuplicateSections(String),

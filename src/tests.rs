@@ -1188,3 +1188,12 @@ SliderTickRate:1
 
     assert_eq!(i, o.to_string());
 }
+
+#[test]
+fn osu_file_smallest_parse() {
+    let i = "osu file format v14";
+
+    let o: OsuFile = i.parse().unwrap();
+
+    assert_eq!(i, o.to_string());
+}
