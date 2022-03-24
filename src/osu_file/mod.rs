@@ -26,7 +26,8 @@ use self::colours::{Colours, ColoursParseError};
 use self::difficulty::{Difficulty, DifficultyParseError};
 use self::editor::{Editor, EditorParseError};
 use self::events::{Events, EventsParseError};
-use self::general::{General, GeneralParseError};
+use self::general::error::GeneralParseError;
+use self::general::General;
 use self::hitobject::{HitObjects, HitObjectsParseError};
 use self::metadata::{Metadata, MetadataParseError};
 
@@ -36,6 +37,7 @@ use self::timingpoint::{TimingPoints, TimingPointsParseError};
 // TODO use the crate https://crates.io/crates/nom
 /// An .osu file represented as a struct.
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct OsuFile {
     /// Version of the file format.
     pub version: Integer,
@@ -88,40 +90,40 @@ impl Display for OsuFile {
         let sections = vec![
             format!("osu file format v{}", self.version),
             match &self.general {
-                Some(general) => format!("[General]\r\n{}", general),
+                Some(general) => format!("[General]\n{}", general),
                 None => String::new(),
             },
             match &self.editor {
-                Some(editor) => format!("[Editor]\r\n{}", editor),
+                Some(editor) => format!("[Editor]\n{}", editor),
                 None => String::new(),
             },
             match &self.metadata {
-                Some(metadata) => format!("[Metadata]\r\n{}", metadata),
+                Some(metadata) => format!("[Metadata]\n{}", metadata),
                 None => String::new(),
             },
             match &self.difficulty {
-                Some(difficulty) => format!("[Difficulty]\r\n{}", difficulty),
+                Some(difficulty) => format!("[Difficulty]\n{}", difficulty),
                 None => String::new(),
             },
             match &self.events {
-                Some(events) => format!("[Events]\r\n{}", events),
+                Some(events) => format!("[Events]\n{}", events),
                 None => String::new(),
             },
             match &self.timing_points {
-                Some(timing_points) => format!("[TimingPoints]\r\n{}", timing_points),
+                Some(timing_points) => format!("[TimingPoints]\n{}", timing_points),
                 None => String::new(),
             },
             match &self.colours {
-                Some(colours) => format!("[Colours]\r\n{}", colours),
+                Some(colours) => format!("[Colours]\n{}", colours),
                 None => String::new(),
             },
             match &self.hitobjects {
-                Some(hitobjects) => format!("[HitObjects]\r\n{}", hitobjects),
+                Some(hitobjects) => format!("[HitObjects]\n{}", hitobjects),
                 None => String::new(),
             },
         ];
 
-        write!(f, "{}", sections.join("\r\n"))
+        write!(f, "{}", sections.join("\n"))
     }
 }
 
@@ -223,6 +225,7 @@ impl Default for OsuFile {
 }
 
 #[derive(Debug, Error)]
+#[non_exhaustive]
 /// Error for when there's a problem parsing an .osu file.
 pub enum OsuFileParseError {
     /// File version is invalid.
@@ -252,10 +255,10 @@ pub enum OsuFileParseError {
     #[error("There is an unknown section name `{0}`")]
     UnknownSectionName(String),
     /// Error used when the opening bracket for the section is missing.
-    #[error("The opening bracket of the section is missing, expected `{SECTION_OPEN}` before {0}")]
+    #[error("The opening bracket of the section is missing, expected `[` before {0}")]
     SectionNameNoOpenBracket(String),
     /// Error used when the closing bracket for the section is missing.
-    #[error("The closing bracket of the section is missing, expected `{SECTION_CLOSE}` after {0}")]
+    #[error("The closing bracket of the section is missing, expected `]` after {0}")]
     SectionNameNoCloseBracket(String),
     /// Error parsing the general section.
     #[error(transparent)]
@@ -312,10 +315,6 @@ const LATEST_VERSION: Integer = 14;
 
 /// Delimiter for the `key: value` pair.
 const SECTION_DELIMITER: &str = ":";
-/// Section name open bracket.
-const SECTION_OPEN: char = '[';
-/// Section name close bracket.
-const SECTION_CLOSE: char = ']';
 
 /// Definition of the `Integer` type.
 type Integer = i32;
@@ -325,7 +324,7 @@ type Integer = i32;
 pub struct Position {
     /// x coordinate.
     pub x: Integer,
-    /// y coordinate
+    /// y coordinate.
     pub y: Integer,
 }
 

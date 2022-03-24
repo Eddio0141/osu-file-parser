@@ -96,8 +96,7 @@ EpilepsyWarning: 1
 CountdownOffset: 120
 SpecialStyle: 1
 WidescreenStoryboard: 1
-SamplesMatchPlaybackRate: 1"
-        .replace('\n', "\r\n");
+SamplesMatchPlaybackRate: 1";
     let g = i.parse::<General>().unwrap();
 
     assert_eq!(i, g.to_string());
@@ -962,7 +961,7 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
 // TODO make all fields optional
 // TODO make the struct remember new line counts
 #[test]
-fn some_osu_file_parse() {
+fn osu_file_parse() {
     let i = "osu file format v14
 
 [General]
@@ -1132,7 +1131,7 @@ SliderTickRate:1
 }
 
 #[test]
-fn some_osu_file_parse_back() {
+fn osu_file_parse_back() {
     let i = "osu file format v14
 
 [General]
@@ -1183,8 +1182,7 @@ SliderTickRate:1
 
 [HitObjects]
 256,192,8016,1,0,0:0:0:0:
-153,192,8183,1,2,0:0:0:0:"
-        .replace('\n', "\r\n");
+153,192,8183,1,2,0:0:0:0:";
 
     let o: OsuFile = i.parse().unwrap();
 
