@@ -136,7 +136,9 @@ impl FromStr for General {
         let (s, fields) = get_colon_field_value_lines(s).unwrap();
 
         if !s.trim().is_empty() {
-            return Err(GeneralParseError::InvalidColonSet(s.to_string()));
+            return Err(GeneralParseError::InvalidColonSet(
+                s.lines().next().unwrap_or_default().to_string(),
+            ));
         }
 
         for (name, value) in fields {
@@ -349,9 +351,9 @@ impl Display for General {
 #[derive(Debug, Error)]
 /// Error used when there was a problem parsing the `General` section.
 pub enum GeneralParseError {
-    /// A section in `General` failed to parse.
+    /// A Field in `General` failed to parse.
     #[error(transparent)]
-    SectionParseError {
+    FieldParseError {
         #[from]
         field: FieldError,
     },
@@ -360,9 +362,6 @@ pub enum GeneralParseError {
     #[error("The key {0} doesn't exist in `General`")]
     /// Invalid key name was used.
     InvalidKey(String),
-    #[error("The key {0} has no value set")]
-    /// The value is missing from the `key: value` set.
-    MissingValue(String),
 }
 
 #[derive(Debug, Error)]
