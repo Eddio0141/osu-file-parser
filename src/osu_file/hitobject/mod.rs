@@ -224,7 +224,7 @@ impl FromStr for HitObject {
             })
         } else if nth_bit_state_i64(obj_type as i64, 1) {
             let curve_type = map_res(is_not("|"), |f: &str| f.parse::<CurveType>());
-
+            
             // slider
             let (curve_type, curve_points) = obj_properties
                 .next()
