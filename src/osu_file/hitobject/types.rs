@@ -2,6 +2,8 @@
 
 use std::{fmt::Display, num::NonZeroUsize, str::FromStr};
 
+use strum_macros::{EnumString, Display};
+
 use crate::osu_file::{helper::nth_bit_state_i64, Integer, Position};
 
 use super::error::*;
@@ -349,44 +351,22 @@ impl From<u8> for HitSound {
     }
 }
 
-#[derive(PartialEq, Eq, Clone, Copy, Debug, Hash)]
+// TODO strum crate usage
+#[derive(PartialEq, Eq, Clone, Copy, Debug, Hash, EnumString, Display)]
 /// Type of curve used to construct the [`slider`][super::Slider].
 pub enum CurveType {
     /// Bézier curve.
+    #[strum(serialize = "B")]
     Bezier,
     /// Centripetal catmull-rom curve.
+    #[strum(serialize = "C")]
     Centripetal,
     /// Linear curve.
+    #[strum(serialize = "L")]
     Linear,
     /// Perfect circle curve.
+    #[strum(serialize = "P")]
     PerfectCircle,
-}
-
-impl Display for CurveType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let value = match self {
-            CurveType::Bezier => 'B',
-            CurveType::Centripetal => 'C',
-            CurveType::Linear => 'L',
-            CurveType::PerfectCircle => 'P',
-        };
-
-        write!(f, "{value}")
-    }
-}
-
-impl FromStr for CurveType {
-    type Err = CurveTypeParseError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "B" => Ok(Self::Bezier),
-            "C" => Ok(Self::Centripetal),
-            "L" => Ok(Self::Linear),
-            "P" => Ok(Self::PerfectCircle),
-            _ => Err(CurveTypeParseError(s.to_string())),
-        }
-    }
 }
 
 #[derive(Default, Clone, Debug, Hash, PartialEq, Eq)]

@@ -187,39 +187,72 @@ impl FromStr for HitObject {
         // object properties split by ,
         let mut obj_properties = s.trim().split(",");
 
-        let x = obj_properties
-            .next()
-            .ok_or(HitObjectParseError::MissingX)?
-            .parse()?;
-        let y = obj_properties
-            .next()
-            .ok_or(HitObjectParseError::MissingY)?
-            .parse()?;
+        let x = obj_properties.next().ok_or(HitObjectParseError::MissingX)?;
+        let x = x.parse().map_err(|err| HitObjectParseError::XParseError {
+            source: err,
+            value: x.to_string(),
+        })?;
+        let y = obj_properties.next().ok_or(HitObjectParseError::MissingY)?;
+        let y = y.parse().map_err(|err| HitObjectParseError::YParseError {
+            source: err,
+            value: y.to_string(),
+        })?;
         let time = obj_properties
             .next()
-            .ok_or(HitObjectParseError::MissingTime)?
-            .parse()?;
+            .ok_or(HitObjectParseError::MissingTime)?;
+        let time = time
+            .parse()
+            .map_err(|err| HitObjectParseError::TimeParseError {
+                source: err,
+                value: time.to_string(),
+            })?;
         let obj_type = obj_properties
             .next()
-            .ok_or(HitObjectParseError::MissingObjType)?
-            .parse()?;
+            .ok_or(HitObjectParseError::MissingObjType)?;
+        let obj_type =
+            obj_type
+                .parse::<Integer>()
+                .map_err(|err| HitObjectParseError::ObjTypeParseError {
+                    source: err,
+                    value: obj_type.to_string(),
+                })?;
         let hitsound = obj_properties
             .next()
-            .ok_or(HitObjectParseError::MissingHitSound)?
-            .parse()?;
+            .ok_or(HitObjectParseError::MissingHitSound)?;
+        let hitsound = hitsound
+            .parse()
+            .map_err(|err| HitObjectParseError::HitSoundParseError {
+                source: err,
+                value: hitsound.to_string(),
+            })?;
 
         let position = Position { x, y };
 
         let new_combo = nth_bit_state_i64(obj_type as i64, 2);
         let combo_skip_count = (obj_type >> 4 & 0b111) as u8;
 
-        let hitsample = |s: &mut Split<char>| {
+        let hitsample = |s: &mut Split<&str>| {
             let hitsample = s.next().ok_or(HitObjectParseError::MissingHitsample)?;
 
-            hitsample.parse()?
+            hitsample
+                .parse()
+                .map_err(|err| HitObjectParseError::HitsampleParseError {
+                    source: err,
+                    value: hitsample.to_string(),
+                })
+        };
+        let too_many_parameters_check = |s: &mut Split<&str>| {
+            if s.next().is_some() {
+                Err(HitObjectParseError::TooManyParameters)
+            } else {
+                Ok(())
+            }
         };
 
         if nth_bit_state_i64(obj_type as i64, 0) {
+            let hitsample = hitsample(&mut obj_properties)?;
+            too_many_parameters_check(&mut obj_properties)?;
+
             // hitcircle
             Ok(Self {
                 position,
@@ -228,7 +261,7 @@ impl FromStr for HitObject {
                 new_combo,
                 combo_skip_count,
                 hitsound,
-                hitsample: hitsample(s)?,
+                hitsample,
             })
         } else if nth_bit_state_i64(obj_type as i64, 1) {
             // slider
@@ -238,34 +271,63 @@ impl FromStr for HitObject {
                 .split_once('|')
                 .ok_or_else(|| HitObjectParseError::MissingCurvePoints)?;
 
-            let curve_type = curve_type.parse()?;
+            let curve_type =
+                curve_type
+                    .parse()
+                    .map_err(|err| HitObjectParseError::CurveTypeParseError {
+                        source: err,
+                        value: curve_type.to_string(),
+                    })?;
 
             let curve_points = str_to_pipe_vec(curve_points).map_err(|err| {
-                HitObjectParseError::ValueParseError {
+                HitObjectParseError::CurvePointsParseError {
+                    source: err,
                     value: curve_points.to_string(),
-                    source: Box::new(err),
                 }
             })?;
 
-            let slides = s
+            let slides = obj_properties
                 .next()
-                .ok_or(HitObjectParseError::MissingSlides)?
-                .parse()?;
+                .ok_or(HitObjectParseError::MissingSlides)?;
+            let slides = slides
+                .parse()
+                .map_err(|err| HitObjectParseError::SlidesParseError {
+                    source: err,
+                    value: slides.to_string(),
+                })?;
 
             let length = obj_properties
                 .next()
-                .ok_or(|| HitObjectParseError::MissingLength)?
-                .parse()?;
+                .ok_or(HitObjectParseError::MissingLength)?;
+            let length = length
+                .parse()
+                .map_err(|err| HitObjectParseError::LengthParseError {
+                    source: err,
+                    value: length.to_string(),
+                })?;
 
             let edge_sounds = obj_properties
                 .next()
-                .ok_or(HitObjectParseError::MissingEdgeSounds);
-            let edge_sounds = str_to_pipe_vec(edge_sounds)?;
+                .ok_or(HitObjectParseError::MissingEdgeSounds)?;
+            let edge_sounds = str_to_pipe_vec(edge_sounds).map_err(|err| {
+                HitObjectParseError::EdgeSoundsParseError {
+                    source: err,
+                    value: edge_sounds.to_string(),
+                }
+            })?;
 
             let edge_sets = obj_properties
                 .next()
                 .ok_or(HitObjectParseError::MissingEdgeSets)?;
-            let edge_sets = str_to_pipe_vec(edge_sets)?;
+            let edge_sets = str_to_pipe_vec(edge_sets).map_err(|err| {
+                HitObjectParseError::EdgeSetsParseError {
+                    source: err,
+                    value: edge_sets.to_string(),
+                }
+            })?;
+
+            let hitsample = hitsample(&mut obj_properties)?;
+            too_many_parameters_check(&mut obj_properties)?;
 
             Ok(Self {
                 position,
@@ -281,14 +343,23 @@ impl FromStr for HitObject {
                 new_combo,
                 combo_skip_count,
                 hitsound,
-                hitsample: hitsample(s)?,
+                hitsample,
             })
         } else if nth_bit_state_i64(obj_type as i64, 3) {
             // spinner
             let end_time = obj_properties
                 .next()
-                .ok_or(HitObjectParseError::MissingEndTime)?
-                .parse()?;
+                .ok_or(HitObjectParseError::MissingEndTime)?;
+            let end_time =
+                end_time
+                    .parse()
+                    .map_err(|err| HitObjectParseError::EndTimeParseError {
+                        source: err,
+                        value: end_time.to_string(),
+                    })?;
+
+            let hitsample = hitsample(&mut obj_properties)?;
+            too_many_parameters_check(&mut obj_properties)?;
 
             Ok(Self {
                 position,
@@ -297,7 +368,7 @@ impl FromStr for HitObject {
                 new_combo,
                 combo_skip_count,
                 hitsound,
-                hitsample: hitsample(s)?,
+                hitsample,
             })
         } else if nth_bit_state_i64(obj_type as i64, 7) {
             // osu!mania hold
@@ -307,10 +378,23 @@ impl FromStr for HitObject {
                 .next()
                 .ok_or(HitObjectParseError::MissingEndTime)?
                 .split_once(':')
-                .ok_or(HitObjectParseError::MissingHitSample)?;
+                .ok_or(HitObjectParseError::MissingHitsample)?;
 
-            let end_time = end_time.parse()?;
-            let hitsample = hitsample.parse()?;
+            let end_time =
+                end_time
+                    .parse()
+                    .map_err(|err| HitObjectParseError::EndTimeParseError {
+                        source: err,
+                        value: end_time.to_string(),
+                    })?;
+            let hitsample =
+                hitsample
+                    .parse()
+                    .map_err(|err| HitObjectParseError::HitsampleParseError {
+                        source: err,
+                        value: hitsample.to_string(),
+                    })?;
+            too_many_parameters_check(&mut obj_properties)?;
 
             Ok(Self {
                 position,
@@ -322,6 +406,7 @@ impl FromStr for HitObject {
                 hitsample,
             })
         } else {
+            // osu file format didn't specify what to do with no bit flags set
             Err(HitObjectParseError::UnknownObjType)
         }
     }
