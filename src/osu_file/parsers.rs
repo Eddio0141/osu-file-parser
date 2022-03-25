@@ -1,11 +1,10 @@
 use nom::{
-    bytes::complete::{is_not, tag, take_while1},
+    bytes::complete::is_not,
     character::complete::char,
     character::complete::multispace0,
     error::ParseError,
-    multi::{many0, separated_list0},
-    AsChar,
-    sequence::{delimited, terminated, tuple, preceded},
+    multi::many0,
+    sequence::{delimited, terminated, tuple},
     IResult,
 };
 

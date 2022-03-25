@@ -33,9 +33,20 @@ pub enum ColonSetParseError {
 #[derive(Debug, Error)]
 /// Error used when there was a problem parsing a `str` into a [`hitobject`][super::HitObjectWrapper].
 pub enum HitObjectParseError {
-    /// There is a missing property.
-    #[error("The property {0} of the object is missing")]
-    MissingProperty(String),
+    #[error("The hitobject is missing the `x` coordinate")]
+    MissingX,
+    #[error("The hitobject is missing the `y` coordinate")]
+    MissingY,
+    #[error("The hitobject is missing the `time`")]
+    MissingTime,
+    #[error("The hitobject is missing the `obj_type`")]
+    MissingObjType,
+    #[error("The hitobject is missing the `hit_sound`")]
+    MissingHitSound,
+    #[error("The hitobject is missing the `curve_type`")]
+    MissingCurveType,
+    #[error("The hitobject is missing the `curve_points`")]
+    MissingCurvePoints,
     /// There was a problem parsing a value.
     #[error("There was a problem parsing the `str` \"{value}\" to a property type")]
     ValueParseError {

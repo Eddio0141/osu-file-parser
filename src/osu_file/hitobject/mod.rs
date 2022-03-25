@@ -3,11 +3,8 @@ pub mod types;
 
 use std::fmt::Display;
 use std::str::FromStr;
+use std::str::Split;
 
-use nom::bytes::complete::is_not;
-use nom::character::streaming::char;
-use nom::combinator::map_res;
-use nom::sequence::tuple;
 use rust_decimal::Decimal;
 use thiserror::Error;
 
@@ -181,279 +178,152 @@ impl FromStr for HitObject {
     type Err = HitObjectParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let colon = char::<_, nom::error::Error<_>>(',');
-        let int = map_res(is_not(","), |f: &str| f.parse::<Integer>());
+        // TODO use nom
+        // let comma = tag::<_, _, nom::error::Error<_>>(",");
+        // let int = map_res(is_not(","), |f: &str| f.parse::<Integer>());
 
-        let (s, (x, _, y, _)) = tuple((int, colon, int, colon))(s).unwrap();
-        // let (s, (x, _)) = tuple((int, colon))(s).unwrap();
-        // let (s, (y, _)) = tuple((int, colon))(s).unwrap();
+        // let (s, (x, _, y, _)) = tuple((int, comma, int, comma))(s).unwrap();
 
-        // let (s, (x, _, y)) = tuple((test, colon, test))(s).unwrap();
+        // object properties split by ,
+        let mut obj_properties = s.trim().split(",");
 
-        todo!();
-        // let mut obj_properties = s.trim().split(',');
+        let x = obj_properties
+            .next()
+            .ok_or(HitObjectParseError::MissingX)?
+            .parse()?;
+        let y = obj_properties
+            .next()
+            .ok_or(HitObjectParseError::MissingY)?
+            .parse()?;
+        let time = obj_properties
+            .next()
+            .ok_or(HitObjectParseError::MissingTime)?
+            .parse()?;
+        let obj_type = obj_properties
+            .next()
+            .ok_or(HitObjectParseError::MissingObjType)?
+            .parse()?;
+        let hitsound = obj_properties
+            .next()
+            .ok_or(HitObjectParseError::MissingHitSound)?
+            .parse()?;
 
-        // let (x, y, time, obj_type, hitsound) = {
-        //     let properties = (&mut obj_properties).take(5).collect::<Vec<_>>();
+        let position = Position { x, y };
 
-        //     if properties.len() < 5 {
-        //         let missing_name = match properties.len() {
-        //             0 => "x",
-        //             1 => "y",
-        //             2 => "Time",
-        //             3 => "ObjType",
-        //             4 => "HitSound",
-        //             _ => unreachable!(),
-        //         };
-        //         return Err(HitObjectParseError::MissingProperty(
-        //             missing_name.to_string(),
-        //         ));
-        //     }
+        let new_combo = nth_bit_state_i64(obj_type as i64, 2);
+        let combo_skip_count = (obj_type >> 4 & 0b111) as u8;
 
-        //     let properties_parse = properties
-        //         .iter()
-        //         .map(|property| property.parse::<Integer>())
-        //         .collect::<Vec<_>>();
-        //     let first_err = properties_parse.iter().position(|result| result.is_err());
+        let hitsample = |s: &mut Split<char>| {
+            let hitsample = s.next().ok_or(HitObjectParseError::MissingHitsample)?;
 
-        //     if let Some(first_err) = first_err {
-        //         // since the first_err is a valid index here
-        //         let err = properties_parse
-        //             .get(first_err)
-        //             .unwrap()
-        //             .clone()
-        //             .unwrap_err();
+            hitsample.parse()?
+        };
 
-        //         return Err(HitObjectParseError::ValueParseError {
-        //             source: Box::new(err),
-        //             value: properties[first_err].to_string(),
-        //         });
-        //     }
+        if nth_bit_state_i64(obj_type as i64, 0) {
+            // hitcircle
+            Ok(Self {
+                position,
+                time,
+                obj_params: HitObjectParams::HitCircle,
+                new_combo,
+                combo_skip_count,
+                hitsound,
+                hitsample: hitsample(s)?,
+            })
+        } else if nth_bit_state_i64(obj_type as i64, 1) {
+            // slider
+            let (curve_type, curve_points) = obj_properties
+                .next()
+                .ok_or(HitObjectParseError::MissingCurveType)?
+                .split_once('|')
+                .ok_or_else(|| HitObjectParseError::MissingCurvePoints)?;
 
-        //     let properties = properties_parse
-        //         .iter()
-        //         .cloned()
-        //         .map(|property| property.ok().unwrap())
-        //         .collect::<Vec<_>>();
+            let curve_type = curve_type.parse()?;
 
-        //     (
-        //         properties[0],
-        //         properties[1],
-        //         properties[2],
-        //         properties[3],
-        //         properties[4],
-        //     )
-        // };
+            let curve_points = str_to_pipe_vec(curve_points).map_err(|err| {
+                HitObjectParseError::ValueParseError {
+                    value: curve_points.to_string(),
+                    source: Box::new(err),
+                }
+            })?;
 
-        // let position = Position { x, y };
+            let slides = s
+                .next()
+                .ok_or(HitObjectParseError::MissingSlides)?
+                .parse()?;
 
-        // let hitsound = hitsound
-        //     .try_into()
-        //     .map_err(|err| HitObjectParseError::ValueParseError {
-        //         source: Box::new(err),
-        //         value: hitsound.to_string(),
-        //     })?;
+            let length = obj_properties
+                .next()
+                .ok_or(|| HitObjectParseError::MissingLength)?
+                .parse()?;
 
-        // // type bit definition
-        // // 0: hitcircle, 1: slider, 2: newcombo, 3: spinner, 4 ~ 6: how many combo colours to skip, 7: osumania hold
-        // let (obj_type, new_combo, combo_skip_count) = {
-        //     let new_combo = nth_bit_state_i64(obj_type as i64, 2);
+            let edge_sounds = obj_properties
+                .next()
+                .ok_or(HitObjectParseError::MissingEdgeSounds);
+            let edge_sounds = str_to_pipe_vec(edge_sounds)?;
 
-        //     let combo_skip_count = (obj_type >> 4) & 0b111;
+            let edge_sets = obj_properties
+                .next()
+                .ok_or(HitObjectParseError::MissingEdgeSets)?;
+            let edge_sets = str_to_pipe_vec(edge_sets)?;
 
-        //     let obj_type = if nth_bit_state_i64(obj_type as i64, 0) {
-        //         HitObjectType::HitCircle
-        //     } else if nth_bit_state_i64(obj_type as i64, 1) {
-        //         HitObjectType::Slider
-        //     } else if nth_bit_state_i64(obj_type as i64, 3) {
-        //         HitObjectType::Spinner
-        //     } else if nth_bit_state_i64(obj_type as i64, 7) {
-        //         HitObjectType::OsuManiaHold
-        //     } else {
-        //         HitObjectType::HitCircle
-        //     };
+            Ok(Self {
+                position,
+                time,
+                obj_params: HitObjectParams::Slider {
+                    curve_type,
+                    curve_points,
+                    slides,
+                    length,
+                    edge_sounds,
+                    edge_sets,
+                },
+                new_combo,
+                combo_skip_count,
+                hitsound,
+                hitsample: hitsample(s)?,
+            })
+        } else if nth_bit_state_i64(obj_type as i64, 3) {
+            // spinner
+            let end_time = obj_properties
+                .next()
+                .ok_or(HitObjectParseError::MissingEndTime)?
+                .parse()?;
 
-        //     (
-        //         obj_type,
-        //         new_combo,
-        //         // this is fine since I remove the bits above the 2nd
-        //         combo_skip_count as u8,
-        //     )
-        // };
+            Ok(Self {
+                position,
+                time,
+                obj_params: HitObjectParams::Spinner { end_time },
+                new_combo,
+                combo_skip_count,
+                hitsound,
+                hitsample: hitsample(s)?,
+            })
+        } else if nth_bit_state_i64(obj_type as i64, 7) {
+            // osu!mania hold
 
-        // let hitsample = |obj_properties: &mut dyn Iterator<Item = &str>| {
-        //     let property = obj_properties
-        //         .next()
-        //         .ok_or_else(|| HitObjectParseError::MissingProperty("HitSample".to_string()))?;
+            // ppy has done it once again
+            let (end_time, hitsample) = obj_properties
+                .next()
+                .ok_or(HitObjectParseError::MissingEndTime)?
+                .split_once(':')
+                .ok_or(HitObjectParseError::MissingHitSample)?;
 
-        //     property
-        //         .parse()
-        //         .map_err(|err| HitObjectParseError::ValueParseError {
-        //             value: property.to_string(),
-        //             source: Box::new(err),
-        //         })
-        // };
+            let end_time = end_time.parse()?;
+            let hitsample = hitsample.parse()?;
 
-        // Ok(match obj_type {
-        //     HitObjectType::HitCircle => {
-        //         let hitsample = hitsample(&mut obj_properties)?;
-
-        //         HitObjectWrapper::HitCircle(HitCircle {
-        //             position,
-        //             time,
-        //             obj_type,
-        //             hitsound,
-        //             hitsample,
-        //             new_combo,
-        //             combo_skip_count,
-        //         })
-        //     }
-        //     HitObjectType::Slider => {
-        //         // idk why ppy decided to just put in curve type without the usual , splitter
-        //         let (curve_type, curve_points) = obj_properties
-        //             .next()
-        //             .ok_or_else(|| HitObjectParseError::MissingProperty("CurveType".to_string()))?
-        //             .split_once('|')
-        //             .ok_or_else(|| {
-        //                 HitObjectParseError::MissingProperty("CurvePoints".to_string())
-        //             })?;
-
-        //         let curve_type =
-        //             curve_type
-        //                 .parse()
-        //                 .map_err(|err| HitObjectParseError::ValueParseError {
-        //                     value: curve_type.to_string(),
-        //                     source: Box::new(err),
-        //                 })?;
-
-        //         let curve_points = str_to_pipe_vec(curve_points).map_err(|err| {
-        //             HitObjectParseError::ValueParseError {
-        //                 value: curve_points.to_string(),
-        //                 source: Box::new(err),
-        //             }
-        //         })?;
-
-        //         let slides = obj_properties
-        //             .next()
-        //             .ok_or_else(|| HitObjectParseError::MissingProperty("Slides".to_string()))?;
-        //         let slides =
-        //             slides
-        //                 .parse()
-        //                 .map_err(|err| HitObjectParseError::ValueParseError {
-        //                     value: slides.to_string(),
-        //                     source: Box::new(err),
-        //                 })?;
-
-        //         let length = obj_properties
-        //             .next()
-        //             .ok_or_else(|| HitObjectParseError::MissingProperty("Length".to_string()))?;
-        //         let length =
-        //             length
-        //                 .parse()
-        //                 .map_err(|err| HitObjectParseError::ValueParseError {
-        //                     value: length.to_string(),
-        //                     source: Box::new(err),
-        //                 })?;
-
-        //         let edge_sounds = obj_properties.next().ok_or_else(|| {
-        //             HitObjectParseError::MissingProperty("EdgeSounds".to_string())
-        //         })?;
-        //         let edge_sounds = str_to_pipe_vec(edge_sounds).map_err(|err| {
-        //             HitObjectParseError::ValueParseError {
-        //                 value: edge_sounds.to_string(),
-        //                 source: Box::new(err),
-        //             }
-        //         })?;
-
-        //         let edge_sets = obj_properties
-        //             .next()
-        //             .ok_or_else(|| HitObjectParseError::MissingProperty("EdgeSets".to_string()))?;
-        //         let edge_sets = str_to_pipe_vec(edge_sets).map_err(|err| {
-        //             HitObjectParseError::ValueParseError {
-        //                 value: edge_sets.to_string(),
-        //                 source: Box::new(err),
-        //             }
-        //         })?;
-
-        //         let hitsample = hitsample(&mut obj_properties)?;
-
-        //         HitObjectWrapper::Slider(Slider {
-        //             position,
-        //             time,
-        //             obj_type,
-        //             hitsound,
-        //             hitsample,
-        //             new_combo,
-        //             combo_skip_count,
-        //             curve_type,
-        //             curve_points,
-        //             slides,
-        //             length,
-        //             edge_sounds,
-        //             edge_sets,
-        //         })
-        //     }
-        //     HitObjectType::Spinner => {
-        //         let end_time = obj_properties
-        //             .next()
-        //             .ok_or_else(|| HitObjectParseError::MissingProperty("EndTime".to_string()))?;
-        //         let end_time =
-        //             end_time
-        //                 .parse()
-        //                 .map_err(|err| HitObjectParseError::ValueParseError {
-        //                     value: end_time.to_string(),
-        //                     source: Box::new(err),
-        //                 })?;
-
-        //         let hitsample = hitsample(&mut obj_properties)?;
-
-        //         HitObjectWrapper::Spinner(Spinner {
-        //             position,
-        //             time,
-        //             obj_type,
-        //             hitsound,
-        //             hitsample,
-        //             new_combo,
-        //             combo_skip_count,
-        //             end_time,
-        //         })
-        //     }
-        //     HitObjectType::OsuManiaHold => {
-        //         // ppy has done it once again
-        //         let (end_time, hitsample) = obj_properties
-        //             .next()
-        //             .ok_or_else(|| HitObjectParseError::MissingProperty("EndTime".to_string()))?
-        //             .split_once(':')
-        //             .ok_or_else(|| HitObjectParseError::MissingProperty("HitSample".to_string()))?;
-
-        //         let end_time =
-        //             end_time
-        //                 .parse()
-        //                 .map_err(|err| HitObjectParseError::ValueParseError {
-        //                     value: end_time.to_string(),
-        //                     source: Box::new(err),
-        //                 })?;
-
-        //         let hitsample =
-        //             hitsample
-        //                 .parse()
-        //                 .map_err(|err| HitObjectParseError::ValueParseError {
-        //                     value: hitsample.to_string(),
-        //                     source: Box::new(err),
-        //                 })?;
-
-        //         HitObjectWrapper::OsuManiaHold(OsuManiaHold {
-        //             position,
-        //             time,
-        //             obj_type,
-        //             hitsound,
-        //             hitsample,
-        //             new_combo,
-        //             combo_skip_count,
-        //             end_time,
-        //         })
-        //     }
-        // })
+            Ok(Self {
+                position,
+                time,
+                obj_params: HitObjectParams::OsuManiaHold { end_time },
+                new_combo,
+                combo_skip_count,
+                hitsound,
+                hitsample,
+            })
+        } else {
+            Err(HitObjectParseError::UnknownObjType)
+        }
     }
 }
 
