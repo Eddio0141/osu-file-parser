@@ -5,6 +5,12 @@ use std::fmt::Display;
 use std::str::FromStr;
 use std::str::Split;
 
+use nom::bytes::complete::is_not;
+use nom::bytes::complete::tag;
+use nom::bytes::complete::take_till;
+use nom::character::streaming::char;
+use nom::combinator::map_res;
+use nom::sequence::tuple;
 use rust_decimal::Decimal;
 use thiserror::Error;
 
@@ -178,80 +184,33 @@ impl FromStr for HitObject {
     type Err = HitObjectParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        // TODO use nom
-        // let comma = tag::<_, _, nom::error::Error<_>>(",");
-        // let int = map_res(is_not(","), |f: &str| f.parse::<Integer>());
+        // TODO error handling
+        let comma = || char::<_, nom::error::Error<_>>(',');
+        let int = || map_res(is_not(","), |f: &str| f.parse::<Integer>());
+        let hitsound = map_res(is_not(","), |f: &str| f.parse::<HitSound>());
+        let hitsample = map_res(take_till(false), |f: &str| f.parse::<HitSample>());
 
-        // let (s, (x, _, y, _)) = tuple((int, comma, int, comma))(s).unwrap();
-
-        // object properties split by ,
-        let mut obj_properties = s.trim().split(",");
-
-        let x = obj_properties.next().ok_or(HitObjectParseError::MissingX)?;
-        let x = x.parse().map_err(|err| HitObjectParseError::XParseError {
-            source: err,
-            value: x.to_string(),
-        })?;
-        let y = obj_properties.next().ok_or(HitObjectParseError::MissingY)?;
-        let y = y.parse().map_err(|err| HitObjectParseError::YParseError {
-            source: err,
-            value: y.to_string(),
-        })?;
-        let time = obj_properties
-            .next()
-            .ok_or(HitObjectParseError::MissingTime)?;
-        let time = time
-            .parse()
-            .map_err(|err| HitObjectParseError::TimeParseError {
-                source: err,
-                value: time.to_string(),
-            })?;
-        let obj_type = obj_properties
-            .next()
-            .ok_or(HitObjectParseError::MissingObjType)?;
-        let obj_type =
-            obj_type
-                .parse::<Integer>()
-                .map_err(|err| HitObjectParseError::ObjTypeParseError {
-                    source: err,
-                    value: obj_type.to_string(),
-                })?;
-        let hitsound = obj_properties
-            .next()
-            .ok_or(HitObjectParseError::MissingHitSound)?;
-        let hitsound = hitsound
-            .parse()
-            .map_err(|err| HitObjectParseError::HitSoundParseError {
-                source: err,
-                value: hitsound.to_string(),
-            })?;
+        let (s, (x, _, y, _, time, _, obj_type, _, hitsound, _)) = tuple((
+            int(),
+            comma(),
+            int(),
+            comma(),
+            int(),
+            comma(),
+            int(),
+            comma(),
+            hitsound,
+            comma(),
+        ))(s)
+        .unwrap();
 
         let position = Position { x, y };
 
         let new_combo = nth_bit_state_i64(obj_type as i64, 2);
         let combo_skip_count = (obj_type >> 4 & 0b111) as u8;
 
-        let hitsample = |s: &mut Split<&str>| {
-            let hitsample = s.next().ok_or(HitObjectParseError::MissingHitsample)?;
-
-            hitsample
-                .parse()
-                .map_err(|err| HitObjectParseError::HitsampleParseError {
-                    source: err,
-                    value: hitsample.to_string(),
-                })
-        };
-        let too_many_parameters_check = |s: &mut Split<&str>| {
-            if s.next().is_some() {
-                Err(HitObjectParseError::TooManyParameters)
-            } else {
-                Ok(())
-            }
-        };
-
         if nth_bit_state_i64(obj_type as i64, 0) {
-            let hitsample = hitsample(&mut obj_properties)?;
-            too_many_parameters_check(&mut obj_properties)?;
+            let (s, hitsample) = hitsample(s).unwrap();
 
             // hitcircle
             Ok(Self {
@@ -264,6 +223,8 @@ impl FromStr for HitObject {
                 hitsample,
             })
         } else if nth_bit_state_i64(obj_type as i64, 1) {
+            let curve_type = map_res(is_not("|"), |f: &str| f.parse::<CurveType>());
+
             // slider
             let (curve_type, curve_points) = obj_properties
                 .next()
@@ -409,6 +370,51 @@ impl FromStr for HitObject {
             // osu file format didn't specify what to do with no bit flags set
             Err(HitObjectParseError::UnknownObjType)
         }
+
+        /*
+        // object properties split by ,
+        let obj_type = obj_properties
+            .next()
+            .ok_or(HitObjectParseError::MissingObjType)?;
+        let obj_type =
+            obj_type
+                .parse::<Integer>()
+                .map_err(|err| HitObjectParseError::ObjTypeParseError {
+                    source: err,
+                    value: obj_type.to_string(),
+                })?;
+        let hitsound = obj_properties
+            .next()
+            .ok_or(HitObjectParseError::MissingHitSound)?;
+        let hitsound = hitsound
+            .parse()
+            .map_err(|err| HitObjectParseError::HitSoundParseError {
+                source: err,
+                value: hitsound.to_string(),
+            })?;
+
+        let position = Position { x, y };
+
+        let new_combo = nth_bit_state_i64(obj_type as i64, 2);
+        let combo_skip_count = (obj_type >> 4 & 0b111) as u8;
+
+        let hitsample = |s: &mut Split<&str>| {
+            let hitsample = s.next().ok_or(HitObjectParseError::MissingHitsample)?;
+
+            hitsample
+                .parse()
+                .map_err(|err| HitObjectParseError::HitsampleParseError {
+                    source: err,
+                    value: hitsample.to_string(),
+                })
+        };
+        let too_many_parameters_check = |s: &mut Split<&str>| {
+            if s.next().is_some() {
+                Err(HitObjectParseError::TooManyParameters)
+            } else {
+                Ok(())
+            }
+        };*/
     }
 }
 
