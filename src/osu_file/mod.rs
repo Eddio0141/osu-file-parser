@@ -143,31 +143,29 @@ impl FromStr for OsuFile {
                 // wrong line?
                 if s.starts_with('\n') || s.starts_with("\r\n") {
                     return Err(OsuFileParseError::FileVersionInWrongLine);
-                } else {
-                    if let nom::Err::Error(err) = err {
-                        let err = match err.code {
-                            nom::error::ErrorKind::Tag => {
-                                Err(OsuFileParseError::FileVersionDefinedWrong)
-                            }
-                            nom::error::ErrorKind::MapRes => {
-                                Err(OsuFileParseError::InvalidFileVersion(
-                                    s.lines()
-                                        .next()
-                                        .unwrap()
-                                        .strip_prefix("osu file format v")
-                                        .unwrap()
-                                        .to_string(),
-                                ))
-                            }
-                            _ => {
-                                unreachable!("Not possible to have the error kind {:#?}", err.code)
-                            }
-                        };
+                } else if let nom::Err::Error(err) = err {
+                    let err = match err.code {
+                        nom::error::ErrorKind::Tag => {
+                            Err(OsuFileParseError::FileVersionDefinedWrong)
+                        }
+                        nom::error::ErrorKind::MapRes => {
+                            Err(OsuFileParseError::InvalidFileVersion(
+                                s.lines()
+                                    .next()
+                                    .unwrap()
+                                    .strip_prefix("osu file format v")
+                                    .unwrap()
+                                    .to_string(),
+                            ))
+                        }
+                        _ => {
+                            unreachable!("Not possible to have the error kind {:#?}", err.code)
+                        }
+                    };
 
-                        return err;
-                    } else {
-                        unreachable!("Not possible to reach when the errors are already handled");
-                    }
+                    return err;
+                } else {
+                    unreachable!("Not possible to reach when the errors are already handled");
                 }
             }
         };
