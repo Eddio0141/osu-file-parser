@@ -137,6 +137,7 @@ impl FromStr for OsuFile {
         let section_until = take_till(|c| c == '[');
         let section = tuple((ws(section_name), section_until));
 
+        // TODO better error messages
         let (s, (_, version)) = match tuple((version_text, version_number))(s) {
             Ok(ok) => ok,
             Err(err) => {
