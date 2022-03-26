@@ -7,6 +7,7 @@ use std::{
 
 use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
+use strum_macros::FromRepr;
 use thiserror::Error;
 
 use super::{
@@ -134,7 +135,6 @@ impl TimingPoint {
         if self.uninherited {
             None
         } else {
-            // TODO cache?
             Some(dec!(1) / (self.beat_length / dec!(-100)))
         }
     }
@@ -304,7 +304,8 @@ pub enum TimingPointParseError {
 
 // TODO figure out default
 /// Default sample set for hitobjects.
-#[derive(Clone, Copy, Hash, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, Hash, PartialEq, Eq, Debug, FromRepr)]
+#[non_exhaustive]
 pub enum SampleSet {
     /// Beatmap's default.
     BeatmapDefault,
@@ -326,48 +327,25 @@ impl FromStr for SampleSet {
     type Err = SampleSetParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        SampleSet::try_from(s.parse::<u8>().map_err(|err| {
-            SampleSetParseError::ValueParseError {
+        let s = s
+            .parse()
+            .map_err(|err| SampleSetParseError::ValueParseError {
                 source: err,
                 value: s.to_string(),
-            }
-        })?)
-    }
-}
+            })?;
 
-impl TryFrom<u8> for SampleSet {
-    type Error = SampleSetParseError;
-
-    fn try_from(value: u8) -> Result<Self, Self::Error> {
-        match value {
-            0 => Ok(SampleSet::BeatmapDefault),
-            1 => Ok(SampleSet::Normal),
-            2 => Ok(SampleSet::Soft),
-            3 => Ok(SampleSet::Drum),
-            _ => Err(SampleSetParseError::UnknownSampleSetType(value)),
-        }
-    }
-}
-
-impl From<SampleSet> for u8 {
-    fn from(sample_set: SampleSet) -> Self {
-        match sample_set {
-            SampleSet::BeatmapDefault => 0,
-            SampleSet::Normal => 1,
-            SampleSet::Soft => 2,
-            SampleSet::Drum => 3,
-        }
+        SampleSet::from_repr(s).ok_or(SampleSetParseError::UnknownSampleSet(s))
     }
 }
 
 impl Display for SampleSet {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", u8::from(*self))
+        write!(f, "{}", *self as u8)
     }
 }
 
 /// There was some problem parsing the [`SampleSet`].
-#[derive(Debug, Error)]
+#[derive(Debug, Error, PartialEq)]
 pub enum SampleSetParseError {
     /// The value failed to parse from a `str`.
     #[error("There was a problem parsing {value} as an `Integer`")]
@@ -378,7 +356,7 @@ pub enum SampleSetParseError {
     },
     /// The `SampleSet` type is invalid.
     #[error("Expected `SampleSet` to have a value of 0 ~ 3, got {0}")]
-    UnknownSampleSetType(u8),
+    UnknownSampleSet(usize),
 }
 
 // TODO figure out default
@@ -580,7 +558,7 @@ impl Volume {
 }
 
 /// Error for when there was a problem setting / parsing the volume.
-#[derive(Debug, Error)]
+#[derive(Debug, Error, PartialEq)]
 pub enum VolumeError {
     /// Error when volume is out of range of the 0 ~ 100 range.
     #[error("The volume was too high, expected 0 ~ 100, got {0}")]
