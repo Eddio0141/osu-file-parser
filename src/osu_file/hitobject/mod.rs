@@ -8,6 +8,7 @@ use nom::bytes::complete::is_not;
 use nom::bytes::complete::take_till;
 use nom::character::streaming::char;
 use nom::combinator::map_res;
+use nom::error::VerboseError;
 use nom::sequence::tuple;
 use rust_decimal::Decimal;
 use thiserror::Error;
@@ -184,12 +185,21 @@ impl FromStr for HitObject {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         // TODO error handling
-        let comma = || char::<_, nom::error::Error<_>>(',');
-        let int = || map_res(is_not(","), |f: &str| f.parse::<Integer>());
-        let hitsound = map_res(is_not(","), |f: &str| f.parse::<HitSound>());
-        let mut hitsample = map_res(take_till(|_| false), |f: &str| f.parse::<HitSample>());
+        let comma = || char::<_, VerboseError<_>>(',');
+        let int = || {
+            map_res::<_, _, _, VerboseError<_>, _, _, _>(is_not(","), |f: &str| {
+                f.parse::<Integer>()
+            })
+        };
+        let hitsound = map_res::<_, _, _, VerboseError<_>, _, _, _>(is_not(","), |f: &str| {
+            f.parse::<HitSound>()
+        });
+        let mut hitsample =
+            map_res::<_, _, _, VerboseError<_>, _, _, _>(take_till(|_| false), |f: &str| {
+                f.parse::<HitSample>()
+            });
 
-        let (s, (x, _, y, _, time, _, obj_type, _, hitsound, _)) = tuple((
+        let mut hitobject_base = tuple::<_, _, VerboseError<_>, _>((
             int(),
             comma(),
             int(),
@@ -200,8 +210,20 @@ impl FromStr for HitObject {
             comma(),
             hitsound,
             comma(),
-        ))(s)
-        .unwrap();
+        ));
+
+        // TODO verbose error print into something readable
+        let (s, (x, _, y, _, time, _, obj_type, _, hitsound, _)) = match hitobject_base(s) {
+            Ok(ok) => ok,
+            Err(err) => match err {
+                nom::Err::Incomplete(err) => panic!("{:#?}", err),
+                nom::Err::Error(err) => {
+                    println!("error print: {}", nom::error::convert_error(s, err));
+                    panic!()
+                }
+                nom::Err::Failure(err) => panic!("{:#?}", err),
+            },
+        };
 
         let position = Position { x, y };
 
@@ -210,6 +232,10 @@ impl FromStr for HitObject {
 
         if nth_bit_state_i64(obj_type as i64, 0) {
             let (s, hitsample) = hitsample(s).unwrap();
+
+            if !s.is_empty() {
+                return Err(HitObjectParseError::TooManyParameters);
+            }
 
             // hitcircle
             Ok(Self {
@@ -266,6 +292,10 @@ impl FromStr for HitObject {
             ))(s)
             .unwrap();
 
+            if !s.is_empty() {
+                return Err(HitObjectParseError::TooManyParameters);
+            }
+
             Ok(Self {
                 position,
                 time,
@@ -287,6 +317,10 @@ impl FromStr for HitObject {
             // TODO error handling
             let (s, (end_time, _, hitsample)) = tuple((int(), comma(), hitsample))(s).unwrap();
 
+            if !s.is_empty() {
+                return Err(HitObjectParseError::TooManyParameters);
+            }
+
             Ok(Self {
                 position,
                 time,
@@ -302,6 +336,10 @@ impl FromStr for HitObject {
             // ppy has done it once again
             let (s, (end_time, _, hitsample)) = tuple((int(), char('|'), hitsample))(s).unwrap();
 
+            if !s.is_empty() {
+                return Err(HitObjectParseError::TooManyParameters);
+            }
+
             Ok(Self {
                 position,
                 time,
@@ -315,51 +353,6 @@ impl FromStr for HitObject {
             // osu file format didn't specify what to do with no bit flags set
             Err(HitObjectParseError::UnknownObjType)
         }
-
-        /*
-        // object properties split by ,
-        let obj_type = obj_properties
-            .next()
-            .ok_or(HitObjectParseError::MissingObjType)?;
-        let obj_type =
-            obj_type
-                .parse::<Integer>()
-                .map_err(|err| HitObjectParseError::ObjTypeParseError {
-                    source: err,
-                    value: obj_type.to_string(),
-                })?;
-        let hitsound = obj_properties
-            .next()
-            .ok_or(HitObjectParseError::MissingHitSound)?;
-        let hitsound = hitsound
-            .parse()
-            .map_err(|err| HitObjectParseError::HitSoundParseError {
-                source: err,
-                value: hitsound.to_string(),
-            })?;
-
-        let position = Position { x, y };
-
-        let new_combo = nth_bit_state_i64(obj_type as i64, 2);
-        let combo_skip_count = (obj_type >> 4 & 0b111) as u8;
-
-        let hitsample = |s: &mut Split<&str>| {
-            let hitsample = s.next().ok_or(HitObjectParseError::MissingHitsample)?;
-
-            hitsample
-                .parse()
-                .map_err(|err| HitObjectParseError::HitsampleParseError {
-                    source: err,
-                    value: hitsample.to_string(),
-                })
-        };
-        let too_many_parameters_check = |s: &mut Split<&str>| {
-            if s.next().is_some() {
-                Err(HitObjectParseError::TooManyParameters)
-            } else {
-                Ok(())
-            }
-        };*/
     }
 }
 

@@ -1192,3 +1192,15 @@ fn osu_file_smallest_parse() {
 
     assert_eq!(i, o.to_string());
 }
+
+#[test]
+fn hitobject_invalid_parse() {
+    let i = "256,192,8016,1,0,";
+
+    let _o: HitObject = i.parse().unwrap();
+
+    // assert_eq!(
+    //     "HitObjectParseError(\"HitObjectParseError(\"Invalid hitobject type: 1\")\")",
+    //     format!("{:?}", o)
+    // );
+}
