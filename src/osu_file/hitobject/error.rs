@@ -163,8 +163,8 @@ pub enum HitSampleParseError {
 /// Error used when there was a problem parsing a `str` into a [`sampleset`][super::types::SampleSet].
 pub enum SampleSetParseError {
     /// The `str` had a value higher than 3.
-    #[error("Expected value in between `0` ~ `3`, got {0}")]
-    ValueHigherThanThree(i32),
+    #[error("Invalid `SampleSet` type: {0}")]
+    UnknownType(usize),
     /// There was a problem parsing a `str` as an integer first.
     #[error("There was a problem parsing the `str` into an integer first")]
     ValueParseError(#[from] ParseIntError),

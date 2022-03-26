@@ -2,7 +2,7 @@
 
 use std::{fmt::Display, num::NonZeroUsize, str::FromStr};
 
-use strum_macros::{EnumString, Display};
+use strum_macros::{Display, EnumString, FromRepr};
 
 use crate::osu_file::{helper::nth_bit_state_i64, Integer, Position};
 
@@ -100,7 +100,7 @@ impl Display for CurvePoint {
 }
 
 /// Used for `normal_set` and `addition_set` for the `[hitobject]`[super::HitObject].
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, FromRepr)]
 pub enum SampleSet {
     /// No custom sample set.
     NoCustomSampleSet,
@@ -120,14 +120,7 @@ impl Default for SampleSet {
 
 impl Display for SampleSet {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let err = match self {
-            SampleSet::NoCustomSampleSet => '0',
-            SampleSet::NormalSet => '1',
-            SampleSet::SoftSet => '2',
-            SampleSet::DrumSet => '3',
-        };
-
-        write!(f, "{err}")
+        write!(f, "{}", *self as usize)
     }
 }
 
@@ -135,32 +128,8 @@ impl FromStr for SampleSet {
     type Err = SampleSetParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        SampleSet::try_from(s.parse::<Integer>()?)
-    }
-}
-
-impl From<SampleSet> for Integer {
-    fn from(sampleset: SampleSet) -> Self {
-        match sampleset {
-            SampleSet::NoCustomSampleSet => 0,
-            SampleSet::NormalSet => 1,
-            SampleSet::SoftSet => 2,
-            SampleSet::DrumSet => 3,
-        }
-    }
-}
-
-impl TryFrom<Integer> for SampleSet {
-    type Error = SampleSetParseError;
-
-    fn try_from(value: Integer) -> Result<Self, Self::Error> {
-        match value {
-            0 => Ok(SampleSet::NoCustomSampleSet),
-            1 => Ok(SampleSet::NormalSet),
-            2 => Ok(SampleSet::SoftSet),
-            3 => Ok(SampleSet::DrumSet),
-            _ => Err(SampleSetParseError::ValueHigherThanThree(value)),
-        }
+        let s = s.parse()?;
+        SampleSet::from_repr(s).ok_or(SampleSetParseError::UnknownType(s))
     }
 }
 
@@ -382,8 +351,6 @@ pub struct HitSample {
 
 impl Display for HitSample {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let normal_set: Integer = self.normal_set.into();
-        let addition_set: Integer = self.addition_set.into();
         let index = match self.index {
             Some(index) => index.into(),
             None => 0,
@@ -391,7 +358,11 @@ impl Display for HitSample {
         let volume: Integer = self.volume.into();
         let filename = &self.filename;
 
-        write!(f, "{normal_set}:{addition_set}:{index}:{volume}:{filename}")
+        write!(
+            f,
+            "{}:{}:{index}:{volume}:{filename}",
+            self.normal_set, self.addition_set
+        )
     }
 }
 
