@@ -1,11 +1,12 @@
 use nom::{
+    branch::alt,
     bytes::complete::{is_not, take_while},
     character::complete::char,
     character::complete::multispace0,
-    combinator::map_res,
+    combinator::{map_res, not},
     error::ParseError,
-    multi::{many0, separated_list0},
-    sequence::{delimited, terminated, tuple},
+    multi::{many0, many_till},
+    sequence::{delimited, preceded, terminated, tuple},
     IResult,
 };
 
@@ -50,13 +51,15 @@ pub fn get_colon_field_value_lines(s: &str) -> IResult<&str, Vec<(&str, &str)>> 
 
 pub fn pipe_vec<'a, O, E, M, E2>(
     mapper: M,
-) -> impl FnMut(&'a str) -> IResult<&'a str, Vec<O>, E>
+) -> impl FnMut(&'a str) -> IResult<&'a str, (Vec<O>, O), E>
 where
     E: ParseError<&'a str> + nom::error::FromExternalError<&'a str, E2>,
-    M: Fn(&str) -> Result<O, E2>,
+    M: Fn(&str) -> Result<O, E2> + 'a,
 {
-    let pipe = char('|');
+    let mapper = || mapper;
     let pipe_vec_item = take_while(|c: char| c != '|');
-    let pipe_vec_item_map = map_res(pipe_vec_item, mapper);
-    separated_list0(pipe, pipe_vec_item_map)
+    let pipe_vec_item_map = map_res(pipe_vec_item, mapper());
+    let pipe_vec_item_end = take_while(|c: char| c != ',');
+    let pipe_vec_item_end_map = map_res(pipe_vec_item_end, mapper());
+    many_till(pipe_vec_item_map, pipe_vec_item_end_map)
 }

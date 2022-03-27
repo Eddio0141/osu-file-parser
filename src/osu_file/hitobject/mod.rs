@@ -65,28 +65,6 @@ pub struct HitObjectsParseError(#[from] HitObjectParseError);
 ///
 /// The `type` property is a `u8` integer with each bit flags containing some information, which are split into the functions:
 /// [hitobject_type][Self::obj_type], [new_combo][Self::new_combo], [combo_skip_count][Self::combo_skip_count]
-/// TODO unmerge this
-/// Attempts to parse a `&str` into a [HitObjectWrapper].
-///
-/// # Example
-/// ```
-/// use osu_file_parser::osu_file::hitobject::try_parse_hitobject;
-///
-/// let hitcircle_str = "221,350,9780,1,0,0:0:0:0:";
-/// let slider_str = "31,85,3049,2,0,B|129:55|123:136|228:86,1,172.51,2|0,3:2|0:2,0:2:0:0:";
-/// let spinner_str = "256,192,33598,12,0,431279,0:0:0:0:";
-/// let osu_mania_hold_str = "51,192,350,128,2,849:0:0:0:0:";
-///
-/// let hitcircle = try_parse_hitobject(hitcircle_str).unwrap();
-/// let slider = try_parse_hitobject(slider_str).unwrap();
-/// let spinner = try_parse_hitobject(spinner_str).unwrap();
-/// let osu_mania_hold = try_parse_hitobject(osu_mania_hold_str).unwrap();
-///
-/// assert_eq!(hitcircle_str, hitcircle.to_string());
-/// assert_eq!(slider_str, slider.to_string());
-/// assert_eq!(spinner_str, spinner.to_string());
-/// assert_eq!(osu_mania_hold_str, osu_mania_hold.to_string());
-/// ```
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct HitObject {
@@ -263,31 +241,25 @@ impl FromStr for HitObject {
                 (
                     curve_type,
                     _,
-                    curve_points,
-                    _,
+                    (curve_points, _),
                     slides,
                     _,
                     length,
                     _,
-                    edge_sounds,
-                    _,
-                    edge_sets,
-                    _,
+                    (edge_sounds, _),
+                    (edge_sets, _),
                     hitsample,
                 ),
             ) = tuple((
                 curve_type,
                 pipe,
                 curve_points,
-                comma(),
                 int(),
                 comma(),
                 decimal,
                 comma(),
                 edge_sounds,
-                comma(),
                 edge_sets,
-                comma(),
                 hitsample,
             ))(s)
             .unwrap();
