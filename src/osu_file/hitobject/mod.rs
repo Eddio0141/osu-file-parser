@@ -209,6 +209,7 @@ impl FromStr for HitObject {
         let combo_skip_count = (obj_type >> 4 & 0b111) as u8;
 
         if nth_bit_state_i64(obj_type as i64, 0) {
+            println!("{s}");
             let (s, hitsample) = hitsample(s).unwrap();
 
             if !s.is_empty() {
@@ -241,25 +242,31 @@ impl FromStr for HitObject {
                 (
                     curve_type,
                     _,
-                    (curve_points, _),
+                    curve_points,
+                    _,
                     slides,
                     _,
                     length,
                     _,
-                    (edge_sounds, _),
-                    (edge_sets, _),
+                    edge_sounds,
+                    _,
+                    edge_sets,
+                    _,
                     hitsample,
                 ),
             ) = tuple((
                 curve_type,
                 pipe,
                 curve_points,
+                comma(),
                 int(),
                 comma(),
                 decimal,
                 comma(),
                 edge_sounds,
+                comma(),
                 edge_sets,
+                comma(),
                 hitsample,
             ))(s)
             .unwrap();
