@@ -8,13 +8,14 @@ use std::{
 use rust_decimal_macros::dec;
 
 use crate::osu_file::{
-    colours::{Colour, Rgb},
+    colours::{Colour, Colours, Rgb},
     difficulty::Difficulty,
     editor::Editor,
     events::{
         storyboard::{
             self, Addition, Animation, Command, CommandProperties, Easing, Layer, LoopType, Object,
-            ObjectType, Origin, Parameter, Sprite, TriggerType,
+            ObjectType, Opacities, Origin, Parameter, PositionsX, PositionsXY, PositionsY,
+            Rotations, Scales, ScalesXY, Sprite, TriggerType,
         },
         Background, Break, Event, EventParams, Events,
     },
@@ -31,7 +32,7 @@ use crate::osu_file::{
 
 #[test]
 fn general_parse() {
-    let i = "AudioFilename: test.mp3
+    let i_str = "AudioFilename: test.mp3
 AudioLeadIn: 555
 AudioHash: no.mp3
 PreviewTime: 5
@@ -50,7 +51,7 @@ CountdownOffset: 120
 SpecialStyle: 1
 WidescreenStoryboard: 1
 SamplesMatchPlaybackRate: 1";
-    let i = i.parse::<General>().unwrap();
+    let i = i_str.parse::<General>().unwrap();
 
     let g = General {
         audio_filename: Some("test.mp3".to_string()),
@@ -75,42 +76,17 @@ SamplesMatchPlaybackRate: 1";
     };
 
     assert_eq!(i, g);
-}
-
-#[test]
-fn general_parse_back() {
-    let i = "AudioFilename: test.mp3
-AudioLeadIn: 555
-AudioHash: no.mp3
-PreviewTime: 5
-Countdown: 3
-SampleSet: Soft
-StackLeniency: 0.9
-Mode: 1
-LetterboxInBreaks: 1
-StoryFireInFront: 0
-UseSkinSprites: 1
-AlwaysShowPlayfield: 0
-OverlayPosition: Above
-SkinPreference: myskin
-EpilepsyWarning: 1
-CountdownOffset: 120
-SpecialStyle: 1
-WidescreenStoryboard: 1
-SamplesMatchPlaybackRate: 1";
-    let g = i.parse::<General>().unwrap();
-
-    assert_eq!(i, g.to_string());
+    assert_eq!(i_str, i.to_string());
 }
 
 #[test]
 fn editor_parse() {
-    let i = "Bookmarks: 11018,21683,32349,37683,48349,59016,69683,80349,91016
+    let i_str = "Bookmarks: 11018,21683,32349,37683,48349,59016,69683,80349,91016
 DistanceSpacing: 0.8
 BeatDivisor: 12
 GridSize: 8
 TimelineZoom: 2";
-    let i: Editor = i.parse().unwrap();
+    let i: Editor = i_str.parse().unwrap();
 
     let e = Editor {
         bookmarks: vec![
@@ -123,23 +99,12 @@ TimelineZoom: 2";
     };
 
     assert_eq!(i, e);
-}
-
-#[test]
-fn editor_parse_back() {
-    let i = "Bookmarks: 11018,21683,32349,37683,48349,59016,69683,80349,91016
-DistanceSpacing: 0.8
-BeatDivisor: 12
-GridSize: 8
-TimelineZoom: 2";
-    let e: Editor = i.parse().unwrap();
-
-    assert_eq!(i, e.to_string());
+    assert_eq!(i_str, i.to_string());
 }
 
 #[test]
 fn metadata_parse() {
-    let i = "Title:LOVE IS ORANGE
+    let i_str = "Title:LOVE IS ORANGE
 TitleUnicode:LOVE IS ORANGE
 Artist:Orange Lounge
 ArtistUnicode:Orange Lounge
@@ -149,7 +114,7 @@ Source:beatmania IIDX 8th style
 Tags:famoss 舟木智介 tomosuke funaki 徳井志津江 videogame ハードシャンソン Tart&Toffee
 BeatmapID:3072232
 BeatmapSetID:1499093";
-    let i: Metadata = i.parse().unwrap();
+    let i: Metadata = i_str.parse().unwrap();
 
     let m = Metadata {
         title: "LOVE IS ORANGE".to_string(),
@@ -174,34 +139,18 @@ BeatmapSetID:1499093";
     };
 
     assert_eq!(i, m);
-}
-
-#[test]
-fn metadata_parse_back() {
-    let i = "Title:LOVE IS ORANGE
-TitleUnicode:LOVE IS ORANGE
-Artist:Orange Lounge
-ArtistUnicode:Orange Lounge
-Creator:Xnery
-Version:Bittersweet Love
-Source:beatmania IIDX 8th style
-Tags:famoss 舟木智介 tomosuke funaki 徳井志津江 videogame ハードシャンソン Tart&Toffee
-BeatmapID:3072232
-BeatmapSetID:1499093";
-    let m: Metadata = i.parse().unwrap();
-
-    assert_eq!(i, m.to_string());
+    assert_eq!(i_str, i.to_string());
 }
 
 #[test]
 fn difficulty_parse() {
-    let i = "HPDrainRate:8
+    let i_str = "HPDrainRate:8
 CircleSize:5
 OverallDifficulty:8
 ApproachRate:5
 SliderMultiplier:1.4
 SliderTickRate:1";
-    let i: Difficulty = i.parse().unwrap();
+    let i: Difficulty = i_str.parse().unwrap();
 
     let d = Difficulty {
         hp_drain_rate: dec!(8),
@@ -213,27 +162,15 @@ SliderTickRate:1";
     };
 
     assert_eq!(i, d);
-}
-
-#[test]
-fn difficulty_parse_back() {
-    let i = "HPDrainRate:8
-CircleSize:5
-OverallDifficulty:8
-ApproachRate:5
-SliderMultiplier:1.4
-SliderTickRate:1";
-    let d: Difficulty = i.parse().unwrap();
-
-    assert_eq!(i, d.to_string());
+    assert_eq!(i_str, i.to_string());
 }
 
 #[test]
 fn colours_parse() {
-    let i = "Combo1 : 255,128,255
+    let i_str = "Combo1 : 255,128,255
 SliderTrackOverride : 100,99,70
 SliderBorder : 120,130,140";
-    let i: Vec<Colour> = i.lines().map(|line| line.parse().unwrap()).collect();
+    let i: Colours = i_str.parse().unwrap();
 
     let c = vec![
         Colour::Combo(
@@ -256,33 +193,15 @@ SliderBorder : 120,130,140";
         }),
     ];
 
-    assert_eq!(i, c);
-}
-
-#[test]
-fn colours_parse_back() {
-    let i = "Combo1 : 255,128,255
-SliderTrackOverride : 100,99,70
-SliderBorder : 120,130,140";
-    let c: Vec<Colour> = i.lines().map(|line| line.parse().unwrap()).collect();
-
-    assert_eq!(
-        i,
-        c.iter()
-            .map(|c| c.to_string())
-            .collect::<Vec<_>>()
-            .join("\n")
-    );
+    assert_eq!(i, Colours(c));
+    assert_eq!(i_str, i.to_string());
 }
 
 #[test]
 fn timing_points_parse() {
-    let i = "10000,333.33,4,0,0,100,1,1
+    let i_str = "10000,333.33,4,0,0,100,1,1
 12000,-25,4,3,0,100,0,1";
-    let i: Vec<TimingPoint> = i
-        .lines()
-        .map(|timing_point| timing_point.parse().unwrap())
-        .collect();
+    let i = i_str.parse::<TimingPoints>().unwrap();
 
     let t = vec![
         TimingPoint::new_uninherited(
@@ -311,34 +230,17 @@ fn timing_points_parse() {
         ),
     ];
 
-    assert_eq!(i, t);
-}
-
-#[test]
-fn timing_points_parse_back() {
-    let i = "10000,333.33,4,0,0,100,1,1
-12000,-25,4,3,0,100,0,1";
-    let t: Vec<TimingPoint> = i
-        .lines()
-        .map(|timing_point| timing_point.parse().unwrap())
-        .collect();
-
-    assert_eq!(
-        i,
-        t.iter()
-            .map(|t| t.to_string())
-            .collect::<Vec<_>>()
-            .join("\n")
-    );
+    assert_eq!(i, TimingPoints(t));
+    assert_eq!(i_str, i.to_string());
 }
 
 #[test]
 fn events_parse() {
-    let i = "0,0,\"bg2.jpg\",0,0
+    let i_str = "0,0,\"bg2.jpg\",0,0
 0,0,bg2.jpg,0,0
 //Break Periods
 2,100,163";
-    let i: Events = i.parse().unwrap();
+    let i: Events = i_str.parse().unwrap();
 
     let e = Events(vec![
         Event::NormalEvent {
@@ -363,17 +265,7 @@ fn events_parse() {
     ]);
 
     assert_eq!(i, e);
-}
-
-#[test]
-fn events_parse_back() {
-    let i = "0,0,\"bg2.jpg\",0,0
-0,0,bg2.jpg,0,0
-//Break Periods
-2,100,163";
-    let e: Events = i.parse().unwrap();
-
-    assert_eq!(i, e.to_string());
+    assert_eq!(i_str, i.to_string());
 }
 
 #[test]
@@ -410,463 +302,7 @@ fn frame_file_names() {
 
 #[test]
 fn storyboard_sprites_cmd_parse() {
-    let i = "
-Sprite,Pass,Centre,\"Text\\Play2-HaveFunH.png\",320,240
- F,0,-28,,1
- M,3,100,120,140,180.123123,200,200
-_MX,3,100,120,140,180.123123
-_MY,3,100,120,140,180.123123
- S,0,-28,,0.4
- V,8,5000,5500,0.5,2,2,0.5
- R,7,5000,5500,-0.785,0.785
- C,6,50000,50001,0,0,0,255,255,255
- P,5,300,350,H
- P,5,300,350,V
- P,5,300,350,A
- L,500,10
-  L,10,10
-   M,3,100,120,140,180.123123,200,200
-___S,0,-28,,0.4
- T,HitSound,0,10
-  L,10,10
-   M,3,100,120,140,180.123123,200,200
- T,HitSoundClap,0,10
-  M,3,100,120,140,180.123123,200,200
- T,HitSoundFinish,0,10
-  M,3,100,120,140,180.123123,200,200
- T,HitSoundWhistle,0,10
-  M,3,100,120,140,180.123123,200,200
- T,HitSoundDrumWhistle,0,10
-  M,3,100,120,140,180.123123,200,200
- T,HitSoundSoft,0,10
-  M,3,100,120,140,180.123123,200,200
- T,HitSoundAllSoft,0,10
-  M,3,100,120,140,180.123123,200,200
- T,HitSoundDrumClap0,0,10
-  M,3,100,120,140,180.123123,200,200
- T,HitSound6,0,10
-  M,3,100,120,140,180.123123,200,200
- T,HitSoundPassing,0,10
-  M,3,100,120,140,180.123123,200,200
- T,HitSoundFailing,0,10
-  M,3,100,120,140,180.123123,200,200";
-    let i: Events = i.parse().unwrap();
-
-    let s = Events(vec![Event::Storyboard(Object {
-        layer: Layer::Pass,
-        origin: Origin::Centre,
-        position: Position { x: 320, y: 240 },
-        object_type: ObjectType::Sprite(
-            Sprite::new(Path::new("\"Text\\Play2-HaveFunH.png\"")).unwrap(),
-        ),
-        commands: vec![
-            Command {
-                start_time: -28,
-                properties: CommandProperties::Fade {
-                    easing: Easing::from_repr(0).unwrap(),
-                    end_time: -28,
-                    start_opacity: dec!(1),
-                    end_opacity: dec!(1),
-                },
-            },
-            Command {
-                start_time: 100,
-                properties: CommandProperties::Move {
-                    easing: Easing::from_repr(3).unwrap(),
-                    end_time: 120,
-                    start_x: dec!(140),
-                    start_y: dec!(180.123123),
-                    end_x: dec!(200),
-                    end_y: dec!(200),
-                },
-            },
-            Command {
-                start_time: 100,
-                properties: CommandProperties::MoveX {
-                    easing: Easing::from_repr(3).unwrap(),
-                    end_time: 120,
-                    start_x: dec!(140),
-                    end_x: dec!(180.123123),
-                },
-            },
-            Command {
-                start_time: 100,
-                properties: CommandProperties::MoveY {
-                    easing: Easing::from_repr(3).unwrap(),
-                    end_time: 120,
-                    start_y: dec!(140),
-                    end_y: dec!(180.123123),
-                },
-            },
-            Command {
-                start_time: -28,
-                properties: CommandProperties::Scale {
-                    easing: Easing::from_repr(0).unwrap(),
-                    end_time: -28,
-                    start_scale: dec!(0.4),
-                    end_scale: dec!(0.4),
-                },
-            },
-            Command {
-                start_time: 5000,
-                properties: CommandProperties::VectorScale {
-                    easing: Easing::from_repr(8).unwrap(),
-                    end_time: 5500,
-                    start_scale_x: dec!(0.5),
-                    start_scale_y: dec!(2),
-                    end_scale_x: dec!(2),
-                    end_scale_y: dec!(0.5),
-                },
-            },
-            Command {
-                start_time: 5000,
-                properties: CommandProperties::Rotate {
-                    easing: Easing::from_repr(7).unwrap(),
-                    end_time: 5500,
-                    start_rotate: dec!(-0.785),
-                    end_rotate: dec!(0.785),
-                },
-            },
-            Command {
-                start_time: 50000,
-                properties: CommandProperties::Colour {
-                    easing: Easing::from_repr(6).unwrap(),
-                    end_time: 50001,
-                    start_r: 0,
-                    start_g: 0,
-                    start_b: 0,
-                    end_r: 255,
-                    end_g: 255,
-                    end_b: 255,
-                },
-            },
-            Command {
-                start_time: 300,
-                properties: CommandProperties::Parameter {
-                    easing: Easing::from_repr(5).unwrap(),
-                    end_time: 350,
-                    parameter: Parameter::ImageFlipHorizontal,
-                },
-            },
-            Command {
-                start_time: 300,
-                properties: CommandProperties::Parameter {
-                    easing: Easing::from_repr(5).unwrap(),
-                    end_time: 350,
-                    parameter: Parameter::ImageFlipVertical,
-                },
-            },
-            Command {
-                start_time: 300,
-                properties: CommandProperties::Parameter {
-                    easing: Easing::from_repr(5).unwrap(),
-                    end_time: 350,
-                    parameter: Parameter::UseAdditiveColourBlending,
-                },
-            },
-            Command {
-                start_time: 500,
-                properties: CommandProperties::Loop {
-                    loop_count: 10,
-                    commands: vec![Command {
-                        start_time: 10,
-                        properties: CommandProperties::Loop {
-                            loop_count: 10,
-                            commands: vec![
-                                Command {
-                                    start_time: 100,
-                                    properties: CommandProperties::Move {
-                                        easing: Easing::from_repr(3).unwrap(),
-                                        end_time: 120,
-                                        start_x: dec!(140),
-                                        start_y: dec!(180.123123),
-                                        end_x: dec!(200),
-                                        end_y: dec!(200),
-                                    },
-                                },
-                                Command {
-                                    start_time: -28,
-                                    properties: CommandProperties::Scale {
-                                        easing: Easing::from_repr(0).unwrap(),
-                                        end_time: -28,
-                                        start_scale: dec!(0.4),
-                                        end_scale: dec!(0.4),
-                                    },
-                                },
-                            ],
-                        },
-                    }],
-                },
-            },
-            Command {
-                start_time: 0,
-                properties: CommandProperties::Trigger {
-                    trigger_type: TriggerType::HitSound {
-                        sample_set: None,
-                        additions_sample_set: None,
-                        addition: None,
-                        custom_sample_set: None,
-                    },
-                    end_time: 10,
-                    group_number: None,
-                    commands: vec![Command {
-                        start_time: 10,
-                        properties: CommandProperties::Loop {
-                            loop_count: 10,
-                            commands: vec![Command {
-                                start_time: 100,
-                                properties: CommandProperties::Move {
-                                    easing: Easing::from_repr(3).unwrap(),
-                                    end_time: 120,
-                                    start_x: dec!(140),
-                                    start_y: dec!(180.123123),
-                                    end_x: dec!(200),
-                                    end_y: dec!(200),
-                                },
-                            }],
-                        },
-                    }],
-                },
-            },
-            Command {
-                start_time: 0,
-                properties: CommandProperties::Trigger {
-                    trigger_type: TriggerType::HitSound {
-                        sample_set: None,
-                        additions_sample_set: None,
-                        addition: Some(Addition::Clap),
-                        custom_sample_set: None,
-                    },
-                    end_time: 10,
-                    group_number: None,
-                    commands: vec![Command {
-                        start_time: 100,
-                        properties: CommandProperties::Move {
-                            easing: Easing::from_repr(3).unwrap(),
-                            end_time: 120,
-                            start_x: dec!(140),
-                            start_y: dec!(180.123123),
-                            end_x: dec!(200),
-                            end_y: dec!(200),
-                        },
-                    }],
-                },
-            },
-            Command {
-                start_time: 0,
-                properties: CommandProperties::Trigger {
-                    trigger_type: TriggerType::HitSound {
-                        sample_set: None,
-                        additions_sample_set: None,
-                        addition: Some(Addition::Finish),
-                        custom_sample_set: None,
-                    },
-                    end_time: 10,
-                    group_number: None,
-                    commands: vec![Command {
-                        start_time: 100,
-                        properties: CommandProperties::Move {
-                            easing: Easing::from_repr(3).unwrap(),
-                            end_time: 120,
-                            start_x: dec!(140),
-                            start_y: dec!(180.123123),
-                            end_x: dec!(200),
-                            end_y: dec!(200),
-                        },
-                    }],
-                },
-            },
-            Command {
-                start_time: 0,
-                properties: CommandProperties::Trigger {
-                    trigger_type: TriggerType::HitSound {
-                        sample_set: None,
-                        additions_sample_set: None,
-                        addition: Some(Addition::Whistle),
-                        custom_sample_set: None,
-                    },
-                    end_time: 10,
-                    group_number: None,
-                    commands: vec![Command {
-                        start_time: 100,
-                        properties: CommandProperties::Move {
-                            easing: Easing::from_repr(3).unwrap(),
-                            end_time: 120,
-                            start_x: dec!(140),
-                            start_y: dec!(180.123123),
-                            end_x: dec!(200),
-                            end_y: dec!(200),
-                        },
-                    }],
-                },
-            },
-            Command {
-                start_time: 0,
-                properties: CommandProperties::Trigger {
-                    trigger_type: TriggerType::HitSound {
-                        sample_set: Some(storyboard::SampleSet::Drum),
-                        additions_sample_set: None,
-                        addition: Some(Addition::Whistle),
-                        custom_sample_set: None,
-                    },
-                    end_time: 10,
-                    group_number: None,
-                    commands: vec![Command {
-                        start_time: 100,
-                        properties: CommandProperties::Move {
-                            easing: Easing::from_repr(3).unwrap(),
-                            end_time: 120,
-                            start_x: dec!(140),
-                            start_y: dec!(180.123123),
-                            end_x: dec!(200),
-                            end_y: dec!(200),
-                        },
-                    }],
-                },
-            },
-            Command {
-                start_time: 0,
-                properties: CommandProperties::Trigger {
-                    trigger_type: TriggerType::HitSound {
-                        sample_set: Some(storyboard::SampleSet::Soft),
-                        additions_sample_set: None,
-                        addition: None,
-                        custom_sample_set: None,
-                    },
-                    end_time: 10,
-                    group_number: None,
-                    commands: vec![Command {
-                        start_time: 100,
-                        properties: CommandProperties::Move {
-                            easing: Easing::from_repr(3).unwrap(),
-                            end_time: 120,
-                            start_x: dec!(140),
-                            start_y: dec!(180.123123),
-                            end_x: dec!(200),
-                            end_y: dec!(200),
-                        },
-                    }],
-                },
-            },
-            Command {
-                start_time: 0,
-                properties: CommandProperties::Trigger {
-                    trigger_type: TriggerType::HitSound {
-                        sample_set: Some(storyboard::SampleSet::All),
-                        additions_sample_set: Some(storyboard::SampleSet::Soft),
-                        addition: None,
-                        custom_sample_set: None,
-                    },
-                    end_time: 10,
-                    group_number: None,
-                    commands: vec![Command {
-                        start_time: 100,
-                        properties: CommandProperties::Move {
-                            easing: Easing::from_repr(3).unwrap(),
-                            end_time: 120,
-                            start_x: dec!(140),
-                            start_y: dec!(180.123123),
-                            end_x: dec!(200),
-                            end_y: dec!(200),
-                        },
-                    }],
-                },
-            },
-            Command {
-                start_time: 0,
-                properties: CommandProperties::Trigger {
-                    trigger_type: TriggerType::HitSound {
-                        sample_set: Some(storyboard::SampleSet::Drum),
-                        additions_sample_set: None,
-                        addition: Some(Addition::Clap),
-                        custom_sample_set: Some(0),
-                    },
-                    end_time: 10,
-                    group_number: None,
-                    commands: vec![Command {
-                        start_time: 100,
-                        properties: CommandProperties::Move {
-                            easing: Easing::from_repr(3).unwrap(),
-                            end_time: 120,
-                            start_x: dec!(140),
-                            start_y: dec!(180.123123),
-                            end_x: dec!(200),
-                            end_y: dec!(200),
-                        },
-                    }],
-                },
-            },
-            Command {
-                start_time: 0,
-                properties: CommandProperties::Trigger {
-                    trigger_type: TriggerType::HitSound {
-                        sample_set: None,
-                        additions_sample_set: None,
-                        addition: None,
-                        custom_sample_set: Some(6),
-                    },
-                    end_time: 10,
-                    group_number: None,
-                    commands: vec![Command {
-                        start_time: 100,
-                        properties: CommandProperties::Move {
-                            easing: Easing::from_repr(3).unwrap(),
-                            end_time: 120,
-                            start_x: dec!(140),
-                            start_y: dec!(180.123123),
-                            end_x: dec!(200),
-                            end_y: dec!(200),
-                        },
-                    }],
-                },
-            },
-            Command {
-                start_time: 0,
-                properties: CommandProperties::Trigger {
-                    trigger_type: TriggerType::Passing,
-                    end_time: 10,
-                    group_number: None,
-                    commands: vec![Command {
-                        start_time: 100,
-                        properties: CommandProperties::Move {
-                            easing: Easing::from_repr(3).unwrap(),
-                            end_time: 120,
-                            start_x: dec!(140),
-                            start_y: dec!(180.123123),
-                            end_x: dec!(200),
-                            end_y: dec!(200),
-                        },
-                    }],
-                },
-            },
-            Command {
-                start_time: 0,
-                properties: CommandProperties::Trigger {
-                    trigger_type: TriggerType::Failing,
-                    end_time: 10,
-                    group_number: None,
-                    commands: vec![Command {
-                        start_time: 100,
-                        properties: CommandProperties::Move {
-                            easing: Easing::from_repr(3).unwrap(),
-                            end_time: 120,
-                            start_x: dec!(140),
-                            start_y: dec!(180.123123),
-                            end_x: dec!(200),
-                            end_y: dec!(200),
-                        },
-                    }],
-                },
-            },
-        ],
-    })]);
-
-    assert_eq!(i, s)
-}
-
-#[test]
-fn storyboard_sprites_cmd_parse_back() {
-    let i = "
+    let i_str = "
 Sprite,Pass,Centre,\"Text\\Play2-HaveFunH.png\",320,240
  F,0,-28,,1
  M,3,100,120,140,180.123123,200,200
@@ -886,36 +322,362 @@ Sprite,Pass,Centre,\"Text\\Play2-HaveFunH.png\",320,240
  T,HitSound,0,10
   L,10,10
    M,3,100,120,140,180.123123,200,200
+Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopForever
  T,HitSoundClap,0,10
-  M,3,100,120,140,180.123123,200,200
  T,HitSoundFinish,0,10
-  M,3,100,120,140,180.123123,200,200
  T,HitSoundWhistle,0,10
-  M,3,100,120,140,180.123123,200,200
  T,HitSoundDrumWhistle,0,10
-  M,3,100,120,140,180.123123,200,200
  T,HitSoundSoft,0,10
-  M,3,100,120,140,180.123123,200,200
  T,HitSoundAllSoft,0,10
-  M,3,100,120,140,180.123123,200,200
  T,HitSoundDrumClap0,0,10
-  M,3,100,120,140,180.123123,200,200
  T,HitSound6,0,10
-  M,3,100,120,140,180.123123,200,200
  T,HitSoundPassing,0,10
-  M,3,100,120,140,180.123123,200,200
- T,HitSoundFailing,0,10
-  M,3,100,120,140,180.123123,200,200";
-    let e: Events = i.parse().unwrap();
+ T,HitSoundFailing,0,10";
+    let i: Events = i_str.parse().unwrap();
 
-    assert_eq!(i, e.to_string())
+    let s = Events(vec![
+        Event::Storyboard(Object {
+            layer: Layer::Pass,
+            origin: Origin::Centre,
+            position: Position { x: 320, y: 240 },
+            object_type: ObjectType::Sprite(
+                Sprite::new(Path::new("\"Text\\Play2-HaveFunH.png\"")).unwrap(),
+            ),
+            commands: vec![
+                Command {
+                    start_time: -28,
+                    properties: CommandProperties::Fade {
+                        easing: Easing::from_repr(0).unwrap(),
+                        end_time: Some(-28),
+                        opacities: vec![Opacities {
+                            start: dec!(1),
+                            end: Some(dec!(1)),
+                        }],
+                    },
+                },
+                Command {
+                    start_time: 100,
+                    properties: CommandProperties::Move {
+                        easing: Easing::from_repr(3).unwrap(),
+                        end_time: Some(120),
+                        positions_xy: vec![PositionsXY {
+                            start: (dec!(140), dec!(180.123123)),
+                            end: (Some(dec!(200)), Some(dec!(200))),
+                        }],
+                    },
+                },
+                Command {
+                    start_time: 100,
+                    properties: CommandProperties::MoveX {
+                        easing: Easing::from_repr(3).unwrap(),
+                        end_time: Some(120),
+                        positions_x: vec![PositionsX {
+                            start: dec!(140),
+                            end: Some(dec!(180.123123)),
+                        }],
+                    },
+                },
+                Command {
+                    start_time: 100,
+                    properties: CommandProperties::MoveY {
+                        easing: Easing::from_repr(3).unwrap(),
+                        end_time: Some(120),
+                        positions_y: vec![PositionsY {
+                            start: dec!(140),
+                            end: Some(dec!(180.123123)),
+                        }],
+                    },
+                },
+                Command {
+                    start_time: -28,
+                    properties: CommandProperties::Scale {
+                        easing: Easing::from_repr(0).unwrap(),
+                        end_time: Some(-28),
+                        scales: vec![Scales {
+                            start: dec!(0.4),
+                            end: Some(dec!(0.4)),
+                        }],
+                    },
+                },
+                Command {
+                    start_time: 5000,
+                    properties: CommandProperties::VectorScale {
+                        easing: Easing::from_repr(8).unwrap(),
+                        end_time: Some(5500),
+                        scales_xy: vec![ScalesXY {
+                            start: (dec!(0.5), dec!(2)),
+                            end: (Some(dec!(0.5)), Some(dec!(2))),
+                        }],
+                    },
+                },
+                Command {
+                    start_time: 5000,
+                    properties: CommandProperties::Rotate {
+                        easing: Easing::from_repr(7).unwrap(),
+                        end_time: Some(5500),
+                        rotations: vec![Rotations {
+                            start: dec!(-0.785),
+                            end: Some(dec!(0.785)),
+                        }],
+                    },
+                },
+                Command {
+                    start_time: 50000,
+                    properties: CommandProperties::Colour {
+                        easing: Easing::from_repr(6).unwrap(),
+                        end_time: Some(50001),
+                        colours: vec![storyboard::Colours {
+                            start: (0, 0, 0),
+                            end: (Some(255), Some(255), Some(255)),
+                        }],
+                    },
+                },
+                Command {
+                    start_time: 300,
+                    properties: CommandProperties::Parameter {
+                        easing: Easing::from_repr(5).unwrap(),
+                        end_time: Some(350),
+                        parameters: vec![Parameter::ImageFlipHorizontal],
+                    },
+                },
+                Command {
+                    start_time: 300,
+                    properties: CommandProperties::Parameter {
+                        easing: Easing::from_repr(5).unwrap(),
+                        end_time: Some(350),
+                        parameters: vec![Parameter::ImageFlipVertical],
+                    },
+                },
+                Command {
+                    start_time: 300,
+                    properties: CommandProperties::Parameter {
+                        easing: Easing::from_repr(5).unwrap(),
+                        end_time: Some(350),
+                        parameters: vec![Parameter::UseAdditiveColourBlending],
+                    },
+                },
+                Command {
+                    start_time: 500,
+                    properties: CommandProperties::Loop {
+                        loop_count: 10,
+                        commands: vec![Command {
+                            start_time: 10,
+                            properties: CommandProperties::Loop {
+                                loop_count: 10,
+                                commands: vec![
+                                    Command {
+                                        start_time: 100,
+                                        properties: CommandProperties::Move {
+                                            easing: Easing::from_repr(3).unwrap(),
+                                            end_time: Some(120),
+                                            positions_xy: vec![PositionsXY {
+                                                start: (dec!(140), dec!(180.123123)),
+                                                end: (Some(dec!(200)), Some(dec!(200))),
+                                            }],
+                                        },
+                                    },
+                                    Command {
+                                        start_time: -28,
+                                        properties: CommandProperties::Scale {
+                                            easing: Easing::from_repr(0).unwrap(),
+                                            end_time: Some(-28),
+                                            scales: vec![Scales {
+                                                start: dec!(0.4),
+                                                end: Some(dec!(0.4)),
+                                            }],
+                                        },
+                                    },
+                                ],
+                            },
+                        }],
+                    },
+                },
+                Command {
+                    start_time: 0,
+                    properties: CommandProperties::Trigger {
+                        trigger_type: TriggerType::HitSound {
+                            sample_set: None,
+                            additions_sample_set: None,
+                            addition: None,
+                            custom_sample_set: None,
+                        },
+                        end_time: Some(10),
+                        group_number: None,
+                        commands: vec![Command {
+                            start_time: 10,
+                            properties: CommandProperties::Loop {
+                                loop_count: 10,
+                                commands: vec![Command {
+                                    start_time: 100,
+                                    properties: CommandProperties::Move {
+                                        easing: Easing::from_repr(3).unwrap(),
+                                        end_time: Some(120),
+                                        positions_xy: vec![PositionsXY {
+                                            start: (dec!(140), dec!(180.123123)),
+                                            end: (Some(dec!(200)), Some(dec!(200))),
+                                        }],
+                                    },
+                                }],
+                            },
+                        }],
+                    },
+                },
+            ],
+        }),
+        Event::Storyboard(Object {
+            layer: Layer::Fail,
+            origin: Origin::BottomCentre,
+            position: Position { x: 418, y: 108 },
+            object_type: ObjectType::Animation(Animation {
+                frame_count: 12,
+                frame_delay: 31,
+                loop_type: LoopType::LoopForever,
+                filepath: PathBuf::from("\"Other\\Play3\\explosion.png\""),
+            }),
+            commands: vec![
+                Command {
+                    start_time: 0,
+                    properties: CommandProperties::Trigger {
+                        trigger_type: TriggerType::HitSound {
+                            sample_set: None,
+                            additions_sample_set: None,
+                            addition: Some(Addition::Clap),
+                            custom_sample_set: None,
+                        },
+                        end_time: Some(10),
+                        group_number: None,
+                        commands: Vec::new(),
+                    },
+                },
+                Command {
+                    start_time: 0,
+                    properties: CommandProperties::Trigger {
+                        trigger_type: TriggerType::HitSound {
+                            sample_set: None,
+                            additions_sample_set: None,
+                            addition: Some(Addition::Finish),
+                            custom_sample_set: None,
+                        },
+                        end_time: Some(10),
+                        group_number: None,
+                        commands: Vec::new(),
+                    },
+                },
+                Command {
+                    start_time: 0,
+                    properties: CommandProperties::Trigger {
+                        trigger_type: TriggerType::HitSound {
+                            sample_set: None,
+                            additions_sample_set: None,
+                            addition: Some(Addition::Whistle),
+                            custom_sample_set: None,
+                        },
+                        end_time: Some(10),
+                        group_number: None,
+                        commands: Vec::new(),
+                    },
+                },
+                Command {
+                    start_time: 0,
+                    properties: CommandProperties::Trigger {
+                        trigger_type: TriggerType::HitSound {
+                            sample_set: Some(storyboard::SampleSet::Drum),
+                            additions_sample_set: None,
+                            addition: Some(Addition::Whistle),
+                            custom_sample_set: None,
+                        },
+                        end_time: Some(10),
+                        group_number: None,
+                        commands: Vec::new(),
+                    },
+                },
+                Command {
+                    start_time: 0,
+                    properties: CommandProperties::Trigger {
+                        trigger_type: TriggerType::HitSound {
+                            sample_set: Some(storyboard::SampleSet::Soft),
+                            additions_sample_set: None,
+                            addition: None,
+                            custom_sample_set: None,
+                        },
+                        end_time: Some(10),
+                        group_number: None,
+                        commands: Vec::new(),
+                    },
+                },
+                Command {
+                    start_time: 0,
+                    properties: CommandProperties::Trigger {
+                        trigger_type: TriggerType::HitSound {
+                            sample_set: Some(storyboard::SampleSet::All),
+                            additions_sample_set: Some(storyboard::SampleSet::Soft),
+                            addition: None,
+                            custom_sample_set: None,
+                        },
+                        end_time: Some(10),
+                        group_number: None,
+                        commands: Vec::new(),
+                    },
+                },
+                Command {
+                    start_time: 0,
+                    properties: CommandProperties::Trigger {
+                        trigger_type: TriggerType::HitSound {
+                            sample_set: Some(storyboard::SampleSet::Drum),
+                            additions_sample_set: None,
+                            addition: Some(Addition::Clap),
+                            custom_sample_set: Some(0),
+                        },
+                        end_time: Some(10),
+                        group_number: None,
+                        commands: Vec::new(),
+                    },
+                },
+                Command {
+                    start_time: 0,
+                    properties: CommandProperties::Trigger {
+                        trigger_type: TriggerType::HitSound {
+                            sample_set: None,
+                            additions_sample_set: None,
+                            addition: None,
+                            custom_sample_set: Some(6),
+                        },
+                        end_time: Some(10),
+                        group_number: None,
+                        commands: Vec::new(),
+                    },
+                },
+                Command {
+                    start_time: 0,
+                    properties: CommandProperties::Trigger {
+                        trigger_type: TriggerType::Passing,
+                        end_time: Some(10),
+                        group_number: None,
+                        commands: Vec::new(),
+                    },
+                },
+                Command {
+                    start_time: 0,
+                    properties: CommandProperties::Trigger {
+                        trigger_type: TriggerType::Failing,
+                        end_time: Some(10),
+                        group_number: None,
+                        commands: Vec::new(),
+                    },
+                },
+            ],
+        }),
+    ]);
+
+    assert_eq!(i, s);
+    assert_eq!(i_str, i.to_string());
 }
 
 #[test]
 fn storyboard_sprites_parse() {
-    let i = "Sprite,Pass,Centre,\"Text\\Play2-HaveFunH.png\",320,240
+    let i_str = "Sprite,Pass,Centre,\"Text\\Play2-HaveFunH.png\",320,240
 Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopForever";
-    let i: Events = i.parse().unwrap();
+    let i: Events = i_str.parse().unwrap();
 
     let s = Events(vec![
         Event::Storyboard(Object {
@@ -941,16 +703,8 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
         }),
     ]);
 
-    assert_eq!(i, s)
-}
-
-#[test]
-fn storyboard_sprites_parse_back() {
-    let i = "Sprite,Pass,Centre,\"Text\\Play2-HaveFunH.png\",320,240
-Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopForever";
-    let e: Events = i.parse().unwrap();
-
-    assert_eq!(i, e.to_string())
+    assert_eq!(i, s);
+    assert_eq!(i_str, i.to_string());
 }
 
 // TODO make all fields optional
@@ -1211,7 +965,7 @@ fn hitobjects_parse() {
     let slider_str = "31,85,3049,2,0,B|129:55|123:136|228:86,1,172.51,2|0,3:2|0:2,0:2:0:0:";
     let spinner_str = "256,192,33598,12,0,431279,0:0:0:0:";
     let osu_mania_hold_str = "51,192,350,128,2,849:0:0:0:0:";
-    
+
     let hitcircle: HitObject = hitcircle_str.parse().unwrap();
     let slider: HitObject = slider_str.parse().unwrap();
     let spinner: HitObject = spinner_str.parse().unwrap();

@@ -388,7 +388,7 @@ impl Display for Command {
             CommandProperties::Parameter {
                 easing,
                 end_time,
-                parameter,
+                parameters: parameter,
             } => format!(
                 "P,{},{},{end_time},{parameter}",
                 *easing as usize, self.start_time
@@ -460,12 +460,12 @@ pub enum CommandProperties {
     Colour {
         easing: Easing,
         end_time: Option<Integer>,
-        rgbs: Vec<Rgbs>,
+        colours: Vec<Colours>,
     },
     Parameter {
         easing: Easing,
         end_time: Option<Integer>,
-        parameter: Vec<Parameter>,
+        parameters: Vec<Parameter>,
     },
     Loop {
         loop_count: u32,
@@ -489,7 +489,7 @@ pub struct Opacities {
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub struct PositionsXY {
     pub start: (Decimal, Decimal),
-    pub end: (Decimal, Option<Decimal>),
+    pub end: (Option<Decimal>, Option<Decimal>),
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
@@ -513,7 +513,7 @@ pub struct Scales {
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub struct ScalesXY {
     pub start: (Decimal, Decimal),
-    pub end: (Decimal, Option<Decimal>),
+    pub end: (Option<Decimal>, Option<Decimal>),
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
@@ -523,7 +523,7 @@ pub struct Rotations {
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
-pub struct Rgbs {
+pub struct Colours {
     pub start: (u8, u8, u8),
     pub end: (Option<u8>, Option<u8>, Option<u8>),
 }
@@ -532,6 +532,7 @@ impl FromStr for Command {
     type Err = CommandParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
+        // only parse a single command
         let mut s = s.split(',');
 
         let event = s
@@ -741,7 +742,7 @@ impl FromStr for Command {
                     properties: CommandProperties::Parameter {
                         easing,
                         end_time,
-                        parameter: {
+                        parameters: {
                             let s = s
                                 .next()
                                 .ok_or(CommandParseError::MissingField("parameter"))?;
