@@ -6,6 +6,13 @@ use std::{
     str::{FromStr, Split},
 };
 
+use nom::{
+    bytes::complete::{take, take_while},
+    character::complete::char,
+    combinator::{map_res, opt},
+    sequence::tuple,
+    Parser,
+};
 use rust_decimal::Decimal;
 use strum_macros::{Display, EnumString, FromRepr, IntoStaticStr};
 use thiserror::Error;
@@ -532,7 +539,45 @@ impl FromStr for Command {
     type Err = CommandParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let indentation = take_while(|c| c == ' ' || c == '_');
+        let field = take_while(|c| c != ',');
+        let field_i32 = || map_res(field, |s: &str| s.parse());
+        let comma = || char(',');
+
         // only parse a single command
+        // TODO error checks
+        let (s, (_, command_type, _)) = tuple((indentation, take(1), comma()))(s).unwrap();
+
+        // handle generic commands
+        match command_type {
+            "L" => {
+                let (s, (start_time, _, loop_count)) =
+                    tuple((field_i32(), comma(), map_res(field, |s: &str| s.parse())))(s).unwrap();
+
+                Ok(Command {
+                    start_time,
+                    properties: CommandProperties::Loop {
+                        loop_count,
+                        commands: Vec::new(),
+                    },
+                })
+            }
+            "T" => {
+                let (s, (trigger_type, _, start_time, _, end_time, group_number)) =
+                    tuple((
+                        map_res(field, |s: &str| s.parse()),
+                        comma(),
+                        field_i32(),
+                        comma(),
+                        field_i32(),
+                        opt(tuple((comma(), field_i32()))),
+                    ))(s)
+                    .unwrap();
+            }
+            _ => todo!(),
+        }
+
+        /*
         let mut s = s.split(',');
 
         let event = s
@@ -808,6 +853,7 @@ impl FromStr for Command {
             }
             _ => Err(CommandParseError::UnknownEvent(event.to_string())),
         }
+        */
     }
 }
 
