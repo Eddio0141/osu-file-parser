@@ -420,67 +420,52 @@ impl Display for Command {
 
 // TODO make most enums non-exhaustive
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum CommandProperties {
     Fade {
         easing: Easing,
-        end_time: Integer,
-        start_opacity: Decimal,
-        end_opacity: Decimal,
+        end_time: Option<Integer>,
+        opacities: Vec<Opacities>,
     },
     Move {
         easing: Easing,
-        end_time: Integer,
-        start_x: Decimal,
-        start_y: Decimal,
-        end_x: Decimal,
-        end_y: Decimal,
+        end_time: Option<Integer>,
+        positions_xy: Vec<PositionsXY>,
     },
     MoveX {
         easing: Easing,
-        end_time: Integer,
-        start_x: Decimal,
-        end_x: Decimal,
+        end_time: Option<Integer>,
+        positions_x: Vec<PositionsX>,
     },
     MoveY {
         easing: Easing,
-        end_time: Integer,
-        start_y: Decimal,
-        end_y: Decimal,
+        end_time: Option<Integer>,
+        positions_y: Vec<PositionsY>,
     },
     Scale {
         easing: Easing,
-        end_time: Integer,
-        start_scale: Decimal,
-        end_scale: Decimal,
+        end_time: Option<Integer>,
+        scales: Vec<Scales>,
     },
     VectorScale {
         easing: Easing,
-        end_time: Integer,
-        start_scale_x: Decimal,
-        start_scale_y: Decimal,
-        end_scale_x: Decimal,
-        end_scale_y: Decimal,
+        end_time: Option<Integer>,
+        scales_xy: Vec<ScalesXY>,
     },
     Rotate {
         easing: Easing,
-        end_time: Integer,
-        start_rotate: Decimal,
-        end_rotate: Decimal,
+        end_time: Option<Integer>,
+        rotations: Vec<Rotations>,
     },
     Colour {
         easing: Easing,
-        end_time: Integer,
-        start_r: u8,
-        start_g: u8,
-        start_b: u8,
-        end_r: u8,
-        end_g: u8,
-        end_b: u8,
+        end_time: Option<Integer>,
+        rgbs: Vec<Rgbs>,
     },
     Parameter {
         easing: Easing,
-        end_time: Integer,
-        parameter: Parameter,
+        end_time: Option<Integer>,
+        parameter: Vec<Parameter>,
     },
     Loop {
         loop_count: u32,
@@ -488,11 +473,59 @@ pub enum CommandProperties {
     },
     Trigger {
         trigger_type: TriggerType,
-        end_time: Integer,
+        end_time: Option<Integer>,
         // TODO find out if negative group numbers are fine
         group_number: Option<Integer>,
         commands: Vec<Command>,
     },
+}
+
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+pub struct Opacities {
+    pub start: Decimal,
+    pub end: Option<Decimal>,
+}
+
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+pub struct PositionsXY {
+    pub start: (Decimal, Decimal),
+    pub end: (Decimal, Option<Decimal>),
+}
+
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+pub struct PositionsX {
+    pub start: Decimal,
+    pub end: Option<Decimal>,
+}
+
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+pub struct PositionsY {
+    pub start: Decimal,
+    pub end: Option<Decimal>,
+}
+
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+pub struct Scales {
+    pub start: Decimal,
+    pub end: Option<Decimal>,
+}
+
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+pub struct ScalesXY {
+    pub start: (Decimal, Decimal),
+    pub end: (Decimal, Option<Decimal>),
+}
+
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+pub struct Rotations {
+    pub start: Decimal,
+    pub end: Option<Decimal>,
+}
+
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+pub struct Rgbs {
+    pub start: (u8, u8, u8),
+    pub end: (Option<u8>, Option<u8>, Option<u8>),
 }
 
 impl FromStr for Command {

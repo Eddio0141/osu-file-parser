@@ -13,5 +13,7 @@ rust_decimal_macros = "1.22.0"
 thiserror = "1.0.30"
 strum = "0.24.0"
 strum_macros = "0.24.0"
-pretty_assertions = "1.2.0"
 nom = "7.1.1"
+
+[dev-dependencies]
+pretty_assertions = "1.2.0"
