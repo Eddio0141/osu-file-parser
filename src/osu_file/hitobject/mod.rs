@@ -6,6 +6,7 @@ use std::str::FromStr;
 
 use nom::bytes::complete::is_not;
 use nom::bytes::complete::take_till;
+use nom::bytes::complete::take_until;
 use nom::character::streaming::char;
 use nom::combinator::map_res;
 use nom::error::VerboseError;
@@ -243,30 +244,24 @@ impl FromStr for HitObject {
                     curve_type,
                     _,
                     curve_points,
-                    _,
                     slides,
                     _,
                     length,
                     _,
                     edge_sounds,
-                    _,
                     edge_sets,
-                    _,
                     hitsample,
                 ),
             ) = tuple((
                 curve_type,
                 pipe,
                 curve_points,
-                comma(),
                 int(),
                 comma(),
                 decimal,
                 comma(),
                 edge_sounds,
-                comma(),
                 edge_sets,
-                comma(),
                 hitsample,
             ))(s)
             .unwrap();
@@ -313,7 +308,8 @@ impl FromStr for HitObject {
             // osu!mania hold
             // TODO error handling
             // ppy has done it once again
-            let (s, (end_time, _, hitsample)) = tuple((int(), char('|'), hitsample))(s).unwrap();
+            let end_time = map_res(take_until(":"), |s: &str| s.parse());
+            let (s, (end_time, _, hitsample)) = tuple((end_time, char(':'), hitsample))(s).unwrap();
 
             if !s.is_empty() {
                 return Err(HitObjectParseError::TooManyParameters);

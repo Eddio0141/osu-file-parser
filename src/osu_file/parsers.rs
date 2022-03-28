@@ -5,7 +5,7 @@ use nom::{
     combinator::{map, map_res, opt},
     error::ParseError,
     multi::{many0, many_till},
-    sequence::{delimited, terminated, tuple},
+    sequence::{delimited, preceded, terminated, tuple},
     IResult,
 };
 
@@ -54,7 +54,7 @@ where
     M: Fn(&str) -> Result<O, E2> + 'a,
 {
     let comma = char(',');
-    let item = opt(char('|')) take_while(|c: char| c != '|' && c != ',');
+    let item = preceded(opt(char('|')), take_while(|c: char| c != '|' && c != ','));
     let item_map = map_res(item, mapper);
     map(many_till(item_map, comma), |(v, _)| v)
 }
