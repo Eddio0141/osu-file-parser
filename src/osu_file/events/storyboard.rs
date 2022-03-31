@@ -487,16 +487,18 @@ pub enum CommandProperties {
     },
 }
 
-#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+// TODO continuing opacities cannot have None and then Some in the next index.
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Opacities {
     pub start: Decimal,
-    pub end: Option<Decimal>,
+    pub continuing_opacities: Vec<Option<Decimal>>,
 }
 
-#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+// TODO look comment above
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct PositionsXY {
     pub start: (Decimal, Decimal),
-    pub end: (Option<Decimal>, Option<Decimal>),
+    pub continuing_positions: Vec<Option<(Decimal, Decimal)>>,
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
