@@ -11,14 +11,7 @@ use crate::osu_file::{
     colours::{Colour, Colours, Rgb},
     difficulty::Difficulty,
     editor::Editor,
-    events::{
-        storyboard::{
-            self, Addition, Animation, Command, CommandProperties, Easing, Layer, LoopType, Object,
-            ObjectType, Opacities, Origin, Parameter, PositionsX, PositionsXY, PositionsY,
-            Rotations, Scales, ScalesXY, Sprite, TriggerType,
-        },
-        Background, Break, Event, EventParams, Events,
-    },
+    events::{storyboard::*, Background, Break, Event, EventParams, Events},
     general::{CountdownSpeed, GameMode, General, OverlayPosition, SampleSet},
     hitobject::{
         self,
