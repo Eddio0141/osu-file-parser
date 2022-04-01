@@ -309,17 +309,41 @@ pub struct Command {
     pub properties: CommandProperties,
 }
 
+fn continuing_to_string<T>(continuing: &Vec<T>) -> String
+where
+    T: Display,
+{
+    if continuing.is_empty() {
+        String::new()
+    } else {
+        format!(
+            ",{}",
+            continuing
+                .iter()
+                .map(|field| field.to_string())
+                .collect::<Vec<_>>()
+                .join(",")
+        )
+    }
+}
+
 impl Display for Command {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let end_time_to_string =
+            |end_time: &Option<i32>| end_time.map_or("".to_string(), |t| t.to_string());
+
         let cmd_str = match &self.properties {
             CommandProperties::Fade {
                 easing,
                 end_time,
                 start_opacity,
-                end_opacity,
+                continuing_opacities,
             } => format!(
-                "F,{},{},{end_time},{start_opacity},{end_opacity}",
-                *easing as usize, self.start_time
+                "F,{},{},{},{start_opacity}{}",
+                *easing as usize,
+                self.start_time,
+                end_time_to_string(end_time),
+                continuing_to_string(continuing_opacities),
             ),
             CommandProperties::Move {
                 easing,
@@ -329,75 +353,90 @@ impl Display for Command {
                 "M,{},{},{},{positions_xy}",
                 *easing as usize,
                 self.start_time,
-                end_time.map_or("".to_string(), |t| t.to_string())
+                end_time_to_string(end_time),
             ),
             CommandProperties::MoveX {
                 easing,
                 end_time,
                 start_x,
-                end_x,
+                continuing_x,
             } => format!(
-                "MX,{},{},{end_time},{start_x},{end_x}",
-                *easing as usize, self.start_time
+                "MX,{},{},{},{start_x}{}",
+                *easing as usize,
+                self.start_time,
+                end_time_to_string(end_time),
+                continuing_to_string(continuing_x),
             ),
             CommandProperties::MoveY {
                 easing,
                 end_time,
                 start_y,
-                end_y,
+                continuing_y,
             } => format!(
-                "MY,{},{},{end_time},{start_y},{end_y}",
-                *easing as usize, self.start_time
+                "MY,{},{},{},{start_y}{}",
+                *easing as usize,
+                self.start_time,
+                end_time_to_string(end_time),
+                continuing_to_string(continuing_y),
             ),
             CommandProperties::Scale {
                 easing,
                 end_time,
                 start_scale,
-                end_scale,
+                continuing_scales,
             } => format!(
-                "S,{},{},{end_time},{start_scale},{end_scale}",
-                *easing as usize, self.start_time
+                "S,{},{},{},{start_scale}{}",
+                *easing as usize,
+                self.start_time,
+                end_time_to_string(end_time),
+                continuing_to_string(continuing_scales),
             ),
             CommandProperties::VectorScale {
                 easing,
                 end_time,
-                start_scale_x,
-                start_scale_y,
-                end_scale_x,
-                end_scale_y,
+                scales_xy,
             } => format!(
-                "V,{},{},{end_time},{start_scale_x},{start_scale_y},{end_scale_x},{end_scale_y}",
-                *easing as usize, self.start_time
+                "V,{},{},{},{}",
+                *easing as usize,
+                self.start_time,
+                end_time_to_string(end_time),
+                scales_xy,
             ),
             CommandProperties::Rotate {
                 easing,
                 end_time,
-                start_rotate,
-                end_rotate,
+                start_rotation,
+                continuing_rotations,
             } => format!(
-                "R,{},{},{end_time},{start_rotate},{end_rotate}",
-                *easing as usize, self.start_time
+                "R,{},{},{},{start_rotation}{}",
+                *easing as usize,
+                self.start_time,
+                end_time_to_string(end_time),
+                continuing_to_string(continuing_rotations),
             ),
             CommandProperties::Colour {
                 easing,
                 end_time,
-                start_r,
-                start_g,
-                start_b,
-                end_r,
-                end_g,
-                end_b,
+                colours,
             } => format!(
-                "C,{},{},{end_time},{start_r},{start_g},{start_b},{end_r},{end_g},{end_b}",
-                *easing as usize, self.start_time
+                "C,{},{},{},{}",
+                *easing as usize,
+                self.start_time,
+                end_time_to_string(end_time),
+                colours,
             ),
             CommandProperties::Parameter {
                 easing,
                 end_time,
-                parameters: parameter,
+                parameter,
+                continuing_parameters,
             } => format!(
-                "P,{},{},{end_time},{parameter}",
-                *easing as usize, self.start_time
+                "P,{},{},{},{}{}",
+                *easing as usize,
+                self.start_time,
+                end_time_to_string(end_time),
+                parameter,
+                continuing_to_string(continuing_parameters),
             ),
             CommandProperties::Loop {
                 loop_count,
@@ -411,12 +450,10 @@ impl Display for Command {
                 // ignore commands since its handled separately
                 commands: _,
             } => format!(
-                "T,{trigger_type},{},{end_time}{}",
+                "T,{trigger_type},{},{}{}",
                 self.start_time,
-                match group_number {
-                    Some(group_number) => format!(",{group_number}"),
-                    None => String::new(),
-                }
+                end_time_to_string(end_time),
+                group_number.map_or(String::new(), |group_number| format!(",{group_number}")),
             ),
         };
 
@@ -453,6 +490,7 @@ pub enum CommandProperties {
     },
     Scale {
         easing: Easing,
+        end_time: Option<Integer>,
         start_scale: Integer,
         continuing_scales: Vec<Decimal>,
     },
@@ -475,7 +513,8 @@ pub enum CommandProperties {
     Parameter {
         easing: Easing,
         end_time: Option<Integer>,
-        parameters: Vec<Parameter>,
+        parameter: Parameter,
+        continuing_parameters: Vec<Parameter>,
     },
     Loop {
         loop_count: u32,
@@ -509,21 +548,46 @@ impl<T> CommandFields<T> {
         &self.continuing
     }
 
-    pub fn push_continuing_fields(&mut self, continuing_fields: (T, Option<T>)) {
+    pub fn push_continuing_fields(&mut self, continuing_fields: (T, Option<T>))
+    where
+        T: std::marker::Copy,
+    {
         // if the last continuing field 1 is None, its the equalivant of having the previous index's positition 1 (or the start 1 if no elements)
-        if let Some(last_continuing) = self.continuing.last_mut() {
+        if let Some(last_continuing) = self.continuing.last() {
             if last_continuing.1.is_none() {
-                // find last y position
-                if let Some(last_continuing_with_1) = self.continuing.get(self.continuing.len() - 2)
+                // find last 1 field
+                let last_field = if let Some(last_continuing_with_1) =
+                    self.continuing.get(self.continuing.len() - 2)
                 {
-                    last_continuing.1 = last_continuing_with_1.1;
+                    last_continuing_with_1.1.as_ref()
                 } else {
                     // backup field 1 is the starting one
-                    last_continuing.1 = Some(self.start.0);
-                }
+                    Some(&self.start.1)
+                };
+
+                self.continuing.last_mut().unwrap().1 = last_field.copied();
             }
         }
         self.continuing.push(continuing_fields);
+    }
+
+    pub fn set_continuing_fields(
+        &mut self,
+        index: usize,
+        fields: (T, Option<T>),
+    ) -> Result<(), ContinuingSetError> {
+        // if index isn't the last index, field 1 being none will return an error
+        if index != self.continuing.len() - 1 && fields.1.is_none() {
+            Err(ContinuingSetError::InvalidSecondFieldOption)
+        } else {
+            match self.continuing.get_mut(index) {
+                Some(continuing_position_xy) => {
+                    *continuing_position_xy = fields;
+                    Ok(())
+                }
+                None => Err(ContinuingSetError::IndexOutOfBounds),
+            }
+        }
     }
 }
 
@@ -534,9 +598,9 @@ where
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut builder = vec![self.start.0.to_string(), self.start.1.to_string()];
 
-        for fields in self.continuing {
+        for fields in &self.continuing {
             builder.push(fields.0.to_string());
-            if let Some(field) = fields.1 {
+            if let Some(field) = &fields.1 {
                 builder.push(field.to_string());
             }
         }
@@ -572,33 +636,77 @@ impl Colours {
         &self.continuing
     }
 
-    pub fn push_continuing_fields(&mut self, continuing_fields: (u8, Option<u8>, Option<u8>)) {
-        if let Some(last_continuing) = self.continuing.last_mut() {
+    pub fn push_continuing_rgbs(&mut self, continuing_fields: (u8, Option<u8>, Option<u8>)) {
+        if let Some(last_continuing) = self.continuing.last() {
             if last_continuing.1.is_none() {
-                // find last y position
-                if let Some(last_continuing_with_1) = self.continuing.get(self.continuing.len() - 2)
+                // find last field
+                let last_field = if let Some(last_continuing_with_1) =
+                    self.continuing.get(self.continuing.len() - 2)
                 {
-                    last_continuing.1 = last_continuing_with_1.1;
+                    last_continuing_with_1.1.as_ref()
                 } else {
                     // backup field 1 is the starting one
-                    last_continuing.1 = Some(self.start.0);
-                }
+                    Some(&self.start.1)
+                };
+
+                self.continuing.last_mut().unwrap().1 = last_field.copied();
+            } else if last_continuing.2.is_none() {
+                // find last field
+                let last_field = if let Some(last_continuing_with_2) =
+                    self.continuing.get(self.continuing.len() - 2)
+                {
+                    last_continuing_with_2.2.as_ref()
+                } else {
+                    // backup field 2 is the starting one
+                    Some(&self.start.2)
+                };
+
+                self.continuing.last_mut().unwrap().2 = last_field.copied();
             }
         }
         self.continuing.push(continuing_fields);
     }
+
+    pub fn set_continuing_rgbs(
+        &mut self,
+        index: usize,
+        fields: (u8, Option<u8>, Option<u8>),
+    ) -> Result<(), ContinuingRGBSetError> {
+        // if index isn't the last index, b or g being none will return an error
+        let index_is_last = index == self.continuing.len() - 1;
+
+        if !index_is_last && fields.1.is_none() {
+            Err(ContinuingRGBSetError::InvalidGreenFieldOption)
+        } else if !index_is_last && fields.2.is_none() {
+            Err(ContinuingRGBSetError::InvalidBlueFieldOption)
+        } else if fields.1.is_none() && fields.2.is_some() {
+            Err(ContinuingRGBSetError::InvalidBlueFieldOptionArgument)
+        } else {
+            match self.continuing.get_mut(index) {
+                Some(continuing) => {
+                    *continuing = fields;
+                    Ok(())
+                }
+                None => Err(ContinuingRGBSetError::IndexOutOfBounds),
+            }
+        }
+    }
 }
 
-impl<T> Display for CommandFields<T>
-where
-    T: Display,
-{
+impl Display for Colours {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut builder = vec![self.start.0.to_string(), self.start.1.to_string()];
+        let mut builder = vec![
+            self.start.0.to_string(),
+            self.start.1.to_string(),
+            self.start.1.to_string(),
+        ];
 
-        for fields in self.continuing {
+        for fields in &self.continuing {
             builder.push(fields.0.to_string());
-            if let Some(field) = fields.1 {
+            if let Some(field) = &fields.1 {
+                builder.push(field.to_string());
+            }
+            if let Some(field) = &fields.2 {
                 builder.push(field.to_string());
             }
         }
@@ -608,17 +716,15 @@ where
 }
 
 #[derive(Debug, Error)]
-pub enum ContinuingSetError {
+pub enum ContinuingRGBSetError {
     #[error("continuing fields index out of bounds")]
     IndexOutOfBounds,
-    #[error("continuing fields 2nd field is none without it being the last item in the continuing fields")]
-    InvalidSecondFieldOption,
-}
-
-#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
-pub struct Colours {
-    pub start: (u8, u8, u8),
-    pub end: (Option<u8>, Option<u8>, Option<u8>),
+    #[error("continuing fields green field is none without it being the last item in the continuing fields")]
+    InvalidGreenFieldOption,
+    #[error("continuing fields blue field is none without it being the last item in the continuing fields")]
+    InvalidBlueFieldOption,
+    #[error("the argument's blue field is none but the green field is some")]
+    InvalidBlueFieldOptionArgument,
 }
 
 impl FromStr for Command {
