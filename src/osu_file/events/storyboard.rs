@@ -324,13 +324,12 @@ impl Display for Command {
             CommandProperties::Move {
                 easing,
                 end_time,
-                start_x,
-                start_y,
-                end_x,
-                end_y,
+                positions_xy,
             } => format!(
-                "M,{},{},{end_time},{start_x},{start_y},{end_x},{end_y}",
-                *easing as usize, self.start_time
+                "M,{},{},{},{positions_xy}",
+                *easing as usize,
+                self.start_time,
+                end_time.map_or("".to_string(), |t| t.to_string())
             ),
             CommandProperties::MoveX {
                 easing,
@@ -432,42 +431,46 @@ pub enum CommandProperties {
     Fade {
         easing: Easing,
         end_time: Option<Integer>,
-        opacities: Vec<Opacities>,
+        start_opacity: Decimal,
+        continuing_opacities: Vec<Decimal>,
     },
     Move {
         easing: Easing,
         end_time: Option<Integer>,
-        positions_xy: Vec<PositionsXY>,
+        positions_xy: CommandFields<Decimal>,
     },
     MoveX {
         easing: Easing,
         end_time: Option<Integer>,
-        positions_x: Vec<PositionsX>,
+        start_x: Decimal,
+        continuing_x: Vec<Decimal>,
     },
     MoveY {
         easing: Easing,
         end_time: Option<Integer>,
-        positions_y: Vec<PositionsY>,
+        start_y: Decimal,
+        continuing_y: Vec<Decimal>,
     },
     Scale {
         easing: Easing,
-        end_time: Option<Integer>,
-        scales: Vec<Scales>,
+        start_scale: Integer,
+        continuing_scales: Vec<Decimal>,
     },
     VectorScale {
         easing: Easing,
         end_time: Option<Integer>,
-        scales_xy: Vec<ScalesXY>,
+        scales_xy: CommandFields<Decimal>,
     },
     Rotate {
         easing: Easing,
         end_time: Option<Integer>,
-        rotations: Vec<Rotations>,
+        start_rotation: Decimal,
+        continuing_rotations: Vec<Decimal>,
     },
     Colour {
         easing: Easing,
         end_time: Option<Integer>,
-        colours: Vec<Colours>,
+        colours: Colours,
     },
     Parameter {
         easing: Easing,
@@ -487,48 +490,129 @@ pub enum CommandProperties {
     },
 }
 
-// TODO continuing opacities cannot have None and then Some in the next index.
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
-pub struct Opacities {
-    pub start: Decimal,
-    pub continuing_opacities: Vec<Option<Decimal>>,
+pub struct CommandFields<T> {
+    start: (T, T),
+    continuing: Vec<(T, Option<T>)>,
 }
 
-// TODO look comment above
+impl<T> CommandFields<T> {
+    pub fn start_values(&self) -> &(T, T) {
+        &self.start
+    }
+
+    pub fn start_values_mut(&mut self) -> &mut (T, T) {
+        &mut self.start
+    }
+
+    pub fn continuing_fields(&self) -> &[(T, Option<T>)] {
+        &self.continuing
+    }
+
+    pub fn push_continuing_fields(&mut self, continuing_fields: (T, Option<T>)) {
+        // if the last continuing field 1 is None, its the equalivant of having the previous index's positition 1 (or the start 1 if no elements)
+        if let Some(last_continuing) = self.continuing.last_mut() {
+            if last_continuing.1.is_none() {
+                // find last y position
+                if let Some(last_continuing_with_1) = self.continuing.get(self.continuing.len() - 2)
+                {
+                    last_continuing.1 = last_continuing_with_1.1;
+                } else {
+                    // backup field 1 is the starting one
+                    last_continuing.1 = Some(self.start.0);
+                }
+            }
+        }
+        self.continuing.push(continuing_fields);
+    }
+}
+
+impl<T> Display for CommandFields<T>
+where
+    T: Display,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut builder = vec![self.start.0.to_string(), self.start.1.to_string()];
+
+        for fields in self.continuing {
+            builder.push(fields.0.to_string());
+            if let Some(field) = fields.1 {
+                builder.push(field.to_string());
+            }
+        }
+
+        write!(f, "{}", builder.join(","))
+    }
+}
+
+#[derive(Debug, Error)]
+pub enum ContinuingSetError {
+    #[error("continuing fields index out of bounds")]
+    IndexOutOfBounds,
+    #[error("continuing fields 2nd field is none without it being the last item in the continuing fields")]
+    InvalidSecondFieldOption,
+}
+
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
-pub struct PositionsXY {
-    pub start: (Decimal, Decimal),
-    pub continuing_positions: Vec<Option<(Decimal, Decimal)>>,
+pub struct Colours {
+    start: (u8, u8, u8),
+    continuing: Vec<(u8, Option<u8>, Option<u8>)>,
 }
 
-#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
-pub struct PositionsX {
-    pub start: Decimal,
-    pub end: Option<Decimal>,
+impl Colours {
+    pub fn start_rgb(&self) -> &(u8, u8, u8) {
+        &self.start
+    }
+
+    pub fn start_rgb_mut(&mut self) -> &mut (u8, u8, u8) {
+        &mut self.start
+    }
+
+    pub fn continuing_fields(&self) -> &[(u8, Option<u8>, Option<u8>)] {
+        &self.continuing
+    }
+
+    pub fn push_continuing_fields(&mut self, continuing_fields: (u8, Option<u8>, Option<u8>)) {
+        if let Some(last_continuing) = self.continuing.last_mut() {
+            if last_continuing.1.is_none() {
+                // find last y position
+                if let Some(last_continuing_with_1) = self.continuing.get(self.continuing.len() - 2)
+                {
+                    last_continuing.1 = last_continuing_with_1.1;
+                } else {
+                    // backup field 1 is the starting one
+                    last_continuing.1 = Some(self.start.0);
+                }
+            }
+        }
+        self.continuing.push(continuing_fields);
+    }
 }
 
-#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
-pub struct PositionsY {
-    pub start: Decimal,
-    pub end: Option<Decimal>,
+impl<T> Display for CommandFields<T>
+where
+    T: Display,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut builder = vec![self.start.0.to_string(), self.start.1.to_string()];
+
+        for fields in self.continuing {
+            builder.push(fields.0.to_string());
+            if let Some(field) = fields.1 {
+                builder.push(field.to_string());
+            }
+        }
+
+        write!(f, "{}", builder.join(","))
+    }
 }
 
-#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
-pub struct Scales {
-    pub start: Decimal,
-    pub end: Option<Decimal>,
-}
-
-#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
-pub struct ScalesXY {
-    pub start: (Decimal, Decimal),
-    pub end: (Option<Decimal>, Option<Decimal>),
-}
-
-#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
-pub struct Rotations {
-    pub start: Decimal,
-    pub end: Option<Decimal>,
+#[derive(Debug, Error)]
+pub enum ContinuingSetError {
+    #[error("continuing fields index out of bounds")]
+    IndexOutOfBounds,
+    #[error("continuing fields 2nd field is none without it being the last item in the continuing fields")]
+    InvalidSecondFieldOption,
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
@@ -541,14 +625,14 @@ impl FromStr for Command {
     type Err = CommandParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let indentation = take_while(|c| c == ' ' || c == '_');
+        let indentation = take_while::<_, _, nom::error::Error<_>>(|c| c == ' ' || c == '_');
         let field = take_while(|c| c != ',');
         let field_i32 = || map_res(field, |s: &str| s.parse());
         let comma = || char(',');
 
         // only parse a single command
         // TODO error checks
-        let (s, (_, command_type, _)) = tuple((indentation, take(1), comma()))(s).unwrap();
+        let (s, (_, command_type, _)) = tuple((indentation, take(1usize), comma()))(s).unwrap();
 
         // handle generic commands
         match command_type {
@@ -565,16 +649,27 @@ impl FromStr for Command {
                 })
             }
             "T" => {
-                let (s, (trigger_type, _, start_time, _, end_time, group_number)) =
-                    tuple((
-                        map_res(field, |s: &str| s.parse()),
-                        comma(),
-                        field_i32(),
-                        comma(),
-                        field_i32(),
-                        opt(tuple((comma(), field_i32()))),
-                    ))(s)
-                    .unwrap();
+                let (s, (trigger_type, _, start_time, _, end_time, group_number)) = tuple((
+                    map_res(field, |s: &str| s.parse()),
+                    comma(),
+                    field_i32(),
+                    comma(),
+                    opt(field_i32()),
+                    opt(tuple((comma(), field_i32()))).map(|value| value.map(|(_, value)| value)),
+                ))(
+                    s
+                )
+                .unwrap();
+
+                Ok(Command {
+                    start_time,
+                    properties: CommandProperties::Trigger {
+                        trigger_type,
+                        end_time,
+                        group_number,
+                        commands: Vec::new(),
+                    },
+                })
             }
             _ => todo!(),
         }
