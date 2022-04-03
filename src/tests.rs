@@ -11,7 +11,10 @@ use crate::osu_file::{
     colours::{Colour, Colours, Rgb},
     difficulty::Difficulty,
     editor::Editor,
-    events::{storyboard::*, Background, Break, Event, EventParams, Events},
+    events::{
+        storyboard::{self, *},
+        Background, Break, Event, EventParams, Events,
+    },
     general::{CountdownSpeed, GameMode, General, OverlayPosition, SampleSet},
     hitobject::{
         self,
@@ -295,8 +298,7 @@ fn frame_file_names() {
 
 #[test]
 fn storyboard_sprites_cmd_parse() {
-    let i_str = "
-Sprite,Pass,Centre,\"Text\\Play2-HaveFunH.png\",320,240
+    let i_str = "Sprite,Pass,Centre,\"Text\\Play2-HaveFunH.png\",320,240
  F,0,-28,,1
  M,3,100,120,140,180.123123,200,200
  MX,3,100,120,140,180.123123
@@ -341,11 +343,9 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
                     start_time: -28,
                     properties: CommandProperties::Fade {
                         easing: Easing::from_repr(0).unwrap(),
-                        end_time: Some(-28),
-                        opacities: vec![Opacities {
-                            start: dec!(1),
-                            end: Some(dec!(1)),
-                        }],
+                        end_time: None,
+                        start_opacity: dec!(1),
+                        continuing_opacities: Vec::new(),
                     },
                 },
                 Command {
@@ -353,10 +353,11 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
                     properties: CommandProperties::Move {
                         easing: Easing::from_repr(3).unwrap(),
                         end_time: Some(120),
-                        positions_xy: vec![PositionsXY {
-                            start: (dec!(140), dec!(180.123123)),
-                            end: (Some(dec!(200)), Some(dec!(200))),
-                        }],
+                        positions_xy: ContinuingFields::new(
+                            (dec!(140), dec!(180.123123)),
+                            vec![(dec!(200), Some(dec!(200)))],
+                        )
+                        .unwrap(),
                     },
                 },
                 Command {
@@ -364,10 +365,8 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
                     properties: CommandProperties::MoveX {
                         easing: Easing::from_repr(3).unwrap(),
                         end_time: Some(120),
-                        positions_x: vec![PositionsX {
-                            start: dec!(140),
-                            end: Some(dec!(180.123123)),
-                        }],
+                        start_x: dec!(140),
+                        continuing_x: vec![dec!(180.123123)],
                     },
                 },
                 Command {
@@ -375,21 +374,17 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
                     properties: CommandProperties::MoveY {
                         easing: Easing::from_repr(3).unwrap(),
                         end_time: Some(120),
-                        positions_y: vec![PositionsY {
-                            start: dec!(140),
-                            end: Some(dec!(180.123123)),
-                        }],
+                        start_y: dec!(140),
+                        continuing_y: vec![dec!(180.123123)],
                     },
                 },
                 Command {
                     start_time: -28,
                     properties: CommandProperties::Scale {
                         easing: Easing::from_repr(0).unwrap(),
-                        end_time: Some(-28),
-                        scales: vec![Scales {
-                            start: dec!(0.4),
-                            end: Some(dec!(0.4)),
-                        }],
+                        end_time: None,
+                        start_scale: dec!(0.4),
+                        continuing_scales: Vec::new(),
                     },
                 },
                 Command {
@@ -397,10 +392,11 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
                     properties: CommandProperties::VectorScale {
                         easing: Easing::from_repr(8).unwrap(),
                         end_time: Some(5500),
-                        scales_xy: vec![ScalesXY {
-                            start: (dec!(0.5), dec!(2)),
-                            end: (Some(dec!(0.5)), Some(dec!(2))),
-                        }],
+                        scales_xy: ContinuingFields::new(
+                            (dec!(0.5), dec!(2)),
+                            vec![(dec!(2), Some(dec!(0.5)))],
+                        )
+                        .unwrap(),
                     },
                 },
                 Command {
@@ -408,10 +404,8 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
                     properties: CommandProperties::Rotate {
                         easing: Easing::from_repr(7).unwrap(),
                         end_time: Some(5500),
-                        rotations: vec![Rotations {
-                            start: dec!(-0.785),
-                            end: Some(dec!(0.785)),
-                        }],
+                        start_rotation: dec!(-0.785),
+                        continuing_rotations: vec![dec!(0.785)],
                     },
                 },
                 Command {
@@ -419,10 +413,11 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
                     properties: CommandProperties::Colour {
                         easing: Easing::from_repr(6).unwrap(),
                         end_time: Some(50001),
-                        colours: vec![storyboard::Colours {
-                            start: (0, 0, 0),
-                            end: (Some(255), Some(255), Some(255)),
-                        }],
+                        colours: storyboard::Colours::new(
+                            (0, 0, 0),
+                            vec![(255, Some(255), Some(255))],
+                        )
+                        .unwrap(),
                     },
                 },
                 Command {
@@ -430,7 +425,8 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
                     properties: CommandProperties::Parameter {
                         easing: Easing::from_repr(5).unwrap(),
                         end_time: Some(350),
-                        parameters: vec![Parameter::ImageFlipHorizontal],
+                        parameter: Parameter::ImageFlipHorizontal,
+                        continuing_parameters: Vec::new(),
                     },
                 },
                 Command {
@@ -438,7 +434,8 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
                     properties: CommandProperties::Parameter {
                         easing: Easing::from_repr(5).unwrap(),
                         end_time: Some(350),
-                        parameters: vec![Parameter::ImageFlipVertical],
+                        parameter: Parameter::ImageFlipVertical,
+                        continuing_parameters: Vec::new(),
                     },
                 },
                 Command {
@@ -446,7 +443,8 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
                     properties: CommandProperties::Parameter {
                         easing: Easing::from_repr(5).unwrap(),
                         end_time: Some(350),
-                        parameters: vec![Parameter::UseAdditiveColourBlending],
+                        parameter: Parameter::UseAdditiveColourBlending,
+                        continuing_parameters: Vec::new(),
                     },
                 },
                 Command {
@@ -463,21 +461,20 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
                                         properties: CommandProperties::Move {
                                             easing: Easing::from_repr(3).unwrap(),
                                             end_time: Some(120),
-                                            positions_xy: vec![PositionsXY {
-                                                start: (dec!(140), dec!(180.123123)),
-                                                end: (Some(dec!(200)), Some(dec!(200))),
-                                            }],
+                                            positions_xy: ContinuingFields::new(
+                                                (dec!(140), dec!(180.123123)),
+                                                vec![(dec!(200), Some(dec!(200)))],
+                                            )
+                                            .unwrap(),
                                         },
                                     },
                                     Command {
                                         start_time: -28,
                                         properties: CommandProperties::Scale {
                                             easing: Easing::from_repr(0).unwrap(),
-                                            end_time: Some(-28),
-                                            scales: vec![Scales {
-                                                start: dec!(0.4),
-                                                end: Some(dec!(0.4)),
-                                            }],
+                                            end_time: None,
+                                            start_scale: dec!(0.4),
+                                            continuing_scales: Vec::new(),
                                         },
                                     },
                                 ],
@@ -505,10 +502,11 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
                                     properties: CommandProperties::Move {
                                         easing: Easing::from_repr(3).unwrap(),
                                         end_time: Some(120),
-                                        positions_xy: vec![PositionsXY {
-                                            start: (dec!(140), dec!(180.123123)),
-                                            end: (Some(dec!(200)), Some(dec!(200))),
-                                        }],
+                                        positions_xy: ContinuingFields::new(
+                                            (dec!(140), dec!(180.123123)),
+                                            vec![(dec!(200), Some(dec!(200)))],
+                                        )
+                                        .unwrap(),
                                     },
                                 }],
                             },

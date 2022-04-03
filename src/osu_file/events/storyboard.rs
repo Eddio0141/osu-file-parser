@@ -7,10 +7,11 @@ use std::{
 };
 
 use nom::{
-    bytes::complete::{take, take_while},
+    bytes::complete::take_while,
     character::complete::char,
-    combinator::{map_res, opt},
-    sequence::tuple,
+    combinator::{map_opt, map_res, opt},
+    multi::many0,
+    sequence::{preceded, tuple},
     Parser,
 };
 use rust_decimal::Decimal;
@@ -309,7 +310,7 @@ pub struct Command {
     pub properties: CommandProperties,
 }
 
-fn continuing_to_string<T>(continuing: &Vec<T>) -> String
+fn continuing_to_string<T>(continuing: &[T]) -> String
 where
     T: Display,
 {
@@ -474,7 +475,7 @@ pub enum CommandProperties {
     Move {
         easing: Easing,
         end_time: Option<Integer>,
-        positions_xy: CommandFields<Decimal>,
+        positions_xy: ContinuingFields<Decimal>,
     },
     MoveX {
         easing: Easing,
@@ -491,13 +492,13 @@ pub enum CommandProperties {
     Scale {
         easing: Easing,
         end_time: Option<Integer>,
-        start_scale: Integer,
+        start_scale: Decimal,
         continuing_scales: Vec<Decimal>,
     },
     VectorScale {
         easing: Easing,
         end_time: Option<Integer>,
-        scales_xy: CommandFields<Decimal>,
+        scales_xy: ContinuingFields<Decimal>,
     },
     Rotate {
         easing: Easing,
@@ -529,13 +530,29 @@ pub enum CommandProperties {
     },
 }
 
-#[derive(Clone, Debug, Hash, PartialEq, Eq)]
-pub struct CommandFields<T> {
+#[derive(Clone, Debug, Hash, PartialEq, Eq, Default)]
+pub struct ContinuingFields<T> {
     start: (T, T),
     continuing: Vec<(T, Option<T>)>,
 }
 
-impl<T> CommandFields<T> {
+impl<T> ContinuingFields<T> {
+    pub fn new(
+        start: (T, T),
+        continuing: Vec<(T, Option<T>)>,
+    ) -> Result<Self, InvalidSecondFieldOption> {
+        // error if continuing 2nd field is None without it being at the end of the list
+        if continuing
+            .iter()
+            .enumerate()
+            .any(|(i, (_, field_2))| field_2.is_none() && i != continuing.len() - 1)
+        {
+            Err(InvalidSecondFieldOption)
+        } else {
+            Ok(Self { start, continuing })
+        }
+    }
+
     pub fn start_values(&self) -> &(T, T) {
         &self.start
     }
@@ -591,7 +608,7 @@ impl<T> CommandFields<T> {
     }
 }
 
-impl<T> Display for CommandFields<T>
+impl<T> Display for ContinuingFields<T>
 where
     T: Display,
 {
@@ -613,9 +630,16 @@ where
 pub enum ContinuingSetError {
     #[error("continuing fields index out of bounds")]
     IndexOutOfBounds,
-    #[error("continuing fields 2nd field is none without it being the last item in the continuing fields")]
+    #[error(
+        "continuing fields 2nd field is none without it being the last item in the continuing fields")]
     InvalidSecondFieldOption,
 }
+
+#[derive(Debug, Error)]
+#[error(
+    "continuing fields 2nd field is none without it being the last item in the continuing fields"
+)]
+pub struct InvalidSecondFieldOption;
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Colours {
@@ -624,6 +648,25 @@ pub struct Colours {
 }
 
 impl Colours {
+    pub fn new(
+        start: (u8, u8, u8),
+        continuing: Vec<(u8, Option<u8>, Option<u8>)>,
+    ) -> Result<Self, InvalidColourFieldOption> {
+        for (i, (_, green, blue)) in continuing.iter().enumerate() {
+            if i != continuing.len() - 1 {
+                if green.is_none() {
+                    return Err(InvalidColourFieldOption::Green);
+                } else if blue.is_none() {
+                    return Err(InvalidColourFieldOption::Blue);
+                }
+            }
+            if green.is_none() && blue.is_some() {
+                return Err(InvalidColourFieldOption::Blue);
+            }
+        }
+        Ok(Self { start, continuing })
+    }
+
     pub fn start_rgb(&self) -> &(u8, u8, u8) {
         &self.start
     }
@@ -676,11 +719,15 @@ impl Colours {
         let index_is_last = index == self.continuing.len() - 1;
 
         if !index_is_last && fields.1.is_none() {
-            Err(ContinuingRGBSetError::InvalidGreenFieldOption)
-        } else if !index_is_last && fields.2.is_none() {
-            Err(ContinuingRGBSetError::InvalidBlueFieldOption)
-        } else if fields.1.is_none() && fields.2.is_some() {
-            Err(ContinuingRGBSetError::InvalidBlueFieldOptionArgument)
+            Err(ContinuingRGBSetError::InvalidFieldOption(
+                InvalidColourFieldOption::Green,
+            ))
+        } else if (!index_is_last && fields.2.is_none())
+            || (fields.1.is_none() && fields.2.is_some())
+        {
+            Err(ContinuingRGBSetError::InvalidFieldOption(
+                InvalidColourFieldOption::Blue,
+            ))
         } else {
             match self.continuing.get_mut(index) {
                 Some(continuing) => {
@@ -719,12 +766,16 @@ impl Display for Colours {
 pub enum ContinuingRGBSetError {
     #[error("continuing fields index out of bounds")]
     IndexOutOfBounds,
+    #[error(transparent)]
+    InvalidFieldOption(#[from] InvalidColourFieldOption),
+}
+
+#[derive(Debug, Error)]
+pub enum InvalidColourFieldOption {
     #[error("continuing fields green field is none without it being the last item in the continuing fields")]
-    InvalidGreenFieldOption,
+    Green,
     #[error("continuing fields blue field is none without it being the last item in the continuing fields")]
-    InvalidBlueFieldOption,
-    #[error("the argument's blue field is none but the green field is some")]
-    InvalidBlueFieldOptionArgument,
+    Blue,
 }
 
 impl FromStr for Command {
@@ -732,19 +783,28 @@ impl FromStr for Command {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let indentation = take_while::<_, _, nom::error::Error<_>>(|c| c == ' ' || c == '_');
-        let field = take_while(|c| c != ',');
-        let field_i32 = || map_res(field, |s: &str| s.parse());
+        let field = || take_while(|c| c != ',');
+        let field_i32 = || map_res(field(), |s: &str| s.parse());
         let comma = || char(',');
 
         // only parse a single command
         // TODO error checks
-        let (s, (_, command_type, _)) = tuple((indentation, take(1usize), comma()))(s).unwrap();
+        // TODO use alt with all possible stuff
+        let (s, (_, command_type, _)) = tuple((indentation, field(), comma()))(s).unwrap();
 
         // handle generic commands
         match command_type {
             "L" => {
-                let (s, (start_time, _, loop_count)) =
-                    tuple((field_i32(), comma(), map_res(field, |s: &str| s.parse())))(s).unwrap();
+                let (s, (start_time, _, loop_count)) = tuple((
+                    field_i32(),
+                    comma(),
+                    map_res(take_while(|_| true), |s: &str| s.parse()),
+                ))(s)
+                .unwrap();
+
+                if !s.is_empty() {
+                    todo!();
+                }
 
                 Ok(Command {
                     start_time,
@@ -756,7 +816,7 @@ impl FromStr for Command {
             }
             "T" => {
                 let (s, (trigger_type, _, start_time, _, end_time, group_number)) = tuple((
-                    map_res(field, |s: &str| s.parse()),
+                    map_res(field(), |s: &str| s.parse()),
                     comma(),
                     field_i32(),
                     comma(),
@@ -766,6 +826,10 @@ impl FromStr for Command {
                     s
                 )
                 .unwrap();
+
+                if !s.is_empty() {
+                    todo!();
+                }
 
                 Ok(Command {
                     start_time,
@@ -777,286 +841,189 @@ impl FromStr for Command {
                     },
                 })
             }
-            _ => todo!(),
-        }
+            _ => {
+                let (s, (easing, _, start_time, _, end_time, _)) = tuple((
+                    map_opt(field_i32(), |s| Easing::from_repr(s as usize)),
+                    comma(),
+                    field_i32(),
+                    comma(),
+                    opt(field_i32()),
+                    comma(),
+                ))(s)
+                .unwrap();
 
-        /*
-        let mut s = s.split(',');
+                // divided into more common fields
+                // those fields either have 1 property up to 3, which is almost all decimal types, other than the colour fields and the parameter fields
+                match command_type {
+                    "C" => {
+                        // colour
+                        let field_u8 = || map_res(field(), |s: &str| s.parse());
 
-        let event = s
-            .next()
-            .ok_or(CommandParseError::MissingField("event"))?
-            .trim_matches(|c| c == ' ' || c == '_');
+                        let continuing_colour = || opt(preceded(comma(), field_u8()));
+                        let continuing_colours = many0(preceded(
+                            comma(),
+                            tuple((field_u8(), continuing_colour(), continuing_colour())),
+                        ));
 
-        let easing_parse = |s: &mut Split<char>| {
-            let s = s.next().ok_or(CommandParseError::MissingField("easing"))?;
-            let s = s
-                .parse()
-                .map_err(|err| CommandParseError::FieldParseError {
-                    source: Box::new(err),
-                    value: s.to_string(),
-                })?;
-            Easing::from_repr(s).ok_or(CommandParseError::InvalidEasing(s))
-        };
-        let start_time_parse = |s: &mut Split<char>| {
-            let s = s
-                .next()
-                .ok_or(CommandParseError::MissingField("start_time"))?;
-            s.parse().map_err(|err| CommandParseError::FieldParseError {
-                source: Box::new(err),
-                value: s.to_string(),
-            })
-        };
-        let end_time_parse = |s: &mut Split<char>, start_time| {
-            let s = s
-                .next()
-                .ok_or(CommandParseError::MissingField("end_time"))?;
+                        let (s, (start_r, _, start_g, _, start_b, continuing_colours)) =
+                            tuple((
+                                field_u8(),
+                                comma(),
+                                field_u8(),
+                                comma(),
+                                field_u8(),
+                                continuing_colours,
+                            ))(s)
+                            .unwrap();
 
-            if s.trim().is_empty() {
-                Ok(start_time)
-            } else {
-                s.parse().map_err(|err| CommandParseError::FieldParseError {
-                    source: Box::new(err),
-                    value: s.to_string(),
-                })
-            }
-        };
+                        if s.is_empty() {
+                            Ok(Command {
+                                start_time,
+                                properties: CommandProperties::Colour {
+                                    easing,
+                                    end_time,
+                                    // requires no error checks, the fields stack on top of each other after the first 3 fields
+                                    colours: Colours::new(
+                                        (start_r, start_g, start_b),
+                                        continuing_colours,
+                                    )
+                                    .unwrap(),
+                                },
+                            })
+                        } else {
+                            Err(CommandParseError::InvalidFieldEnding)
+                        }
+                    }
+                    "P" => {
+                        // parameter
+                        let parameter = || map_res(field(), |s: &str| s.parse());
+                        let continuing_parameters = many0(preceded(comma(), parameter()));
 
-        let decimal_parse = |s: &mut Split<char>, field_name| {
-            let s = s
-                .next()
-                .ok_or(CommandParseError::MissingField(field_name))?;
-            s.parse().map_err(|err| CommandParseError::FieldParseError {
-                source: Box::new(err),
-                value: s.to_string(),
-            })
-        };
-        let decimal_optional_parse = |s: &mut Split<char>, none_value| {
-            let s = s.next();
+                        let (s, (parameter, continuing_parameters)) =
+                            tuple((parameter(), continuing_parameters))(s).unwrap();
 
-            match s {
-                Some(s) => s.parse().map_err(|err| CommandParseError::FieldParseError {
-                    source: Box::new(err),
-                    value: s.to_string(),
-                }),
-                None => Ok(none_value),
-            }
-        };
-        let u8_parse = |s: &mut Split<char>, field_name| {
-            let s = s
-                .next()
-                .ok_or(CommandParseError::MissingField(field_name))?;
-            s.parse().map_err(|err| CommandParseError::FieldParseError {
-                source: Box::new(err),
-                value: s.to_string(),
-            })
-        };
+                        if s.is_empty() {
+                            Ok(Command {
+                                start_time,
+                                properties: CommandProperties::Parameter {
+                                    easing,
+                                    end_time,
+                                    parameter,
+                                    continuing_parameters,
+                                },
+                            })
+                        } else {
+                            Err(CommandParseError::InvalidFieldEnding)
+                        }
+                    }
+                    _ => {
+                        let decimal = || map_res(field(), |s: &str| s.parse());
 
-        match event {
-            "F" => {
-                let easing = easing_parse(&mut s)?;
-                let start_time = start_time_parse(&mut s)?;
-                let end_time = end_time_parse(&mut s, start_time)?;
-                let start_opacity = decimal_parse(&mut s, "start_opacity")?;
+                        // divided into types with 1 continuous field and 2 fields thats continuous
+                        match command_type {
+                            "M" | "V" => {
+                                let continuing = || opt(preceded(comma(), decimal()));
+                                let continuing_fields =
+                                    many0(preceded(comma(), tuple((decimal(), continuing()))));
 
-                Ok(Command {
-                    start_time,
-                    properties: CommandProperties::Fade {
-                        easing,
-                        end_time,
-                        start_opacity,
-                        end_opacity: decimal_optional_parse(&mut s, start_opacity)?,
-                    },
-                })
-            }
-            "M" => {
-                let easing = easing_parse(&mut s)?;
-                let start_time = start_time_parse(&mut s)?;
+                                let (s, (start_1, _, start_2, continuing)) =
+                                    tuple((decimal(), comma(), decimal(), continuing_fields))(s)
+                                        .unwrap();
 
-                Ok(Command {
-                    start_time,
-                    properties: CommandProperties::Move {
-                        easing,
-                        end_time: end_time_parse(&mut s, start_time)?,
-                        start_x: decimal_parse(&mut s, "start_x")?,
-                        start_y: decimal_parse(&mut s, "start_y")?,
-                        end_x: decimal_parse(&mut s, "end_x")?,
-                        end_y: decimal_parse(&mut s, "end_y")?,
-                    },
-                })
-            }
-            "MX" => {
-                let easing = easing_parse(&mut s)?;
-                let start_time = start_time_parse(&mut s)?;
+                                let continuing_fields =
+                                    ContinuingFields::new((start_1, start_2), continuing).unwrap();
 
-                Ok(Command {
-                    start_time,
-                    properties: CommandProperties::MoveX {
-                        easing,
-                        end_time: end_time_parse(&mut s, start_time)?,
-                        start_x: decimal_parse(&mut s, "start_x")?,
-                        end_x: decimal_parse(&mut s, "end_x")?,
-                    },
-                })
-            }
-            "MY" => {
-                let easing = easing_parse(&mut s)?;
-                let start_time = start_time_parse(&mut s)?;
-
-                Ok(Command {
-                    start_time,
-                    properties: CommandProperties::MoveY {
-                        easing,
-                        end_time: end_time_parse(&mut s, start_time)?,
-                        start_y: decimal_parse(&mut s, "start_y")?,
-                        end_y: decimal_parse(&mut s, "end_y")?,
-                    },
-                })
-            }
-            "S" => {
-                let easing = easing_parse(&mut s)?;
-                let start_time = start_time_parse(&mut s)?;
-                let end_time = end_time_parse(&mut s, start_time)?;
-                let start_scale = decimal_parse(&mut s, "start_scale")?;
-
-                Ok(Command {
-                    start_time,
-                    properties: CommandProperties::Scale {
-                        easing,
-                        end_time,
-                        start_scale,
-                        end_scale: decimal_optional_parse(&mut s, start_scale)?,
-                    },
-                })
-            }
-            "V" => {
-                let easing = easing_parse(&mut s)?;
-                let start_time = start_time_parse(&mut s)?;
-                let end_time = end_time_parse(&mut s, start_time)?;
-
-                Ok(Command {
-                    start_time,
-                    properties: CommandProperties::VectorScale {
-                        easing,
-                        end_time,
-                        start_scale_x: decimal_parse(&mut s, "start_scale_x")?,
-                        start_scale_y: decimal_parse(&mut s, "start_scale_y")?,
-                        end_scale_x: decimal_parse(&mut s, "end_scale_x")?,
-                        end_scale_y: decimal_parse(&mut s, "end_scale_x")?,
-                    },
-                })
-            }
-            "R" => {
-                let easing = easing_parse(&mut s)?;
-                let start_time = start_time_parse(&mut s)?;
-                let end_time = end_time_parse(&mut s, start_time)?;
-
-                Ok(Command {
-                    start_time,
-                    properties: CommandProperties::Rotate {
-                        easing,
-                        end_time,
-                        start_rotate: decimal_parse(&mut s, "start_rotate")?,
-                        end_rotate: decimal_parse(&mut s, "end_rotate")?,
-                    },
-                })
-            }
-            "C" => {
-                let easing = easing_parse(&mut s)?;
-                let start_time = start_time_parse(&mut s)?;
-                let end_time = end_time_parse(&mut s, start_time)?;
-
-                Ok(Command {
-                    start_time,
-                    properties: CommandProperties::Colour {
-                        easing,
-                        end_time,
-                        start_r: u8_parse(&mut s, "start_r")?,
-                        start_g: u8_parse(&mut s, "start_g")?,
-                        start_b: u8_parse(&mut s, "start_b")?,
-                        end_r: u8_parse(&mut s, "end_r")?,
-                        end_g: u8_parse(&mut s, "end_g")?,
-                        end_b: u8_parse(&mut s, "end_b")?,
-                    },
-                })
-            }
-            "P" => {
-                let easing = easing_parse(&mut s)?;
-                let start_time = start_time_parse(&mut s)?;
-                let end_time = end_time_parse(&mut s, start_time)?;
-
-                Ok(Command {
-                    start_time,
-                    properties: CommandProperties::Parameter {
-                        easing,
-                        end_time,
-                        parameters: {
-                            let s = s
-                                .next()
-                                .ok_or(CommandParseError::MissingField("parameter"))?;
-                            s.parse()
-                                .map_err(|err| CommandParseError::FieldParseError {
-                                    source: Box::new(err),
-                                    value: s.to_string(),
-                                })?
-                        },
-                    },
-                })
-            }
-            "L" => Ok(Command {
-                start_time: start_time_parse(&mut s)?,
-                properties: CommandProperties::Loop {
-                    loop_count: {
-                        let s = s
-                            .next()
-                            .ok_or(CommandParseError::MissingField("loopcount"))?;
-                        s.parse()
-                            .map_err(|err| CommandParseError::FieldParseError {
-                                source: Box::new(err),
-                                value: s.to_string(),
-                            })?
-                    },
-                    commands: Vec::new(),
-                },
-            }),
-            "T" => {
-                let trigger_type = {
-                    let s = s
-                        .next()
-                        .ok_or(CommandParseError::MissingField("triggerType"))?;
-                    s.parse()
-                        .map_err(|err| CommandParseError::FieldParseError {
-                            source: Box::new(err),
-                            value: s.to_string(),
-                        })?
-                };
-                let start_time = start_time_parse(&mut s)?;
-
-                Ok(Command {
-                    start_time,
-                    properties: CommandProperties::Trigger {
-                        trigger_type,
-                        end_time: end_time_parse(&mut s, start_time)?,
-                        group_number: {
-                            let s = s.next();
-
-                            match s {
-                                Some(s) => Some(s.parse().map_err(|err| {
-                                    CommandParseError::FieldParseError {
-                                        source: Box::new(err),
-                                        value: s.to_string(),
+                                if s.is_empty() {
+                                    match command_type {
+                                        "M" => Ok(Command {
+                                            start_time,
+                                            properties: CommandProperties::Move {
+                                                easing,
+                                                end_time,
+                                                positions_xy: continuing_fields,
+                                            },
+                                        }),
+                                        "V" => Ok(Command {
+                                            start_time,
+                                            properties: CommandProperties::VectorScale {
+                                                easing,
+                                                end_time,
+                                                scales_xy: continuing_fields,
+                                            },
+                                        }),
+                                        _ => unreachable!(),
                                     }
-                                })?),
-                                None => None,
+                                } else {
+                                    Err(CommandParseError::InvalidFieldEnding)
+                                }
                             }
-                        },
-                        commands: Vec::new(),
-                    },
-                })
+                            // this is where the unreachable event type gets handled too
+                            _ => {
+                                let continuing = many0(preceded(comma(), decimal()));
+
+                                let (s, (start, continuing)) =
+                                    tuple((decimal(), continuing))(s).unwrap();
+
+                                if s.is_empty() {
+                                    match command_type {
+                                        "F" => Ok(Command {
+                                            start_time,
+                                            properties: CommandProperties::Fade {
+                                                easing,
+                                                end_time,
+                                                start_opacity: start,
+                                                continuing_opacities: continuing,
+                                            },
+                                        }),
+                                        "MX" => Ok(Command {
+                                            start_time,
+                                            properties: CommandProperties::MoveX {
+                                                easing,
+                                                end_time,
+                                                start_x: start,
+                                                continuing_x: continuing,
+                                            },
+                                        }),
+                                        "MY" => Ok(Command {
+                                            start_time,
+                                            properties: CommandProperties::MoveY {
+                                                easing,
+                                                end_time,
+                                                start_y: start,
+                                                continuing_y: continuing,
+                                            },
+                                        }),
+                                        "S" => Ok(Command {
+                                            start_time,
+                                            properties: CommandProperties::Scale {
+                                                easing,
+                                                end_time,
+                                                start_scale: start,
+                                                continuing_scales: continuing,
+                                            },
+                                        }),
+                                        "R" => Ok(Command {
+                                            start_time,
+                                            properties: CommandProperties::Rotate {
+                                                easing,
+                                                end_time,
+                                                start_rotation: start,
+                                                continuing_rotations: continuing,
+                                            },
+                                        }),
+                                        _ => Err(CommandParseError::UnknownEvent(
+                                            command_type.to_string(),
+                                        )),
+                                    }
+                                } else {
+                                    Err(CommandParseError::InvalidFieldEnding)
+                                }
+                            }
+                        }
+                    }
+                }
             }
-            _ => Err(CommandParseError::UnknownEvent(event.to_string())),
         }
-        */
     }
 }
 
@@ -1071,7 +1038,7 @@ pub enum Parameter {
 }
 
 // TODO what is group_number
-// TODO for all usize used in the project, but replace with something more concrete since its unrelated to hardware
+// TODO check field types to be something that makes sense
 // and also for nonzerousize
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub enum TriggerType {
@@ -1242,6 +1209,8 @@ pub enum CommandParseError {
     },
     #[error("Invalid easing, {0}")]
     InvalidEasing(usize),
+    #[error("Invalid field ending formatting")]
+    InvalidFieldEnding,
 }
 
 // TODO does this have integer form?
