@@ -1,9 +1,11 @@
+use std::num::ParseIntError;
+
 use nom::{
     bytes::complete::{is_not, take_while},
     character::complete::char,
     character::complete::multispace0,
     combinator::{map, map_res, opt},
-    error::ParseError,
+    error::{FromExternalError, ParseError},
     multi::{many0, many_till},
     sequence::{delimited, preceded, terminated, tuple},
     IResult,
@@ -57,4 +59,25 @@ where
     let item = preceded(opt(char('|')), take_while(|c: char| c != '|' && c != ','));
     let item_map = map_res(item, mapper);
     map(many_till(item_map, comma), |(v, _)| v)
+}
+
+pub fn comma<'a, E>() -> impl FnMut(&'a str) -> IResult<&'a str, char, E>
+where
+    E: ParseError<&'a str>,
+{
+    char(',')
+}
+
+pub fn comma_field<'a, E>() -> impl FnMut(&'a str) -> IResult<&str, &str, E>
+where
+    E: ParseError<&'a str>,
+{
+    take_while(|c: char| c != ',')
+}
+
+pub fn comma_field_i32<'a, E>() -> impl FnMut(&'a str) -> IResult<&str, i32, E>
+where
+    E: ParseError<&'a str> + FromExternalError<&'a str, ParseIntError>,
+{
+    map_res(comma_field(), |s| s.parse::<i32>())
 }

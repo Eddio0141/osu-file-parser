@@ -6,7 +6,6 @@ use std::{fmt::Display, str::FromStr};
 
 use nom::{
     bytes::complete::take_while,
-    character::complete::char,
     combinator::{eof, map_opt, map_res, opt},
     multi::many0,
     sequence::{preceded, tuple},
@@ -14,7 +13,10 @@ use nom::{
 };
 use rust_decimal::Decimal;
 
-use crate::osu_file::Integer;
+use crate::osu_file::{
+    parsers::{comma, comma_field, comma_field_i32},
+    Integer,
+};
 
 use self::error::*;
 use self::types::*;
@@ -467,19 +469,16 @@ impl FromStr for Command {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let indentation = take_while::<_, _, nom::error::Error<_>>(|c| c == ' ' || c == '_');
-        let field = || take_while(|c| c != ',');
-        let field_i32 = || map_res(field(), |s: &str| s.parse());
-        let comma = || char(',');
 
         // only parse a single command
         // TODO error checks
-        let (s, (_, command_type, _)) = tuple((indentation, field(), comma()))(s).unwrap();
+        let (s, (_, command_type, _)) = tuple((indentation, comma_field(), comma()))(s).unwrap();
 
         // handle generic commands
         match command_type {
             "L" => {
-                let (_, (start_time, _, loop_count, _)) = tuple((
-                    field_i32(),
+                let (_, (start_time, _, loop_count, _)) = tuple::<_, _, nom::error::Error<_>, _>((
+                    comma_field_i32(),
                     comma(),
                     map_res(take_while(|_| true), |s: &str| s.parse()),
                     eof,
@@ -495,18 +494,18 @@ impl FromStr for Command {
                 })
             }
             "T" => {
-                let (_, (trigger_type, _, start_time, _, end_time, group_number, _)) = tuple((
-                    map_res(field(), |s: &str| s.parse()),
-                    comma(),
-                    field_i32(),
-                    comma(),
-                    opt(field_i32()),
-                    opt(tuple((comma(), field_i32()))).map(|value| value.map(|(_, value)| value)),
-                    eof,
-                ))(
-                    s
-                )
-                .unwrap();
+                let (_, (trigger_type, _, start_time, _, end_time, group_number, _)) =
+                    tuple::<_, _, nom::error::Error<_>, _>((
+                        map_res(comma_field(), |s: &str| s.parse()),
+                        comma(),
+                        comma_field_i32(),
+                        comma(),
+                        opt(comma_field_i32()),
+                        opt(tuple((comma(), comma_field_i32())))
+                            .map(|value| value.map(|(_, value)| value)),
+                        eof,
+                    ))(s)
+                    .unwrap();
 
                 Ok(Command {
                     start_time,
@@ -519,22 +518,28 @@ impl FromStr for Command {
                 })
             }
             _ => {
-                let (s, (easing, _, start_time, _, end_time, _)) = tuple((
-                    map_opt(field_i32(), |s| Easing::from_repr(s as usize)),
-                    comma(),
-                    field_i32(),
-                    comma(),
-                    opt(field_i32()),
-                    comma(),
-                ))(s)
-                .unwrap();
+                let (s, (easing, _, start_time, _, end_time, _)) =
+                    tuple::<_, _, nom::error::Error<_>, _>((
+                        map_opt(comma_field_i32(), |s| Easing::from_repr(s as usize)),
+                        comma(),
+                        comma_field_i32(),
+                        comma(),
+                        opt(comma_field_i32()),
+                        comma(),
+                    ))(s)
+                    .unwrap();
 
                 // divided into more common fields
                 // those fields either have 1 property up to 3, which is almost all decimal types, other than the colour fields and the parameter fields
                 match command_type {
                     "C" => {
                         // colour
-                        let field_u8 = || map_res(field(), |s: &str| s.parse());
+                        let field_u8 = || {
+                            map_res::<_, _, _, nom::error::Error<_>, _, _, _>(
+                                comma_field(),
+                                |s: &str| s.parse(),
+                            )
+                        };
 
                         let continuing_colour = || opt(preceded(comma(), field_u8()));
                         let continuing_colours = many0(preceded(
@@ -570,7 +575,12 @@ impl FromStr for Command {
                     }
                     "P" => {
                         // parameter
-                        let parameter = || map_res(field(), |s: &str| s.parse());
+                        let parameter = || {
+                            map_res::<_, _, _, nom::error::Error<_>, _, _, _>(
+                                comma_field(),
+                                |s: &str| s.parse(),
+                            )
+                        };
                         let continuing_parameters = many0(preceded(comma(), parameter()));
 
                         let (_, (parameter, continuing_parameters, _)) =
@@ -587,7 +597,12 @@ impl FromStr for Command {
                         })
                     }
                     _ => {
-                        let decimal = || map_res(field(), |s: &str| s.parse());
+                        let decimal = || {
+                            map_res::<_, _, _, nom::error::Error<_>, _, _, _>(
+                                comma_field(),
+                                |s: &str| s.parse(),
+                            )
+                        };
 
                         // divided into types with 1 continuous field and 2 fields thats continuous
                         match command_type {

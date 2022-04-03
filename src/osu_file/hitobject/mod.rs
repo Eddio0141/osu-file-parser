@@ -18,6 +18,8 @@ use self::error::*;
 use self::types::*;
 use super::helper::*;
 
+use super::parsers::comma;
+use super::parsers::comma_field_i32;
 use super::parsers::pipe_vec;
 use super::Integer;
 use super::Position;
@@ -163,12 +165,6 @@ impl FromStr for HitObject {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         // TODO error handling
-        let comma = || char::<_, VerboseError<_>>(',');
-        let int = || {
-            map_res::<_, _, _, VerboseError<_>, _, _, _>(is_not(","), |f: &str| {
-                f.parse::<Integer>()
-            })
-        };
         let hitsound = map_res::<_, _, _, VerboseError<_>, _, _, _>(is_not(","), |f: &str| {
             f.parse::<HitSound>()
         });
@@ -178,13 +174,13 @@ impl FromStr for HitObject {
             });
 
         let mut hitobject_base = tuple::<_, _, VerboseError<_>, _>((
-            int(),
+            comma_field_i32(),
             comma(),
-            int(),
+            comma_field_i32(),
             comma(),
-            int(),
+            comma_field_i32(),
             comma(),
-            int(),
+            comma_field_i32(),
             comma(),
             hitsound,
             comma(),
@@ -255,7 +251,7 @@ impl FromStr for HitObject {
                 curve_type,
                 pipe,
                 curve_points,
-                int(),
+                comma_field_i32(),
                 comma(),
                 decimal,
                 comma(),
@@ -288,7 +284,8 @@ impl FromStr for HitObject {
         } else if nth_bit_state_i64(obj_type as i64, 3) {
             // spinner
             // TODO error handling
-            let (s, (end_time, _, hitsample)) = tuple((int(), comma(), hitsample))(s).unwrap();
+            let (s, (end_time, _, hitsample)) =
+                tuple((comma_field_i32(), comma(), hitsample))(s).unwrap();
 
             if !s.is_empty() {
                 return Err(HitObjectParseError::TooManyParameters);
