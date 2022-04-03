@@ -12,7 +12,11 @@ use crate::osu_file::{
     difficulty::Difficulty,
     editor::Editor,
     events::{
-        storyboard::{self, *},
+        storyboard::{
+            self,
+            sprites::{Animation, Layer, LoopType, Object, ObjectType, Origin, Sprite},
+            *,
+        },
         Background, Break, Event, EventParams, Events,
     },
     general::{CountdownSpeed, GameMode, General, OverlayPosition, SampleSet},

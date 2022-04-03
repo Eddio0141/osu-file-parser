@@ -9,11 +9,12 @@ use std::{
 
 use thiserror::Error;
 
-use crate::osu_file::events::storyboard::CommandProperties;
+use crate::osu_file::events::storyboard::{sprites, CommandProperties};
 
 use self::storyboard::{
     error::{CommandParseError, CommandPushError, ObjectParseError},
-    Command, Object,
+    sprites::Object,
+    Command,
 };
 
 use super::{Integer, Position};
@@ -160,7 +161,7 @@ impl Display for Event {
                 let pos_str = format!("{},{}", object.position.x, object.position.y);
 
                 let object_str = match &object.object_type {
-                    storyboard::ObjectType::Sprite(sprite) => format!(
+                    sprites::ObjectType::Sprite(sprite) => format!(
                         "Sprite,{},{},{},{}",
                         object.layer,
                         object.origin,
@@ -168,7 +169,7 @@ impl Display for Event {
                         sprite.filepath.to_string_lossy(),
                         pos_str
                     ),
-                    storyboard::ObjectType::Animation(anim) => {
+                    sprites::ObjectType::Animation(anim) => {
                         format!(
                             "Animation,{},{},{},{},{},{},{}",
                             object.layer,
