@@ -2,6 +2,7 @@ use std::path::{Path, PathBuf};
 
 use rust_decimal_macros::dec;
 
+use crate::osu_file::events::storyboard::types::*;
 use crate::osu_file::events::storyboard::*;
 use crate::osu_file::{
     events::{storyboard::sprites::*, Event, Events},
