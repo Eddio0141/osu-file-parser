@@ -59,7 +59,6 @@ impl FromStr for HitObjects {
 #[error(transparent)]
 pub struct HitObjectsParseError(#[from] HitObjectParseError);
 
-// TODO re-write this
 /// An interface that represents a hitobject.
 ///
 /// All hitobjects will have the properties: `x`, `y`, `time`, `type`, `hitsound`, `hitsample`.
