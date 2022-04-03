@@ -7,7 +7,7 @@ use std::{fmt::Display, str::FromStr};
 use nom::{
     bytes::complete::take_while,
     character::complete::char,
-    combinator::{map_opt, map_res, opt},
+    combinator::{eof, map_opt, map_res, opt},
     multi::many0,
     sequence::{preceded, tuple},
     Parser,
@@ -478,16 +478,13 @@ impl FromStr for Command {
         // handle generic commands
         match command_type {
             "L" => {
-                let (s, (start_time, _, loop_count)) = tuple((
+                let (_, (start_time, _, loop_count, _)) = tuple((
                     field_i32(),
                     comma(),
                     map_res(take_while(|_| true), |s: &str| s.parse()),
+                    eof,
                 ))(s)
                 .unwrap();
-
-                if !s.is_empty() {
-                    todo!();
-                }
 
                 Ok(Command {
                     start_time,
@@ -498,21 +495,18 @@ impl FromStr for Command {
                 })
             }
             "T" => {
-                let (s, (trigger_type, _, start_time, _, end_time, group_number)) = tuple((
+                let (_, (trigger_type, _, start_time, _, end_time, group_number, _)) = tuple((
                     map_res(field(), |s: &str| s.parse()),
                     comma(),
                     field_i32(),
                     comma(),
                     opt(field_i32()),
                     opt(tuple((comma(), field_i32()))).map(|value| value.map(|(_, value)| value)),
+                    eof,
                 ))(
                     s
                 )
                 .unwrap();
-
-                if !s.is_empty() {
-                    todo!();
-                }
 
                 Ok(Command {
                     start_time,
@@ -548,7 +542,7 @@ impl FromStr for Command {
                             tuple((field_u8(), continuing_colour(), continuing_colour())),
                         ));
 
-                        let (s, (start_r, _, start_g, _, start_b, continuing_colours)) =
+                        let (_, (start_r, _, start_g, _, start_b, continuing_colours, _)) =
                             tuple((
                                 field_u8(),
                                 comma(),
@@ -556,48 +550,41 @@ impl FromStr for Command {
                                 comma(),
                                 field_u8(),
                                 continuing_colours,
+                                eof,
                             ))(s)
                             .unwrap();
 
-                        if s.is_empty() {
-                            Ok(Command {
-                                start_time,
-                                properties: CommandProperties::Colour {
-                                    easing,
-                                    end_time,
-                                    // requires no error checks, the fields stack on top of each other after the first 3 fields
-                                    colours: Colours::new(
-                                        (start_r, start_g, start_b),
-                                        continuing_colours,
-                                    )
-                                    .unwrap(),
-                                },
-                            })
-                        } else {
-                            Err(CommandParseError::InvalidFieldEnding)
-                        }
+                        Ok(Command {
+                            start_time,
+                            properties: CommandProperties::Colour {
+                                easing,
+                                end_time,
+                                // requires no error checks, the fields stack on top of each other after the first 3 fields
+                                colours: Colours::new(
+                                    (start_r, start_g, start_b),
+                                    continuing_colours,
+                                )
+                                .unwrap(),
+                            },
+                        })
                     }
                     "P" => {
                         // parameter
                         let parameter = || map_res(field(), |s: &str| s.parse());
                         let continuing_parameters = many0(preceded(comma(), parameter()));
 
-                        let (s, (parameter, continuing_parameters)) =
-                            tuple((parameter(), continuing_parameters))(s).unwrap();
+                        let (_, (parameter, continuing_parameters, _)) =
+                            tuple((parameter(), continuing_parameters, eof))(s).unwrap();
 
-                        if s.is_empty() {
-                            Ok(Command {
-                                start_time,
-                                properties: CommandProperties::Parameter {
-                                    easing,
-                                    end_time,
-                                    parameter,
-                                    continuing_parameters,
-                                },
-                            })
-                        } else {
-                            Err(CommandParseError::InvalidFieldEnding)
-                        }
+                        Ok(Command {
+                            start_time,
+                            properties: CommandProperties::Parameter {
+                                easing,
+                                end_time,
+                                parameter,
+                                continuing_parameters,
+                            },
+                        })
                     }
                     _ => {
                         let decimal = || map_res(field(), |s: &str| s.parse());
@@ -609,97 +596,91 @@ impl FromStr for Command {
                                 let continuing_fields =
                                     many0(preceded(comma(), tuple((decimal(), continuing()))));
 
-                                let (s, (start_1, _, start_2, continuing)) =
-                                    tuple((decimal(), comma(), decimal(), continuing_fields))(s)
-                                        .unwrap();
+                                let (_, (start_1, _, start_2, continuing, _)) =
+                                    tuple((decimal(), comma(), decimal(), continuing_fields, eof))(
+                                        s,
+                                    )
+                                    .unwrap();
 
                                 let continuing_fields =
                                     ContinuingFields::new((start_1, start_2), continuing).unwrap();
 
-                                if s.is_empty() {
-                                    match command_type {
-                                        "M" => Ok(Command {
-                                            start_time,
-                                            properties: CommandProperties::Move {
-                                                easing,
-                                                end_time,
-                                                positions_xy: continuing_fields,
-                                            },
-                                        }),
-                                        "V" => Ok(Command {
-                                            start_time,
-                                            properties: CommandProperties::VectorScale {
-                                                easing,
-                                                end_time,
-                                                scales_xy: continuing_fields,
-                                            },
-                                        }),
-                                        _ => unreachable!(),
-                                    }
-                                } else {
-                                    Err(CommandParseError::InvalidFieldEnding)
+                                match command_type {
+                                    "M" => Ok(Command {
+                                        start_time,
+                                        properties: CommandProperties::Move {
+                                            easing,
+                                            end_time,
+                                            positions_xy: continuing_fields,
+                                        },
+                                    }),
+                                    "V" => Ok(Command {
+                                        start_time,
+                                        properties: CommandProperties::VectorScale {
+                                            easing,
+                                            end_time,
+                                            scales_xy: continuing_fields,
+                                        },
+                                    }),
+                                    _ => unreachable!(),
                                 }
                             }
                             // this is where the unreachable event type gets handled too
                             _ => {
                                 let continuing = many0(preceded(comma(), decimal()));
 
-                                let (s, (start, continuing)) =
-                                    tuple((decimal(), continuing))(s).unwrap();
+                                let (_, (start, continuing, _)) =
+                                    tuple((decimal(), continuing, eof))(s).unwrap();
 
-                                if s.is_empty() {
-                                    match command_type {
-                                        "F" => Ok(Command {
-                                            start_time,
-                                            properties: CommandProperties::Fade {
-                                                easing,
-                                                end_time,
-                                                start_opacity: start,
-                                                continuing_opacities: continuing,
-                                            },
-                                        }),
-                                        "MX" => Ok(Command {
-                                            start_time,
-                                            properties: CommandProperties::MoveX {
-                                                easing,
-                                                end_time,
-                                                start_x: start,
-                                                continuing_x: continuing,
-                                            },
-                                        }),
-                                        "MY" => Ok(Command {
-                                            start_time,
-                                            properties: CommandProperties::MoveY {
-                                                easing,
-                                                end_time,
-                                                start_y: start,
-                                                continuing_y: continuing,
-                                            },
-                                        }),
-                                        "S" => Ok(Command {
-                                            start_time,
-                                            properties: CommandProperties::Scale {
-                                                easing,
-                                                end_time,
-                                                start_scale: start,
-                                                continuing_scales: continuing,
-                                            },
-                                        }),
-                                        "R" => Ok(Command {
-                                            start_time,
-                                            properties: CommandProperties::Rotate {
-                                                easing,
-                                                end_time,
-                                                start_rotation: start,
-                                                continuing_rotations: continuing,
-                                            },
-                                        }),
-                                        _ => Err(CommandParseError::UnknownEvent(
-                                            command_type.to_string(),
-                                        )),
-                                    }
-                                } else {
-                                    Err(CommandParseError::InvalidFieldEnding)
+                                match command_type {
+                                    "F" => Ok(Command {
+                                        start_time,
+                                        properties: CommandProperties::Fade {
+                                            easing,
+                                            end_time,
+                                            start_opacity: start,
+                                            continuing_opacities: continuing,
+                                        },
+                                    }),
+                                    "MX" => Ok(Command {
+                                        start_time,
+                                        properties: CommandProperties::MoveX {
+                                            easing,
+                                            end_time,
+                                            start_x: start,
+                                            continuing_x: continuing,
+                                        },
+                                    }),
+                                    "MY" => Ok(Command {
+                                        start_time,
+                                        properties: CommandProperties::MoveY {
+                                            easing,
+                                            end_time,
+                                            start_y: start,
+                                            continuing_y: continuing,
+                                        },
+                                    }),
+                                    "S" => Ok(Command {
+                                        start_time,
+                                        properties: CommandProperties::Scale {
+                                            easing,
+                                            end_time,
+                                            start_scale: start,
+                                            continuing_scales: continuing,
+                                        },
+                                    }),
+                                    "R" => Ok(Command {
+                                        start_time,
+                                        properties: CommandProperties::Rotate {
+                                            easing,
+                                            end_time,
+                                            start_rotation: start,
+                                            continuing_rotations: continuing,
+                                        },
+                                    }),
+                                    _ => Err(CommandParseError::UnknownEvent(
+                                        command_type.to_string(),
+                                    )),
                                 }
                             }
                         }
