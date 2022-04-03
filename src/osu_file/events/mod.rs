@@ -11,7 +11,10 @@ use thiserror::Error;
 
 use crate::osu_file::events::storyboard::CommandProperties;
 
-use self::storyboard::{Command, CommandParseError, CommandPushError, Object, ObjectParseError};
+use self::storyboard::{
+    error::{CommandParseError, CommandPushError, ObjectParseError},
+    Command, Object,
+};
 
 use super::{Integer, Position};
 
