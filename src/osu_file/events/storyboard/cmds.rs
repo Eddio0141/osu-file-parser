@@ -589,27 +589,35 @@ impl FromStr for Command {
                         let field_u8 = || {
                             map_res::<_, _, _, nom::error::Error<_>, _, _, _>(
                                 comma_field(),
-                                |s: &str| s.parse(),
+                                |s: &str| s.parse::<u8>(),
                             )
                         };
 
                         let continuing_colour = || opt(preceded(comma(), field_u8()));
                         let continuing_colours = many0(preceded(
                             comma(),
-                            tuple((field_u8(), continuing_colour(), continuing_colour())),
+                            tuple((
+                                context("invalid_continuing_red_field", field_u8()),
+                                continuing_colour(),
+                                continuing_colour(),
+                            )),
                         ));
 
+                        let fields_parse = tuple((
+                            context("invalid_red_field", field_u8()),
+                            context("missing_blue_field", comma()),
+                            context("invalid_blue_field", field_u8()),
+                            context("missing_green_field", comma()),
+                            context("invalid_green_field", field_u8()),
+                            continuing_colours,
+                            context("too_many_fields", eof),
+                        ))(s);
+
                         let (_, (start_r, _, start_g, _, start_b, continuing_colours, _)) =
-                            tuple((
-                                field_u8(),
-                                comma(),
-                                field_u8(),
-                                comma(),
-                                field_u8(),
-                                continuing_colours,
-                                eof,
-                            ))(s)
-                            .unwrap();
+                            match fields_parse {
+                                Ok(ok) => ok,
+                                Err(err) => panic!("{:?}", err),
+                            };
 
                         Ok(Command {
                             start_time,
