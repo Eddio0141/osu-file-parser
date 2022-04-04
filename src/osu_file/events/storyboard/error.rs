@@ -37,14 +37,22 @@ pub enum EasingParseError {
 
 #[derive(Debug, Error)]
 pub enum CommandParseError {
-    #[error("The easing field is missing")]
+    #[error("Missing the easing type")]
     MissingEasing,
     #[error("Invalid easing: {0}")]
     InvalidEasing(String),
-    #[error("The event type {0} is unknown")]
-    UnknownEvent(String),
     #[error("Invalid field ending formatting")]
     InvalidFieldEnding,
+    #[error("Missing the start time")]
+    MissingStartTime,
+    #[error("Tried parsing a string {0} as an integer")]
+    ParseIntError(String),
+    #[error("Missing the end time")]
+    MissingEndTime,
+    #[error("Missing command fields")]
+    MissingCommandParams,
+    #[error("Unknown event type: {0}")]
+    UnknownEvent(String),
 }
 
 #[derive(Debug, Error)]
