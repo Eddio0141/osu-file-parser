@@ -9,12 +9,12 @@ use std::{
 
 use thiserror::Error;
 
-use crate::osu_file::events::storyboard::{sprites, CommandProperties};
+use crate::osu_file::events::storyboard::sprites;
 
 use self::storyboard::{
+    cmds::{Command, CommandProperties},
     error::{CommandParseError, CommandPushError, ObjectParseError},
     sprites::Object,
-    Command,
 };
 
 use super::{Integer, Position};

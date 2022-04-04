@@ -5,9 +5,10 @@ use std::str::{FromStr, Split};
 
 use strum_macros::{Display, EnumString, FromRepr};
 
-use crate::osu_file::{events::storyboard::CommandProperties, Position};
+use crate::osu_file::Position;
 
-use super::{error::*, Command};
+use super::cmds::*;
+use super::error::*;
 
 // TODO investivage if integer form is valid
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, Display, FromRepr, EnumString)]

@@ -37,18 +37,12 @@ pub enum EasingParseError {
 
 #[derive(Debug, Error)]
 pub enum CommandParseError {
-    #[error("The field {0} is missing from the [`Command`]")]
-    MissingField(&'static str),
+    #[error("The easing field is missing")]
+    MissingEasing,
+    #[error("Invalid easing: {0}")]
+    InvalidEasing(String),
     #[error("The event type {0} is unknown")]
     UnknownEvent(String),
-    #[error("Attempted to parse {value} from a `str` as another type")]
-    FieldParseError {
-        #[source]
-        source: Box<dyn Error>,
-        value: String,
-    },
-    #[error("Invalid easing, {0}")]
-    InvalidEasing(usize),
     #[error("Invalid field ending formatting")]
     InvalidFieldEnding,
 }
