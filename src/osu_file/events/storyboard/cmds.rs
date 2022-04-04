@@ -4,10 +4,10 @@ use std::str::FromStr;
 use nom::branch::alt;
 use nom::bytes::complete::*;
 use nom::combinator::{eof, map_opt, map_res, opt, verify};
-use nom::error::*;
 use nom::multi::many0;
 use nom::sequence::*;
 use nom::Parser;
+use nom::{error::*, Finish};
 use rust_decimal::Decimal;
 
 use crate::osu_file::parsers::*;
@@ -463,12 +463,14 @@ impl FromStr for Command {
     type Err = CommandParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let indentation = take_while::<_, _, nom::error::Error<_>>(|c| c == ' ' || c == '_');
+        let indentation = take_while::<_, _, nom::error::VerboseError<_>>(|c| c == ' ' || c == '_');
         let comma_field_unwrap = |s| comma_field::<nom::error::Error<_>>()(s).unwrap().1;
 
         // only parse a single command
         // TODO error checks
-        let (s, (_, command_type)) = tuple((indentation, comma_field()))(s).unwrap();
+        // a command type will never be missing
+        // even an empty string will mean it is a command type of being empty
+        let (s, command_type) = preceded(indentation, comma_field())(s).unwrap();
 
         // handle generic commands
         match command_type {
@@ -534,51 +536,49 @@ impl FromStr for Command {
                         )),
                     ),
                     context("missing_params", comma()),
-                ))(s);
+                ))(s)
+                .finish();
 
                 let (s, (_, easing, _, start_time, _, end_time, _)) = match common_fields_parse {
                     Ok(ok) => ok,
-                    Err(err) => match err {
-                        nom::Err::Error(err) | nom::Err::Failure(err) => {
-                            for err in &err.errors {
-                                let (input, err) = err;
-                                if let VerboseErrorKind::Context(context) = err {
-                                    match *context {
-                                        "missing_easing" => {
-                                            return Err(CommandParseError::MissingEasing)
-                                        }
-                                        "easing" => {
-                                            return Err(CommandParseError::InvalidEasing(
-                                                comma_field_unwrap(input).to_string(),
-                                            ))
-                                        }
-                                        "missing_start_time" => {
-                                            return Err(CommandParseError::MissingStartTime)
-                                        }
-                                        "start_time" => {
-                                            return Err(CommandParseError::ParseIntError(
-                                                comma_field_unwrap(input).to_string(),
-                                            ))
-                                        }
-                                        "missing_end_time" => {
-                                            return Err(CommandParseError::MissingEndTime)
-                                        }
-                                        "end_time" => {
-                                            return Err(CommandParseError::ParseIntError(
-                                                comma_field_unwrap(input).to_string(),
-                                            ))
-                                        }
-                                        "missing_params" => {
-                                            return Err(CommandParseError::MissingCommandParams)
-                                        }
-                                        _ => unreachable!(),
+                    Err(err) => {
+                        for err in &err.errors {
+                            let (input, err) = err;
+                            if let VerboseErrorKind::Context(context) = err {
+                                match *context {
+                                    "missing_easing" => {
+                                        return Err(CommandParseError::MissingEasing)
                                     }
+                                    "easing" => {
+                                        return Err(CommandParseError::InvalidEasing(
+                                            comma_field_unwrap(input).to_string(),
+                                        ))
+                                    }
+                                    "missing_start_time" => {
+                                        return Err(CommandParseError::MissingStartTime)
+                                    }
+                                    "start_time" => {
+                                        return Err(CommandParseError::ParseIntError(
+                                            comma_field_unwrap(input).to_string(),
+                                        ))
+                                    }
+                                    "missing_end_time" => {
+                                        return Err(CommandParseError::MissingEndTime)
+                                    }
+                                    "end_time" => {
+                                        return Err(CommandParseError::ParseIntError(
+                                            comma_field_unwrap(input).to_string(),
+                                        ))
+                                    }
+                                    "missing_params" => {
+                                        return Err(CommandParseError::MissingCommandParams)
+                                    }
+                                    _ => unreachable!(),
                                 }
                             }
-                            unreachable!();
                         }
-                        nom::Err::Incomplete(_) => unreachable!(),
-                    },
+                        unreachable!();
+                    }
                 };
 
                 // divided into more common fields
