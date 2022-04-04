@@ -529,8 +529,8 @@ impl FromStr for Command {
                     context(
                         "end_time",
                         alt((
-                            comma_field_i32().map(|t| Some(t)),
-                            verify(comma_field(), |t: &str| t.len() == 0).map(|_| None),
+                            comma_field_i32().map(Some),
+                            verify(comma_field(), |t: &str| t.is_empty()).map(|_| None),
                         )),
                     ),
                     context("missing_params", comma()),
