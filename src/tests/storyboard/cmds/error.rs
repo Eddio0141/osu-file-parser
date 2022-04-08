@@ -11,7 +11,7 @@ fn storyboard_cmd_errors() {
     let missing_command_params = "F,0,0,0";
 
     assert_eq!(
-        "Missing the easing type",
+        "Missing the Easing field",
         missing_easing.parse::<Command>().unwrap_err().to_string()
     );
     assert_eq!(
@@ -19,25 +19,25 @@ fn storyboard_cmd_errors() {
         invalid_easing.parse::<Command>().unwrap_err().to_string()
     );
     assert_eq!(
-        "Missing the start time",
+        "Missing the StartTime field",
         missing_start_time
             .parse::<Command>()
             .unwrap_err()
             .to_string()
     );
     assert_eq!(
-        "Tried parsing a string foo as an integer",
+        "Tried parsing a str foo as an integer",
         invalid_start_time
             .parse::<Command>()
             .unwrap_err()
             .to_string()
     );
     assert_eq!(
-        "Missing the end time",
+        "Missing the EndTime field",
         missing_end_time.parse::<Command>().unwrap_err().to_string()
     );
     assert_eq!(
-        "Tried parsing a string foo as an integer",
+        "Tried parsing a str foo as an integer",
         invalid_end_time.parse::<Command>().unwrap_err().to_string()
     );
     assert_eq!(
