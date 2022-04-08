@@ -6,7 +6,6 @@ use super::{cmds::*, types::*};
 
 pub fn command(s: &str) -> IResult<&str, Command, VerboseError<&str>> {
     let indentation = take_while::<_, _, VerboseError<_>>(|c| c == ' ' || c == '_');
-    // let comma_field_unwrap = |s| comma_field::<nom::error::Error<_>>()(s).unwrap().1;
 
     // only parse a single command
     // a command type will never be missing
@@ -102,13 +101,19 @@ pub fn command(s: &str) -> IResult<&str, Command, VerboseError<&str>> {
                     // colour
                     let field_u8 = || map_res(comma_field(), |s: &str| s.parse::<u8>());
 
-                    let continuing_colour = || opt(preceded(comma(), field_u8()));
+                    let continuing_colour = || {
+                        alt((
+                            eof.map(|_| None),
+                            preceded(comma(), field_u8()).map(|v| Some(v)),
+                        ))
+                    };
+                    // TODO find out what happens to the context if many0 fails
                     let continuing_colours = many0(preceded(
                         comma(),
                         tuple((
                             context("invalid_continuing_red_field", field_u8()),
-                            continuing_colour(),
-                            continuing_colour(),
+                            context("invalid_continuing_green_field", continuing_colour()),
+                            context("invalid_continuing_blue_field", continuing_colour()),
                         )),
                     ));
 
@@ -143,6 +148,7 @@ pub fn command(s: &str) -> IResult<&str, Command, VerboseError<&str>> {
                 "P" => {
                     // parameter
                     let parameter = || map_res(comma_field(), |s: &str| s.parse());
+                    // TODO whats going to happen with the error with the many0
                     let continuing_parameters = many0(preceded(comma(), parameter()));
 
                     let (s, (parameter, continuing_parameters, _)) = tuple((
@@ -170,7 +176,13 @@ pub fn command(s: &str) -> IResult<&str, Command, VerboseError<&str>> {
                     // divided into types with 1 continuous field and 2 fields thats continuous
                     match command_type {
                         "M" | "V" => {
-                            let continuing = || opt(preceded(comma(), decimal()));
+                            let continuing = || {
+                                alt((
+                                    eof.map(|_| None),
+                                    preceded(comma(), decimal()).map(|v| Some(v)),
+                                ))
+                            };
+                            // TODO check error on many0
                             let continuing_fields =
                                 many0(preceded(comma(), tuple((decimal(), continuing()))));
 
@@ -214,6 +226,7 @@ pub fn command(s: &str) -> IResult<&str, Command, VerboseError<&str>> {
                         }
                         // this is where the unreachable event type gets handled too
                         _ => {
+                            // TODO this error is not handled properly
                             let continuing = many0(preceded(comma(), decimal()));
 
                             let (_, (start, continuing, _)) = tuple((

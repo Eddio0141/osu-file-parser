@@ -2,7 +2,10 @@ use std::fmt::Display;
 use std::str::FromStr;
 
 use crate::osu_file::Integer;
+use nom::error::VerboseErrorKind;
+use nom::Finish;
 use rust_decimal::Decimal;
+use strum_macros::Display;
 
 use super::error::*;
 use super::parser::command;
@@ -456,7 +459,76 @@ impl FromStr for Command {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         // usage of parser and error handling here is the most clean way I can do this probably
-        command(s).unwrap();
-        panic!()
+        // TODO, if its a parse error, parse the str once more to get the error type
+        match command(s).finish() {
+            Ok(ok) => Ok(ok.1),
+            Err(err) => {
+                let mut input = None;
+                let mut nom_err = None;
+                let mut context = None;
+
+                for err in &err.errors {
+                    input = Some(err.0);
+
+                    match err.1 {
+                        VerboseErrorKind::Context(c) => context = Some(c),
+                        VerboseErrorKind::Nom(nom) => nom_err = Some(nom),
+                        VerboseErrorKind::Char(_) => (),
+                    }
+                }
+
+                let input = input.unwrap();
+
+                let err = match context {
+                    Some(context) => match context {
+                        "missing_start_time" => CommandParseError::MissingField(Field::StartTime),
+                        "start_time"
+                        | "loop_count"
+                        | "group_number"
+                        | "invalid_red_field"
+                        | "invalid_blue_field"
+                        | "invalid_green_field"
+                        | "invalid_continuing_red_field"
+                        | "invalid_continuing_green_field"
+                        | "invalid_continuing_blue_field" => {
+                            CommandParseError::ParseIntError(input.to_string())
+                        }
+                        "missing_loop_count" => CommandParseError::MissingField(Field::LoopCount),
+                        "missing_trigger_type" => {
+                            CommandParseError::MissingField(Field::TriggerType)
+                        }
+                        "trigger_type" => {
+                            CommandParseError::TriggerTypeParseError(input.to_string())
+                        }
+                        "missing_params" => CommandParseError::MissingCommandParams,
+                        "missing_blue_field" => CommandParseError::MissingField(Field::Blue),
+                        "missing_green_field" => CommandParseError::MissingField(Field::Green),
+                        "parameter_type" | "continuing_parameter_types" => {
+                            CommandParseError::ParameterTypeParseError(input.to_string())
+                        }
+                        "first_parameter" | "second_parameter" | "continuing_parameters" => {
+                            CommandParseError::DecimalParseError(input.to_string())
+                        }
+                        "missing_second_parameter" => CommandParseError::MissingSecondParameter,
+                        "eof" => CommandParseError::InvalidFieldEnding(input.to_string()),
+                        _ => unimplemented!("unimplemented context {context}"),
+                    },
+                    None => unimplemented!("no context found for command parser"),
+                };
+
+                Err(err)
+            }
+        }
     }
+}
+
+#[derive(Display, Debug)]
+pub enum Field {
+    Easing,
+    StartTime,
+    EndTime,
+    LoopCount,
+    TriggerType,
+    Green,
+    Blue,
 }

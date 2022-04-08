@@ -2,6 +2,8 @@ use thiserror::Error;
 
 use std::{error::Error, num::ParseIntError};
 
+use super::cmds::Field;
+
 #[derive(Debug, Error)]
 pub enum CommandPushError {
     #[error("Invalid indentation, expected {0}, got {1}")]
@@ -37,22 +39,26 @@ pub enum EasingParseError {
 
 #[derive(Debug, Error)]
 pub enum CommandParseError {
-    #[error("Missing the easing type")]
-    MissingEasing,
+    #[error("Missing the {0} field")]
+    MissingField(Field),
     #[error("Invalid easing: {0}")]
     InvalidEasing(String),
-    #[error("Invalid field ending formatting")]
-    InvalidFieldEnding,
-    #[error("Missing the start time")]
-    MissingStartTime,
-    #[error("Tried parsing a string {0} as an integer")]
+    #[error("Invalid field ending, expected command to be end of line, got {0}")]
+    InvalidFieldEnding(String),
+    #[error("Tried parsing a str {0} as an integer")]
     ParseIntError(String),
-    #[error("Missing the end time")]
-    MissingEndTime,
+    #[error("Tried parsing a str {0} as a trigger type")]
+    TriggerTypeParseError(String),
+    #[error("Tried parsing a str {0} as a decimal")]
+    DecimalParseError(String),
     #[error("Missing command fields")]
     MissingCommandParams,
     #[error("Unknown event type: {0}")]
     UnknownEvent(String),
+    #[error("Tried parsing a str {0} as a parameter type")]
+    ParameterTypeParseError(String),
+    #[error("The second command parameter is missing")]
+    MissingSecondParameter,
 }
 
 #[derive(Debug, Error)]
