@@ -1,6 +1,7 @@
 use std::fmt::Display;
 use std::str::FromStr;
 
+use crate::osu_file::parsers::comma_field;
 use crate::osu_file::Integer;
 use nom::error::VerboseErrorKind;
 use nom::Finish;
@@ -477,12 +478,18 @@ impl FromStr for Command {
                     }
                 }
 
-                let input = input.unwrap();
+                let input = comma_field::<nom::error::Error<_>>()(input.unwrap())
+                    .unwrap()
+                    .1;
 
                 let err = match context {
                     Some(context) => match context {
+                        "missing_easing" => CommandParseError::MissingField(Field::Easing),
+                        "easing" => CommandParseError::InvalidEasing(input.to_string()),
                         "missing_start_time" => CommandParseError::MissingField(Field::StartTime),
+                        "missing_end_time" => CommandParseError::MissingField(Field::EndTime),
                         "start_time"
+                        | "end_time"
                         | "loop_count"
                         | "group_number"
                         | "invalid_red_field"
