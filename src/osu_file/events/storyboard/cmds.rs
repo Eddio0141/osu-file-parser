@@ -465,7 +465,7 @@ impl FromStr for Command {
             Ok(ok) => Ok(ok.1),
             Err(err) => {
                 let mut input = None;
-                let mut nom_err = None;
+                // let mut nom_err = None;
                 let mut context = None;
 
                 for err in &err.errors {
@@ -473,7 +473,7 @@ impl FromStr for Command {
 
                     match err.1 {
                         VerboseErrorKind::Context(c) => context = Some(c),
-                        VerboseErrorKind::Nom(nom) => nom_err = Some(nom),
+                        VerboseErrorKind::Nom(_) => (),
                         VerboseErrorKind::Char(_) => (),
                     }
                 }
@@ -484,6 +484,7 @@ impl FromStr for Command {
 
                 let err = match context {
                     Some(context) => match context {
+                        "unknown_event" => CommandParseError::UnknownEvent(input.to_string()),
                         "missing_easing" => CommandParseError::MissingField(Field::Easing),
                         "easing" => CommandParseError::InvalidEasing(input.to_string()),
                         "missing_start_time" => CommandParseError::MissingField(Field::StartTime),

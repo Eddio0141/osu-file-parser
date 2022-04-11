@@ -53,7 +53,7 @@ pub enum CommandParseError {
     DecimalParseError(String),
     #[error("Missing command fields")]
     MissingCommandParams,
-    #[error("Unknown event type: {0}")]
+    #[error("Unknown event: {0}")]
     UnknownEvent(String),
     #[error("Tried parsing a str {0} as a parameter type")]
     ParameterTypeParseError(String),

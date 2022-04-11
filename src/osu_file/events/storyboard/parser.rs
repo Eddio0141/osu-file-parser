@@ -4,13 +4,13 @@ use crate::osu_file::parsers::*;
 
 use super::{cmds::*, types::*};
 
-pub fn command(s: &str) -> IResult<&str, Command, VerboseError<&str>> {
+pub fn command(s_input: &str) -> IResult<&str, Command, VerboseError<&str>> {
     let indentation = take_while::<_, _, VerboseError<_>>(|c| c == ' ' || c == '_');
 
     // only parse a single command
     // a command type will never be missing
     // even an empty string will mean it is a command type of being empty
-    let (s, command_type) = preceded(indentation, comma_field())(s).unwrap();
+    let (s, command_type) = preceded(indentation, comma_field())(s_input).unwrap();
 
     // handle generic commands
     match command_type {
@@ -296,7 +296,7 @@ pub fn command(s: &str) -> IResult<&str, Command, VerboseError<&str>> {
                                         },
                                     },
                                 )),
-                                _ => unimplemented!("unimplemented event type: {}", command_type),
+                                _ => context("unknown_event", fail)(s_input),
                             }
                         }
                     }
