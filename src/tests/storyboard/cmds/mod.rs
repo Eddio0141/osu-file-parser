@@ -373,3 +373,44 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
     assert_eq!(i, s);
     assert_eq!(i_str, i.to_string());
 }
+
+#[test]
+fn colours() {
+    let i = "C,0,0,0,255,255,255,255,255,255,0";
+    let i = i.parse::<Command>().unwrap();
+
+    let cmd = Command {
+        start_time: 0,
+        properties: CommandProperties::Colour {
+            easing: Easing::from_repr(0).unwrap(),
+            end_time: Some(0),
+            colours: Colours {
+                start: (255, 255, 255),
+                continuing: vec![(255, Some(255), Some(255)), (0, None, None)],
+            },
+        },
+    };
+
+    assert_eq!(i, cmd);
+}
+
+#[test]
+fn parameters() {
+    let i = "P,0,0,,H,V,A";
+    let i = i.parse::<Command>().unwrap();
+
+    let cmd = Command {
+        start_time: 0,
+        properties: CommandProperties::Parameter {
+            easing: Easing::from_repr(0).unwrap(),
+            end_time: None,
+            parameter: Parameter::ImageFlipHorizontal,
+            continuing_parameters: vec![
+                Parameter::ImageFlipVertical,
+                Parameter::UseAdditiveColourBlending,
+            ],
+        },
+    };
+
+    assert_eq!(i, cmd);
+}
