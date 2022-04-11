@@ -9,7 +9,13 @@ fn storyboard_cmd_errors() {
     let missing_end_time = "F,0,0";
     let invalid_end_time = "F,0,0,foo";
     let missing_command_params = "F,0,0,0";
+    let invalid_event = "foo,0,0,0,0,0,0";
+    let missing_loop_count = "L,0";
 
+    assert_eq!(
+        "Unknown event: foo",
+        invalid_event.parse::<Command>().unwrap_err().to_string()
+    );
     assert_eq!(
         "Missing the Easing field",
         missing_easing.parse::<Command>().unwrap_err().to_string()
@@ -43,6 +49,13 @@ fn storyboard_cmd_errors() {
     assert_eq!(
         "Missing command fields",
         missing_command_params
+            .parse::<Command>()
+            .unwrap_err()
+            .to_string()
+    );
+    assert_eq!(
+        "Missing the LoopCount field",
+        missing_loop_count
             .parse::<Command>()
             .unwrap_err()
             .to_string()
