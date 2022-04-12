@@ -149,7 +149,6 @@ pub fn command(s_input: &str) -> IResult<&str, Command, VerboseError<&str>> {
                 "P" => {
                     // parameter
                     let parameter = || map_res(comma_field(), |s: &str| s.parse());
-                    // TODO whats going to happen with the error with the many0
                     let continuing_parameters = many0(preceded(comma(), parameter()));
 
                     let (s, (parameter, continuing_parameters, _)) = tuple((
@@ -183,7 +182,6 @@ pub fn command(s_input: &str) -> IResult<&str, Command, VerboseError<&str>> {
                                     preceded(comma(), decimal()).map(|v| Some(v)),
                                 ))
                             };
-                            // TODO check error on many0
                             let continuing_fields =
                                 many0(preceded(comma(), tuple((decimal(), continuing()))));
 
