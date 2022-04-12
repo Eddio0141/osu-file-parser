@@ -47,7 +47,7 @@ fn storyboard_cmd_errors() {
         invalid_end_time.parse::<Command>().unwrap_err().to_string()
     );
     assert_eq!(
-        "Missing command fields",
+        "Missing additional command fields",
         missing_command_params
             .parse::<Command>()
             .unwrap_err()
