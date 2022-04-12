@@ -304,7 +304,7 @@ pub fn command(s_input: &str) -> IResult<&str, Command, VerboseError<&str>> {
     }
 }
 
-mod context {
+pub mod context {
     // missing field errors
     pub const MISSING_START_TIME: &str = "missing_start_time";
     pub const MISSING_END_TIME: &str = "missing_end_time";
