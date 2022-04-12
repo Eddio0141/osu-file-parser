@@ -2,6 +2,7 @@ mod error;
 
 use std::path::{Path, PathBuf};
 
+use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
 
 use crate::osu_file::events::storyboard::cmds::*;
@@ -57,7 +58,7 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
                     properties: CommandProperties::Fade {
                         easing: Easing::from_repr(0).unwrap(),
                         end_time: None,
-                        start_opacity: dec!(1),
+                        start_opacity: Decimal::ONE,
                         continuing_opacities: Vec::new(),
                     },
                 },
@@ -408,6 +409,73 @@ fn parameters() {
             continuing_parameters: vec![
                 Parameter::ImageFlipVertical,
                 Parameter::UseAdditiveColourBlending,
+            ],
+        },
+    };
+
+    assert_eq!(i, cmd);
+}
+
+#[test]
+fn trigger_group_number() {
+    let i = "T,HitSound,0,0,5";
+    let i = i.parse::<Command>().unwrap();
+
+    let cmd = Command {
+        start_time: 0,
+        properties: CommandProperties::Trigger {
+            trigger_type: TriggerType::HitSound {
+                sample_set: None,
+                additions_sample_set: None,
+                addition: None,
+                custom_sample_set: None,
+            },
+            end_time: Some(0),
+            group_number: Some(5),
+            commands: Vec::new(),
+        },
+    };
+
+    assert_eq!(i, cmd);
+}
+
+#[test]
+fn move_command() {
+    let i = "M,0,0,0,-5,10,55";
+    let i = i.parse::<Command>().unwrap();
+
+    let cmd = Command {
+        start_time: 0,
+        properties: CommandProperties::Move {
+            easing: Easing::from_repr(0).unwrap(),
+            end_time: Some(0),
+            positions_xy: ContinuingFields {
+                start: (dec!(-5), dec!(10)),
+                continuing: vec![(dec!(55), None)],
+            },
+        },
+    };
+
+    assert_eq!(i, cmd);
+}
+
+#[test]
+fn fade_chain() {
+    let i = "F,0,0,0,1,0,0.5,0,0.25,0";
+    let i = i.parse::<Command>().unwrap();
+
+    let cmd = Command {
+        start_time: 0,
+        properties: CommandProperties::Fade {
+            easing: Easing::from_repr(0).unwrap(),
+            end_time: Some(0),
+            start_opacity: Decimal::ONE,
+            continuing_opacities: vec![
+                Decimal::ZERO,
+                dec!(0.5),
+                Decimal::ZERO,
+                dec!(0.25),
+                Decimal::ZERO,
             ],
         },
     };
