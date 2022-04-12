@@ -2,6 +2,8 @@ use nom::{branch::*, bytes::complete::*, combinator::*, error::*, multi::*, sequ
 
 use crate::osu_file::parsers::*;
 
+use self::context::*;
+
 use super::{cmds::*, types::*};
 
 pub fn command(s_input: &str) -> IResult<&str, Command, VerboseError<&str>> {
@@ -17,14 +19,14 @@ pub fn command(s_input: &str) -> IResult<&str, Command, VerboseError<&str>> {
     match command_type {
         "L" => {
             let (s, (_, start_time, _, loop_count, _)) = tuple((
-                context("missing_start_time", comma()),
-                context("start_time", comma_field_i32()),
-                context("missing_loop_count", comma()),
+                context(MISSING_START_TIME, comma()),
+                context(INVALID_START_TIME, comma_field_i32()),
+                context(MISSING_LOOP_COUNT, comma()),
                 context(
-                    "loop_count",
+                    INVALID_LOOP_COUNT,
                     map_res(take_while(|_| true), |s: &str| s.parse()),
                 ),
-                context("eof", eof),
+                context(EOF, eof),
             ))(s)?;
 
             Ok((
@@ -41,20 +43,23 @@ pub fn command(s_input: &str) -> IResult<&str, Command, VerboseError<&str>> {
         "T" => {
             let (s, (_, trigger_type, _, start_time, _, end_time, group_number)) =
                 tuple((
-                    context("missing_trigger_type", comma()),
-                    context("trigger_type", map_res(comma_field(), |s: &str| s.parse())),
-                    context("missing_start_time", comma()),
-                    context("start_time", comma_field_i32()),
-                    context("missing_end_time", comma()),
+                    context(MISSING_TRIGGER_TYPE, comma()),
                     context(
-                        "end_time",
+                        INVALID_TRIGGER_TYPE,
+                        map_res(comma_field(), |s: &str| s.parse()),
+                    ),
+                    context(MISSING_START_TIME, comma()),
+                    context(INVALID_START_TIME, comma_field_i32()),
+                    context(MISSING_END_TIME, comma()),
+                    context(
+                        INVALID_END_TIME,
                         alt((
                             comma_field_i32().map(Some),
                             verify(comma_field(), |t: &str| t.is_empty()).map(|_| None),
                         )),
                     ),
                     context(
-                        "group_number",
+                        INVALID_GROUP_NUMBER,
                         alt((
                             eof.map(|_| None),
                             preceded(comma(), comma_field_i32()).map(Some),
@@ -77,22 +82,22 @@ pub fn command(s_input: &str) -> IResult<&str, Command, VerboseError<&str>> {
         }
         _ => {
             let (s, (_, easing, _, start_time, _, end_time, _)) = tuple((
-                context("missing_easing", comma()),
+                context(MISSING_EASING, comma()),
                 context(
-                    "easing",
+                    INVALID_EASING,
                     map_opt(comma_field_i32(), |s| Easing::from_repr(s as usize)),
                 ),
-                context("missing_start_time", comma()),
-                context("start_time", comma_field_i32()),
-                context("missing_end_time", comma()),
+                context(MISSING_START_TIME, comma()),
+                context(INVALID_START_TIME, comma_field_i32()),
+                context(MISSING_END_TIME, comma()),
                 context(
-                    "end_time",
+                    INVALID_END_TIME,
                     alt((
                         comma_field_i32().map(Some),
                         verify(comma_field(), |t: &str| t.is_empty()).map(|_| None),
                     )),
                 ),
-                context("missing_params", comma()),
+                context(MISSING_ADDITIONAL_FIELDS, comma()),
             ))(s)?;
 
             // divided into more common fields
@@ -115,13 +120,13 @@ pub fn command(s_input: &str) -> IResult<&str, Command, VerboseError<&str>> {
 
                     let (s, (start_r, _, start_g, _, start_b, continuing_colours, _)) =
                         tuple((
-                            context("invalid_red_field", field_u8()),
-                            context("missing_blue_field", comma()),
-                            context("invalid_blue_field", field_u8()),
-                            context("missing_green_field", comma()),
-                            context("invalid_green_field", field_u8()),
+                            context(INVALID_COLOUR, field_u8()),
+                            context(MISSING_BLUE_FIELD, comma()),
+                            context(INVALID_COLOUR, field_u8()),
+                            context(MISSING_GREEN_FIELD, comma()),
+                            context(INVALID_COLOUR, field_u8()),
                             continuing_colours,
-                            context("invalid_colour", eof),
+                            context(INVALID_CONTINUING_U8, eof),
                         ))(s)?;
 
                     Ok((
@@ -148,9 +153,9 @@ pub fn command(s_input: &str) -> IResult<&str, Command, VerboseError<&str>> {
                     let continuing_parameters = many0(preceded(comma(), parameter()));
 
                     let (s, (parameter, continuing_parameters, _)) = tuple((
-                        context("parameter_type", parameter()),
+                        context(INVALID_PARAMETER_TYPE, parameter()),
                         continuing_parameters,
-                        context("invalid_parameter", eof),
+                        context(INVALID_PARAMETER_TYPE, eof),
                     ))(s)?;
 
                     Ok((
@@ -184,11 +189,11 @@ pub fn command(s_input: &str) -> IResult<&str, Command, VerboseError<&str>> {
 
                             let (s, (start_1, _, start_2, continuing, _)) =
                                 tuple((
-                                    context("first_field", decimal()),
-                                    context("missing_second_field", comma()),
-                                    context("second_field", decimal()),
+                                    context(INVALID_DECIMAL, decimal()),
+                                    context(MISSING_SECOND_FIELD, comma()),
+                                    context(INVALID_DECIMAL, decimal()),
                                     continuing_fields,
-                                    context("invalid_dec", eof),
+                                    context(INVALID_CONTINUING_DECIMAL, eof),
                                 ))(s)?;
 
                             let continuing_fields =
@@ -222,13 +227,12 @@ pub fn command(s_input: &str) -> IResult<&str, Command, VerboseError<&str>> {
                         }
                         // this is where the unreachable event type gets handled too
                         _ => {
-                            // TODO this error is not handled properly
                             let continuing = many0(preceded(comma(), decimal()));
 
                             let (_, (start, continuing, _)) = tuple((
-                                context("first_parameter", decimal()),
-                                context("continuing_parameters", continuing),
-                                context("eof", eof),
+                                context(INVALID_DECIMAL, decimal()),
+                                continuing,
+                                context(INVALID_CONTINUING_DECIMAL, eof),
                             ))(s)?;
 
                             match command_type {
@@ -292,7 +296,7 @@ pub fn command(s_input: &str) -> IResult<&str, Command, VerboseError<&str>> {
                                         },
                                     },
                                 )),
-                                _ => context("unknown_event", fail)(s_input),
+                                _ => context(UNKNOWN_EVENT, fail)(s_input),
                             }
                         }
                     }
@@ -300,4 +304,35 @@ pub fn command(s_input: &str) -> IResult<&str, Command, VerboseError<&str>> {
             }
         }
     }
+}
+
+mod context {
+    // missing field errors
+    pub const MISSING_START_TIME: &str = "missing_start_time";
+    pub const MISSING_END_TIME: &str = "missing_end_time";
+    pub const MISSING_LOOP_COUNT: &str = "missing_loop_count";
+    pub const MISSING_TRIGGER_TYPE: &str = "missing_trigger_type";
+    pub const MISSING_EASING: &str = "missing_easing";
+    pub const MISSING_ADDITIONAL_FIELDS: &str = "missing_additional_fields";
+    pub const MISSING_GREEN_FIELD: &str = "missing_green_field";
+    pub const MISSING_BLUE_FIELD: &str = "missing_blue_field";
+    pub const MISSING_SECOND_FIELD: &str = "missing_second_field";
+
+    // errors for trying to parse a string as a type
+    pub const INVALID_START_TIME: &str = "invalid_start_time";
+    pub const INVALID_END_TIME: &str = "invalid_end_time";
+    pub const INVALID_LOOP_COUNT: &str = "invalid_loop_count";
+    pub const INVALID_TRIGGER_TYPE: &str = "invalid_trigger_type";
+    pub const INVALID_GROUP_NUMBER: &str = "invalid_group_number";
+    pub const INVALID_EASING: &str = "invalid_easing";
+    pub const INVALID_COLOUR: &str = "invalid_colour";
+    pub const INVALID_PARAMETER_TYPE: &str = "invalid_parameter_type";
+    pub const INVALID_DECIMAL: &str = "invalid_decimal";
+
+    // invalid continuing fields
+    pub const INVALID_CONTINUING_U8: &str = "invalid_continuing_u8";
+    pub const INVALID_CONTINUING_DECIMAL: &str = "invalid_continuing_decimal";
+
+    pub const EOF: &str = "eof";
+    pub const UNKNOWN_EVENT: &str = "unknown_event";
 }
