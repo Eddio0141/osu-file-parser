@@ -48,17 +48,17 @@ pub enum CommandParseError {
     #[error("Tried parsing a str {0} as an integer")]
     ParseIntError(String),
     #[error("Tried parsing a str {0} as a trigger type")]
-    TriggerTypeParseError(String),
+    ParseTriggerTypeError(String),
     #[error("Tried parsing a str {0} as a decimal")]
-    DecimalParseError(String),
-    #[error("Missing command fields")]
-    MissingCommandParams,
+    ParseDecimalError(String),
+    #[error("Missing additional command fields")]
+    MissingCommandFields,
     #[error("Unknown event: {0}")]
     UnknownEvent(String),
     #[error("Tried parsing a str {0} as a parameter type")]
-    ParameterTypeParseError(String),
-    #[error("The second command parameter is missing")]
-    MissingSecondParameter,
+    ParseParameterTypeError(String),
+    #[error("The second additional command field is missing")]
+    MissingSecondField,
 }
 
 #[derive(Debug, Error)]
