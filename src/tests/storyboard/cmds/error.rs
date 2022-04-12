@@ -61,3 +61,29 @@ fn storyboard_cmd_errors() {
             .to_string()
     );
 }
+
+#[test]
+fn continuing_error() {
+    let colour_invalid_red = "C,0,0,1,foo";
+    let missing_blue = "C,0,0,1,255";
+    let invalid_continuing_red = "C,0,0,0,255,255,255,foo";
+
+    assert_eq!(
+        "Tried parsing a str foo as an integer",
+        invalid_continuing_red
+            .parse::<Command>()
+            .unwrap_err()
+            .to_string()
+    );
+    assert_eq!(
+        "Tried parsing a str foo as an integer",
+        colour_invalid_red
+            .parse::<Command>()
+            .unwrap_err()
+            .to_string()
+    );
+    assert_eq!(
+        "Missing the Blue field",
+        missing_blue.parse::<Command>().unwrap_err().to_string()
+    );
+}
