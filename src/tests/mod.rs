@@ -2,6 +2,7 @@ mod storyboard;
 
 #[cfg(test)]
 use pretty_assertions::assert_eq;
+use rust_decimal::Decimal;
 use std::{
     num::NonZeroUsize,
     path::{Path, PathBuf},
@@ -153,7 +154,7 @@ SliderTickRate:1";
         overall_difficulty: dec!(8),
         approach_rate: dec!(5),
         slider_multiplier: dec!(1.4),
-        slider_tickrate: dec!(1),
+        slider_tickrate: Decimal::ONE,
     };
 
     assert_eq!(i, d);
@@ -373,7 +374,7 @@ SliderTickRate:1
             overall_difficulty: dec!(8),
             approach_rate: dec!(5),
             slider_multiplier: dec!(1.4),
-            slider_tickrate: dec!(1),
+            slider_tickrate: Decimal::ONE,
         }),
         events: Some(Events(vec![
             Event::Comment("Background and Video events".to_string()),
