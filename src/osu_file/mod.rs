@@ -3,10 +3,8 @@ pub mod difficulty;
 pub mod editor;
 pub mod events;
 pub mod general;
-mod helper;
 pub mod hitobject;
 pub mod metadata;
-mod parsers;
 pub mod timingpoint;
 
 use std::fmt::Display;
@@ -21,6 +19,8 @@ use nom::multi::many0;
 use nom::sequence::{delimited, tuple};
 use thiserror::Error;
 
+use crate::parsers::*;
+
 use self::colours::{Colours, ColoursParseError};
 use self::difficulty::{Difficulty, DifficultyParseError};
 use self::editor::{Editor, EditorParseError};
@@ -30,7 +30,6 @@ use self::general::General;
 use self::hitobject::{HitObjects, HitObjectsParseError};
 use self::metadata::{Metadata, MetadataParseError};
 
-use self::parsers::{trailing_ws, ws};
 use self::timingpoint::{TimingPoints, TimingPointsParseError};
 
 /// An .osu file represented as a struct.
@@ -338,7 +337,7 @@ const LATEST_VERSION: Integer = 14;
 const SECTION_DELIMITER: &str = ":";
 
 /// Definition of the `Integer` type.
-type Integer = i32;
+pub type Integer = i32;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 /// The position of something in `osu!pixels` with the `x` `y` form.

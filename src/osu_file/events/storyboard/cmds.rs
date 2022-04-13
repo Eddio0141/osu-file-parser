@@ -1,8 +1,8 @@
 use std::fmt::Display;
 use std::str::FromStr;
 
-use crate::osu_file::parsers::{comma, comma_field};
 use crate::osu_file::Integer;
+use crate::parsers::{comma, comma_field};
 use nom::error::VerboseErrorKind;
 use nom::sequence::preceded;
 use nom::Finish;

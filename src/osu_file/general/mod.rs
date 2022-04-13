@@ -10,11 +10,11 @@ use rust_decimal_macros::dec;
 
 use strum_macros::{Display, EnumString, FromRepr};
 
-use crate::osu_file::{helper::display_colon_fields, parsers::get_colon_field_value_lines};
+use crate::{helper::*, parsers::get_colon_field_value_lines};
 
 use self::error::*;
 
-use super::{helper::parse_zero_one_bool, Integer};
+use crate::osu_file::Integer;
 
 /// A struct representing the general section of the .osu file.
 #[derive(PartialEq, Debug, Clone, Eq, Hash)]

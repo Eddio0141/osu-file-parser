@@ -2,7 +2,7 @@ use std::num::ParseIntError;
 
 use thiserror::Error;
 
-use super::Integer;
+use crate::osu_file::Integer;
 
 pub fn pipe_vec_to_string<T>(vec: &[T]) -> String
 where

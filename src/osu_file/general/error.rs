@@ -3,7 +3,7 @@ use std::num::ParseIntError;
 use strum::ParseError;
 use thiserror::Error;
 
-use crate::osu_file::helper::ParseZeroOneBoolError;
+use crate::helper::ParseZeroOneBoolError;
 
 #[derive(Debug, Error)]
 /// Error used when there was a problem parsing the `General` section.

@@ -4,7 +4,10 @@ use std::{fmt::Display, num::NonZeroUsize, str::FromStr};
 
 use strum_macros::{Display, EnumString, FromRepr};
 
-use crate::osu_file::{helper::nth_bit_state_i64, Integer, Position};
+use crate::{
+    helper::nth_bit_state_i64,
+    osu_file::{Integer, Position},
+};
 
 use super::error::*;
 

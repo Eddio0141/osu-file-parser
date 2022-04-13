@@ -16,13 +16,10 @@ use thiserror::Error;
 
 use self::error::*;
 use self::types::*;
-use super::helper::*;
-
-use super::parsers::comma;
-use super::parsers::comma_field_i32;
-use super::parsers::pipe_vec;
 use super::Integer;
 use super::Position;
+use crate::helper::*;
+use crate::parsers::*;
 
 type ComboSkipCount = u8;
 

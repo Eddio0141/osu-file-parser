@@ -1,6 +1,6 @@
 use nom::{branch::*, bytes::complete::*, combinator::*, error::*, multi::*, sequence::*, *};
 
-use crate::osu_file::parsers::*;
+use crate::parsers::*;
 
 use self::context::*;
 
