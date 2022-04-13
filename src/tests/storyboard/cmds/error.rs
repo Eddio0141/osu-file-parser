@@ -67,6 +67,8 @@ fn continuing_error() {
     let colour_invalid_red = "C,0,0,1,foo";
     let missing_blue = "C,0,0,1,255";
     let invalid_continuing_red = "C,0,0,0,255,255,255,foo";
+    let missing_second_field = "V,0,0,0,0.5";
+    let invalid_move_x_continuing = "M,0,0,0,100,-100,foo";
 
     assert_eq!(
         "Tried parsing a str foo as an integer",
@@ -85,5 +87,19 @@ fn continuing_error() {
     assert_eq!(
         "Missing the Blue field",
         missing_blue.parse::<Command>().unwrap_err().to_string()
+    );
+    assert_eq!(
+        "The second additional command field is missing",
+        missing_second_field
+            .parse::<Command>()
+            .unwrap_err()
+            .to_string()
+    );
+    assert_eq!(
+        "Tried parsing a str foo as a decimal",
+        invalid_move_x_continuing
+            .parse::<Command>()
+            .unwrap_err()
+            .to_string()
     );
 }
