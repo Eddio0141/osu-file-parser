@@ -70,12 +70,12 @@ pub struct TimingPoint {
 impl TimingPoint {
     /// Converts beat duration in milliseconds to BPM.
     pub fn beat_duration_ms_to_bpm(beat_duration_ms: Decimal) -> Decimal {
-        dec!(1) / beat_duration_ms * dec!(60000)
+        Decimal::ONE / beat_duration_ms * dec!(60000)
     }
 
     /// Converts BPM to beat duration in milliseconds.
     pub fn bpm_to_beat_duration_ms(bpm: Decimal) -> Decimal {
-        dec!(1) / (bpm / dec!(60000))
+        Decimal::ONE / (bpm / dec!(60000))
     }
 
     /// New instance of `TimingPoint` that is inherited.
@@ -90,7 +90,7 @@ impl TimingPoint {
     ) -> Self {
         Self {
             time,
-            beat_length: (dec!(1) / slider_velocity_multiplier) * dec!(-100),
+            beat_length: (Decimal::ONE / slider_velocity_multiplier) * dec!(-100),
             meter,
             sample_set,
             sample_index,
@@ -135,7 +135,7 @@ impl TimingPoint {
         if self.uninherited {
             None
         } else {
-            Some(dec!(1) / (self.beat_length / dec!(-100)))
+            Some(Decimal::ONE / (self.beat_length / dec!(-100)))
         }
     }
 
