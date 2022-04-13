@@ -21,14 +21,14 @@ use thiserror::Error;
 
 use crate::parsers::*;
 
-use self::colours::{Colours, ColoursParseError};
-use self::difficulty::{Difficulty, DifficultyParseError};
-use self::editor::{Editor, EditorParseError};
-use self::events::{Events, EventsParseError};
+use self::colours::{error::ColoursParseError, Colours};
+use self::difficulty::{error::DifficultyParseError, Difficulty};
+use self::editor::{error::EditorParseError, Editor};
+use self::events::{error::EventsParseError, Events};
 use self::general::error::GeneralParseError;
 use self::general::General;
 use self::hitobject::{HitObjects, HitObjectsParseError};
-use self::metadata::{Metadata, MetadataParseError};
+use self::metadata::{error::MetadataParseError, Metadata};
 
 use self::timingpoint::{TimingPoints, TimingPointsParseError};
 

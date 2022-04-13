@@ -1,8 +1,10 @@
-use std::{fmt::Display, num::ParseIntError, str::FromStr};
+pub mod error;
 
-use thiserror::Error;
+use std::{fmt::Display, str::FromStr};
 
 use super::Integer;
+
+use self::error::*;
 
 #[derive(Clone, Debug, Default, Hash, PartialEq, Eq)]
 pub struct Colours(pub Vec<Colour>);
@@ -34,10 +36,6 @@ impl FromStr for Colours {
         Ok(Colours(colours))
     }
 }
-
-#[derive(Debug, Error)]
-#[error(transparent)]
-pub struct ColoursParseError(#[from] ColourParseError);
 
 /// Struct representing a single `colour` component in the `Colours` section.
 #[derive(Clone, Copy, Hash, PartialEq, Eq, Debug)]
@@ -95,29 +93,6 @@ impl Display for Colour {
     }
 }
 
-/// Error used when there was a problem parsing a `str` as a `Colour`.
-#[derive(Debug, Error)]
-pub enum ColourParseError {
-    /// The colour key was invalid.
-    #[error("The colour key was an invalid key, got {0}")]
-    InvalidKey(String),
-    /// Attempted to parse a `str` as an `Integer` for the `ComboCount`.
-    #[error("Attempted to parse {value} as an `Integer` for `ComboCount`")]
-    ComboCountParseError {
-        #[source]
-        source: ParseIntError,
-        value: String,
-    },
-    /// There is no value. Expected `key : value` pair.
-    #[error("There is no value, expected `key : value` pairs, got {0}")]
-    NoValue(String),
-    #[error(transparent)]
-    RGBParseError {
-        #[from]
-        source: RGBParseError,
-    },
-}
-
 #[derive(Default, Clone, Copy, Hash, Debug, PartialEq, Eq)]
 /// Struct representing the RGB colours with each colour having value from 0 ~ 255.
 pub struct Rgb {
@@ -166,31 +141,4 @@ impl Display for Rgb {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{},{},{}", self.red, self.green, self.blue)
     }
-}
-
-/// Error when there was a problem parsing `str` as a `RGB` struct.
-#[derive(Debug, Error)]
-pub enum RGBParseError {
-    /// No red field defined.
-    #[error("There is no red field defined")]
-    NoRedDefined,
-    /// No green field defined.
-    #[error("There is no green field defined")]
-    NoGreenDefined,
-    /// No blue field defined.
-    #[error("There is no blue field defined")]
-    NoBlueDefined,
-    /// More than 3 fields defined.
-    #[error("There is more than 3 fields defined `{0}`, only needs the `red`,`green`,`blue`")]
-    MoreThanThreeFields(String),
-    /// There was a problem parsing the field as an `Integer`.
-    #[error(
-        "There was a problem parsing the {field_name} field with the value {value} as an `Integer`"
-    )]
-    ValueParseError {
-        #[source]
-        source: ParseIntError,
-        value: String,
-        field_name: &'static str,
-    },
 }

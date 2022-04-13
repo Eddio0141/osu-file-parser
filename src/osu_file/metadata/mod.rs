@@ -1,10 +1,11 @@
+pub mod error;
+
 use std::fmt::Display;
-use std::num::ParseIntError;
 use std::str::FromStr;
 
-use thiserror::Error;
-
 use super::{Integer, SECTION_DELIMITER};
+
+use self::error::*;
 
 /// A struct representing the metadata section of the .osu file.
 #[derive(Default, Clone, Hash, PartialEq, Eq, Debug)]
@@ -100,22 +101,4 @@ impl Display for Metadata {
 
         write!(f, "{}", key_value.join("\n"))
     }
-}
-
-#[derive(Debug, Error)]
-/// Error used when there was a problem parsing the `Metadata` section.
-pub enum MetadataParseError {
-    #[error("There was a problem parsing the `{name}` property from a `str` to an `Integer`")]
-    /// A section in `Metadata` failed to parse.
-    SectionParseError {
-        #[source]
-        source: ParseIntError,
-        name: &'static str,
-    },
-    #[error("The key {0} doesn't exist in `Metadata`")]
-    /// Invalid key name was used.
-    InvalidKey(String),
-    #[error("The key {0} has no value set")]
-    /// The value is missing from the `key:value` set.
-    MissingValue(String),
 }
