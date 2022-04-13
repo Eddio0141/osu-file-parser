@@ -1,15 +1,17 @@
 use std::fmt::Display;
 use std::str::FromStr;
 
-use crate::osu_file::parsers::comma_field;
+use crate::osu_file::parsers::{comma, comma_field};
 use crate::osu_file::Integer;
 use nom::error::VerboseErrorKind;
+use nom::sequence::preceded;
 use nom::Finish;
 use rust_decimal::Decimal;
 use strum_macros::Display;
 
+use super::cmd_parser::context::*;
+use super::cmd_parser::*;
 use super::error::*;
-use super::parser::command;
 use super::types::*;
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
@@ -240,8 +242,8 @@ pub enum CommandProperties {
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq, Default)]
 pub struct ContinuingFields<T> {
-    start: (T, T),
-    continuing: Vec<(T, Option<T>)>,
+    pub start: (T, T),
+    pub continuing: Vec<(T, Option<T>)>,
 }
 
 impl<T> ContinuingFields<T> {
@@ -336,8 +338,8 @@ where
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Colours {
-    start: (u8, u8, u8),
-    continuing: Vec<(u8, Option<u8>, Option<u8>)>,
+    pub start: (u8, u8, u8),
+    pub continuing: Vec<(u8, Option<u8>, Option<u8>)>,
 }
 
 impl Colours {
@@ -478,47 +480,52 @@ impl FromStr for Command {
                     }
                 }
 
-                let input = comma_field::<nom::error::Error<_>>()(input.unwrap())
+                let input_field = comma_field::<nom::error::Error<_>>()(input.unwrap())
                     .unwrap()
                     .1;
 
+                let input_field_continuing = || {
+                    preceded::<_, _, _, nom::error::Error<_>, _, _>(comma(), comma_field())(
+                        input.unwrap(),
+                    )
+                    .unwrap()
+                    .1
+                    .to_string()
+                };
+
                 let err = match context {
                     Some(context) => match context {
-                        "unknown_event" => CommandParseError::UnknownEvent(input.to_string()),
-                        "missing_easing" => CommandParseError::MissingField(Field::Easing),
-                        "easing" => CommandParseError::InvalidEasing(input.to_string()),
-                        "missing_start_time" => CommandParseError::MissingField(Field::StartTime),
-                        "missing_end_time" => CommandParseError::MissingField(Field::EndTime),
-                        "start_time"
-                        | "end_time"
-                        | "loop_count"
-                        | "group_number"
-                        | "invalid_red_field"
-                        | "invalid_blue_field"
-                        | "invalid_green_field"
-                        | "invalid_continuing_red_field"
-                        | "invalid_continuing_green_field"
-                        | "invalid_continuing_blue_field" => {
-                            CommandParseError::ParseIntError(input.to_string())
+                        MISSING_START_TIME => CommandParseError::MissingField(Field::StartTime),
+                        MISSING_END_TIME => CommandParseError::MissingField(Field::EndTime),
+                        MISSING_LOOP_COUNT => CommandParseError::MissingField(Field::LoopCount),
+                        MISSING_TRIGGER_TYPE => CommandParseError::MissingField(Field::TriggerType),
+                        MISSING_EASING => CommandParseError::MissingField(Field::Easing),
+                        MISSING_ADDITIONAL_FIELDS => CommandParseError::MissingCommandFields,
+                        MISSING_GREEN_FIELD => CommandParseError::MissingField(Field::Green),
+                        MISSING_BLUE_FIELD => CommandParseError::MissingField(Field::Blue),
+                        MISSING_SECOND_FIELD => CommandParseError::MissingSecondField,
+                        INVALID_START_TIME | INVALID_END_TIME | INVALID_LOOP_COUNT
+                        | INVALID_GROUP_NUMBER | INVALID_COLOUR => {
+                            CommandParseError::ParseIntError(input_field.to_string())
                         }
-                        "missing_loop_count" => CommandParseError::MissingField(Field::LoopCount),
-                        "missing_trigger_type" => {
-                            CommandParseError::MissingField(Field::TriggerType)
+                        INVALID_TRIGGER_TYPE => {
+                            CommandParseError::ParseTriggerTypeError(input_field.to_string())
                         }
-                        "trigger_type" => {
-                            CommandParseError::TriggerTypeParseError(input.to_string())
+                        INVALID_EASING => CommandParseError::InvalidEasing(input_field.to_string()),
+                        INVALID_PARAMETER_TYPE => {
+                            CommandParseError::ParseParameterTypeError(input_field.to_string())
                         }
-                        "missing_params" => CommandParseError::MissingCommandParams,
-                        "missing_blue_field" => CommandParseError::MissingField(Field::Blue),
-                        "missing_green_field" => CommandParseError::MissingField(Field::Green),
-                        "parameter_type" | "continuing_parameter_types" => {
-                            CommandParseError::ParameterTypeParseError(input.to_string())
+                        INVALID_DECIMAL => {
+                            CommandParseError::ParseDecimalError(input_field.to_string())
                         }
-                        "first_parameter" | "second_parameter" | "continuing_parameters" => {
-                            CommandParseError::DecimalParseError(input.to_string())
+                        INVALID_CONTINUING_U8 => {
+                            CommandParseError::ParseIntError(input_field_continuing())
                         }
-                        "missing_second_parameter" => CommandParseError::MissingSecondParameter,
-                        "eof" => CommandParseError::InvalidFieldEnding(input.to_string()),
+                        INVALID_CONTINUING_DECIMAL => {
+                            CommandParseError::ParseDecimalError(input_field_continuing())
+                        }
+                        EOF => CommandParseError::InvalidFieldEnding(input_field.to_string()),
+                        UNKNOWN_EVENT => CommandParseError::UnknownEvent(input_field.to_string()),
                         _ => unimplemented!("unimplemented context {context}"),
                     },
                     None => unimplemented!("no context found for command parser"),
