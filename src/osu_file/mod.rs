@@ -33,7 +33,6 @@ use self::metadata::{Metadata, MetadataParseError};
 use self::parsers::{trailing_ws, ws};
 use self::timingpoint::{TimingPoints, TimingPointsParseError};
 
-// TODO use the crate https://crates.io/crates/nom
 /// An .osu file represented as a struct.
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 #[non_exhaustive]
@@ -137,7 +136,7 @@ impl FromStr for OsuFile {
         let section_until = take_till(|c| c == '[');
         let section = tuple((ws(section_name), section_until));
 
-        // TODO better error messages
+        // TODO fix this mess
         let (s, (_, version)) = match tuple((version_text, version_number))(s) {
             Ok(ok) => ok,
             Err(err) => {

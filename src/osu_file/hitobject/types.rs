@@ -320,7 +320,6 @@ impl From<u8> for HitSound {
     }
 }
 
-// TODO strum crate usage
 #[derive(PartialEq, Eq, Clone, Copy, Debug, Hash, EnumString, Display)]
 /// Type of curve used to construct the [`slider`][super::Slider].
 pub enum CurveType {
