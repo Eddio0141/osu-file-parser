@@ -107,12 +107,8 @@ pub fn command(s_input: &str) -> IResult<&str, Command, VerboseError<&str>> {
                     // colour
                     let field_u8 = || map_res(comma_field(), |s: &str| s.parse::<u8>());
 
-                    let continuing_colour = || {
-                        alt((
-                            eof.map(|_| None),
-                            preceded(comma(), field_u8()).map(|v| Some(v)),
-                        ))
-                    };
+                    let continuing_colour =
+                        || alt((eof.map(|_| None), preceded(comma(), field_u8()).map(Some)));
                     let continuing_colours = many0(preceded(
                         comma(),
                         tuple((field_u8(), continuing_colour(), continuing_colour())),
@@ -176,12 +172,8 @@ pub fn command(s_input: &str) -> IResult<&str, Command, VerboseError<&str>> {
                     // divided into types with 1 continuous field and 2 fields thats continuous
                     match command_type {
                         "M" | "V" => {
-                            let continuing = || {
-                                alt((
-                                    eof.map(|_| None),
-                                    preceded(comma(), decimal()).map(|v| Some(v)),
-                                ))
-                            };
+                            let continuing =
+                                || alt((eof.map(|_| None), preceded(comma(), decimal()).map(Some)));
                             let continuing_fields =
                                 many0(preceded(comma(), tuple((decimal(), continuing()))));
 
