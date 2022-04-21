@@ -1,25 +1,20 @@
 pub mod error;
+mod hitobject_parser;
 pub mod types;
 
 use std::fmt::Display;
 use std::str::FromStr;
 
-use nom::bytes::complete::is_not;
-use nom::bytes::complete::take_till;
-use nom::bytes::complete::take_until;
 use nom::character::streaming::char;
-use nom::combinator::map_res;
-use nom::error::VerboseError;
-use nom::sequence::tuple;
 use rust_decimal::Decimal;
 use thiserror::Error;
 
 use self::error::*;
+use self::hitobject_parser::hitobject;
 use self::types::*;
 use super::Integer;
 use super::Position;
 use crate::helper::*;
-use crate::parsers::*;
 
 type ComboSkipCount = u8;
 
@@ -161,165 +156,9 @@ impl FromStr for HitObject {
     type Err = HitObjectParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        // TODO error handling
-        let hitsound = map_res::<_, _, _, VerboseError<_>, _, _, _>(is_not(","), |f: &str| {
-            f.parse::<HitSound>()
-        });
-        let mut hitsample =
-            map_res::<_, _, _, VerboseError<_>, _, _, _>(take_till(|_| false), |f: &str| {
-                f.parse::<HitSample>()
-            });
-
-        let mut hitobject_base = tuple::<_, _, VerboseError<_>, _>((
-            comma_field_i32(),
-            comma(),
-            comma_field_i32(),
-            comma(),
-            comma_field_i32(),
-            comma(),
-            comma_field_i32(),
-            comma(),
-            hitsound,
-            comma(),
-        ));
-
-        // TODO verbose error print into something readable
-        let (s, (x, _, y, _, time, _, obj_type, _, hitsound, _)) = match hitobject_base(s) {
-            Ok(ok) => ok,
-            Err(err) => match err {
-                nom::Err::Incomplete(err) => panic!("{:#?}", err),
-                nom::Err::Error(err) => {
-                    println!("error print: {}", nom::error::convert_error(s, err));
-                    panic!()
-                }
-                nom::Err::Failure(err) => panic!("{:#?}", err),
-            },
-        };
-
-        let position = Position { x, y };
-
-        let new_combo = nth_bit_state_i64(obj_type as i64, 2);
-        let combo_skip_count = (obj_type >> 4 & 0b111) as u8;
-
-        if nth_bit_state_i64(obj_type as i64, 0) {
-            println!("{s}");
-            let (s, hitsample) = hitsample(s).unwrap();
-
-            if !s.is_empty() {
-                return Err(HitObjectParseError::TooManyParameters);
-            }
-
-            // hitcircle
-            Ok(Self {
-                position,
-                time,
-                obj_params: HitObjectParams::HitCircle,
-                new_combo,
-                combo_skip_count,
-                hitsound,
-                hitsample,
-            })
-        } else if nth_bit_state_i64(obj_type as i64, 1) {
-            // slider
-            let pipe = char('|');
-            let curve_type = map_res(is_not("|"), |f: &str| f.parse::<CurveType>());
-
-            let decimal = map_res(is_not(","), |f: &str| f.parse::<Decimal>());
-            let curve_points = pipe_vec(|s: &str| s.parse::<CurvePoint>());
-            let edge_sounds = pipe_vec(|s: &str| s.parse::<HitSound>());
-            let edge_sets = pipe_vec(|s: &str| s.parse::<EdgeSet>());
-
-            // TODO error handling
-            let (
-                s,
-                (
-                    curve_type,
-                    _,
-                    curve_points,
-                    slides,
-                    _,
-                    length,
-                    _,
-                    edge_sounds,
-                    edge_sets,
-                    hitsample,
-                ),
-            ) = tuple((
-                curve_type,
-                pipe,
-                curve_points,
-                comma_field_i32(),
-                comma(),
-                decimal,
-                comma(),
-                edge_sounds,
-                edge_sets,
-                hitsample,
-            ))(s)
-            .unwrap();
-
-            if !s.is_empty() {
-                return Err(HitObjectParseError::TooManyParameters);
-            }
-
-            Ok(Self {
-                position,
-                time,
-                obj_params: HitObjectParams::Slider {
-                    curve_type,
-                    curve_points,
-                    slides,
-                    length,
-                    edge_sounds,
-                    edge_sets,
-                },
-                new_combo,
-                combo_skip_count,
-                hitsound,
-                hitsample,
-            })
-        } else if nth_bit_state_i64(obj_type as i64, 3) {
-            // spinner
-            // TODO error handling
-            let (s, (end_time, _, hitsample)) =
-                tuple((comma_field_i32(), comma(), hitsample))(s).unwrap();
-
-            if !s.is_empty() {
-                return Err(HitObjectParseError::TooManyParameters);
-            }
-
-            Ok(Self {
-                position,
-                time,
-                obj_params: HitObjectParams::Spinner { end_time },
-                new_combo,
-                combo_skip_count,
-                hitsound,
-                hitsample,
-            })
-        } else if nth_bit_state_i64(obj_type as i64, 7) {
-            // osu!mania hold
-            // TODO error handling
-            // ppy has done it once again
-            let end_time = map_res(take_until(":"), |s: &str| s.parse());
-            let (s, (end_time, _, hitsample)) = tuple((end_time, char(':'), hitsample))(s).unwrap();
-
-            if !s.is_empty() {
-                return Err(HitObjectParseError::TooManyParameters);
-            }
-
-            Ok(Self {
-                position,
-                time,
-                obj_params: HitObjectParams::OsuManiaHold { end_time },
-                new_combo,
-                combo_skip_count,
-                hitsound,
-                hitsample,
-            })
-        } else {
-            // osu file format didn't specify what to do with no bit flags set
-            Err(HitObjectParseError::UnknownObjType)
+        match hitobject(s) {
+            Ok((_, hitobject)) => Ok(hitobject),
+            Err(_) => todo!(),
         }
     }
 }
