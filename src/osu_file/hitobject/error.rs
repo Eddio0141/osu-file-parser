@@ -8,7 +8,7 @@ use std::{
 use strum::ParseError;
 use thiserror::Error;
 
-use super::ComboSkipCount;
+use super::{ComboSkipCount, FieldName};
 
 #[derive(Debug, Error)]
 /// Error used when there was a problem parsing a `str` having a `F:S` format.
@@ -34,48 +34,17 @@ pub enum ColonSetParseError {
 #[derive(Debug, Error)]
 /// Error used when there was a problem parsing a `str` into a [`hitobject`][super::HitObjectWrapper].
 pub enum HitObjectParseError {
-    #[error("The hitobject is missing the `x` coordinate")]
-    MissingX,
-    #[error("The hitobject failed to parse the `x` coordinate from {value}")]
-    XParseError {
+    #[error("The hitobject is missing the {field_name} field")]
+    MissingField {
+        /// The field that is missing.
+        field_name: FieldName,
+    },
+    #[error("Failed to parse {value} as an integer")]
+    ParseIntError {
         #[source]
         source: ParseIntError,
         value: String,
     },
-    #[error("The hitobject is missing the `y` coordinate")]
-    MissingY,
-    #[error("The hitobject failed to parse the `y` coordinate from {value}")]
-    YParseError {
-        #[source]
-        source: ParseIntError,
-        value: String,
-    },
-    #[error("The hitobject is missing the `time`")]
-    MissingTime,
-    #[error("The hitobject failed to parse the `time` from {value}")]
-    TimeParseError {
-        #[source]
-        source: ParseIntError,
-        value: String,
-    },
-    #[error("The hitobject is missing the `obj_type`")]
-    MissingObjType,
-    #[error("The hitobject failed to parse the `obj_type` from {value}")]
-    ObjTypeParseError {
-        #[source]
-        source: ParseIntError,
-        value: String,
-    },
-    #[error("The hitobject is missing the `hit_sound`")]
-    MissingHitSound,
-    #[error("The hitobject failed to parse the `hit_sound` from {value}")]
-    HitSoundParseError {
-        #[source]
-        source: HitSoundParseError,
-        value: String,
-    },
-    #[error("The hitobject is missing the `curve_type`")]
-    MissingCurveType,
     #[error("The hitobject failed to parse the `curve_type` from {value}")]
     CurveTypeParseError {
         #[source]

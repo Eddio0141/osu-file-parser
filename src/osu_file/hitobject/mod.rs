@@ -6,7 +6,10 @@ use std::fmt::Display;
 use std::str::FromStr;
 
 use nom::character::streaming::char;
+use nom::error::VerboseErrorKind;
+use nom::Finish;
 use rust_decimal::Decimal;
+use strum_macros::Display;
 use thiserror::Error;
 
 use self::error::*;
@@ -156,11 +159,67 @@ impl FromStr for HitObject {
     type Err = HitObjectParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match hitobject(s) {
+        match hitobject(s).finish() {
             Ok((_, hitobject)) => Ok(hitobject),
-            Err(_) => todo!(),
+            Err(err) => {
+                let mut context = None;
+                let mut input = None;
+
+                for err in &err.errors {
+                    input = Some(err.0);
+
+                    if let VerboseErrorKind::Context(c) = &err.1 {
+                        context = Some(c);
+                        break;
+                    }
+                }
+
+                let context = context.unwrap();
+
+                match hitobject_parser::Context::from_str(context).unwrap() {
+                    hitobject_parser::Context::InvalidX => HitObjectParseError::,
+                    hitobject_parser::Context::InvalidY => todo!(),
+                    hitobject_parser::Context::InvalidTime => todo!(),
+                    hitobject_parser::Context::InvalidObjType => todo!(),
+                    hitobject_parser::Context::InvalidCurveType => todo!(),
+                    hitobject_parser::Context::InvalidCurvePoints => todo!(),
+                    hitobject_parser::Context::InvalidSlides => todo!(),
+                    hitobject_parser::Context::InvalidLength => todo!(),
+                    hitobject_parser::Context::InvalidEndTime => todo!(),
+                    hitobject_parser::Context::InvalidHitsound => todo!(),
+                    hitobject_parser::Context::InvalidHitsample => todo!(),
+                    hitobject_parser::Context::InvalidEdgeSounds => todo!(),
+                    hitobject_parser::Context::InvalidEdgeSets => todo!(),
+                    hitobject_parser::Context::MissingY => todo!(),
+                    hitobject_parser::Context::MissingTime => todo!(),
+                    hitobject_parser::Context::MissingObjType => todo!(),
+                    hitobject_parser::Context::MissingCurveType => todo!(),
+                    hitobject_parser::Context::MissingCurvePoints => todo!(),
+                    hitobject_parser::Context::MissingSlides => todo!(),
+                    hitobject_parser::Context::MissingLength => todo!(),
+                    hitobject_parser::Context::MissingEndTime => todo!(),
+                    hitobject_parser::Context::MissingHitsound => todo!(),
+                    hitobject_parser::Context::MissingHitsample => todo!(),
+                    hitobject_parser::Context::MissingEdgeSounds => todo!(),
+                    hitobject_parser::Context::MissingEdgeSets => todo!(),
+                    hitobject_parser::Context::MissingObjParams => todo!(),
+                    hitobject_parser::Context::UnknownObjType => todo!(),
+                }
+
+                todo!()
+            }
         }
     }
+}
+
+#[derive(Debug, Display)]
+pub enum FieldName {
+    X,
+    Y,
+    Time,
+    ObjType,
+    Hitsound,
+    Hitsample,
 }
 
 impl Display for HitObject {
