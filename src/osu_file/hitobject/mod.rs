@@ -19,6 +19,7 @@ use self::types::*;
 use super::Integer;
 use super::Position;
 use crate::helper::*;
+use crate::parsers::comma_field;
 
 type ComboSkipCount = u8;
 
@@ -177,6 +178,7 @@ impl FromStr for HitObject {
 
                 let context = context.unwrap();
                 let input = input.unwrap();
+                let input_field = || comma_field::<nom::error::Error<_>>()(input).unwrap().1.to_string();
 
                 let err = match Context::from_str(context).unwrap() {
                     Context::InvalidX
@@ -184,7 +186,7 @@ impl FromStr for HitObject {
                     | Context::InvalidTime
                     | Context::InvalidObjType
                     | Context::InvalidEndTime => {
-                        HitObjectParseError::ParseIntError(input.to_string())
+                        HitObjectParseError::ParseIntError(input_field())
                     }
                     Context::InvalidCurveType => {
                         HitObjectParseError::ParseCurveTypeError(input.to_string())
