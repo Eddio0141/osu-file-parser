@@ -506,14 +506,11 @@ fn osu_file_smallest_parse() {
 
 #[test]
 fn hitobject_invalid_parse() {
-    let i = "256,192,8016,1,0,";
+    let i = "";
 
-    let _o: HitObject = i.parse().unwrap();
+    let o = i.parse::<HitObject>().unwrap_err();
 
-    // assert_eq!(
-    //     "HitObjectParseError(\"HitObjectParseError(\"Invalid hitobject type: 1\")\")",
-    //     format!("{:?}", o)
-    // );
+    assert_eq!("Failed to parse `` as an integer", format!("{}", o));
 }
 
 #[test]

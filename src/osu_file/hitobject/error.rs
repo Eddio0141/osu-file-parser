@@ -5,7 +5,6 @@ use std::{
     num::{ParseIntError, TryFromIntError},
 };
 
-use strum::ParseError;
 use thiserror::Error;
 
 use super::{ComboSkipCount, FieldName};
@@ -34,83 +33,30 @@ pub enum ColonSetParseError {
 #[derive(Debug, Error)]
 /// Error used when there was a problem parsing a `str` into a [`hitobject`][super::HitObjectWrapper].
 pub enum HitObjectParseError {
-    #[error("The hitobject is missing the {field_name} field")]
-    MissingField {
-        /// The field that is missing.
-        field_name: FieldName,
-    },
-    #[error("Failed to parse {value} as an integer")]
-    ParseIntError {
-        #[source]
-        source: ParseIntError,
-        value: String,
-    },
-    #[error("The hitobject failed to parse the `curve_type` from {value}")]
-    CurveTypeParseError {
-        #[source]
-        source: ParseError,
-        value: String,
-    },
-    #[error("The hitobject is missing the `curve_points`")]
-    MissingCurvePoints,
-    #[error("The hitobject failed to parse the `curve_points` from {value}")]
-    CurvePointsParseError {
-        #[source]
-        source: PipeVecParseErr,
-        value: String,
-    },
-    #[error("The hitobject is missing the `hit_sample`")]
-    MissingHitsample,
-    #[error("The hitobject failed to parse the `hit_sample` from {value}")]
-    HitsampleParseError {
-        #[source]
-        source: HitSampleParseError,
-        value: String,
-    },
-    #[error("The hitobject is missing the `end_time`")]
-    MissingEndTime,
-    #[error("The hitobject failed to parse the `end_time` from {value}")]
-    EndTimeParseError {
-        #[source]
-        source: ParseIntError,
-        value: String,
-    },
-    #[error("The hitobject is missing the `slides`")]
-    MissingSlides,
-    #[error("The hitobject failed to parse the `slides` from {value}")]
-    SlidesParseError {
-        #[source]
-        source: ParseIntError,
-        value: String,
-    },
-    #[error("The hitobject is missing the `length`")]
-    MissingLength,
-    #[error("The hitobject failed to parse the `length` from {value}")]
-    LengthParseError {
-        #[source]
-        source: rust_decimal::Error,
-        value: String,
-    },
-    #[error("The hitobject is missing the `edge_sounds`")]
-    MissingEdgeSounds,
-    #[error("The hitobject failed to parse the `edge_sounds` from {value}")]
-    EdgeSoundsParseError {
-        #[source]
-        source: PipeVecParseErr,
-        value: String,
-    },
-    #[error("The hitobject is missing the `edge_sets`")]
-    MissingEdgeSets,
-    #[error("The hitobject failed to parse the `edge_sets` from {value}")]
-    EdgeSetsParseError {
-        #[source]
-        source: PipeVecParseErr,
-        value: String,
-    },
-    #[error("Too many parameters were provided for the hitobject")]
-    TooManyParameters,
+    #[error("The hitobject is missing the {0} field")]
+    MissingField(FieldName),
+    #[error("Failed to parse `{0}` as an integer")]
+    ParseIntError(String),
+    #[error("Failed to parse {0} as a decimal")]
+    ParseDecimalError(String),
+    #[error("The hitobject failed to parse the CurveType from {0}")]
+    ParseCurveTypeError(String),
+    #[error("The hitobject failed to parse the CurvePoints from {0}")]
+    ParseCurvePointsError(String),
+    #[error("The hitobject failed to parse the Hitsample from {0}")]
+    ParseHitsampleError(String),
+    #[error("The hitobject failed to parse the Slides from {0}")]
+    ParseSlidesError(String),
+    #[error("The hitobject failed to parse the EdgeSounds from {0}")]
+    ParseEdgeSoundsError(String),
+    #[error("The hitobject failed to parse the EdgeSets from {0}")]
+    ParseEdgeSetsError(String),
     #[error("Unknown object type")]
     UnknownObjType,
+    #[error("Missing object params")]
+    MissingObjParams,
+    #[error("Failed to parse {0} as a HitSound")]
+    ParseHitSoundError(String),
 }
 
 #[derive(Debug, Error)]

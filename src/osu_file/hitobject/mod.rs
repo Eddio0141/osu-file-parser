@@ -14,6 +14,7 @@ use thiserror::Error;
 
 use self::error::*;
 use self::hitobject_parser::hitobject;
+use self::hitobject_parser::Context;
 use self::types::*;
 use super::Integer;
 use super::Position;
@@ -175,38 +176,73 @@ impl FromStr for HitObject {
                 }
 
                 let context = context.unwrap();
+                let input = input.unwrap();
 
-                match hitobject_parser::Context::from_str(context).unwrap() {
-                    hitobject_parser::Context::InvalidX => HitObjectParseError::,
-                    hitobject_parser::Context::InvalidY => todo!(),
-                    hitobject_parser::Context::InvalidTime => todo!(),
-                    hitobject_parser::Context::InvalidObjType => todo!(),
-                    hitobject_parser::Context::InvalidCurveType => todo!(),
-                    hitobject_parser::Context::InvalidCurvePoints => todo!(),
-                    hitobject_parser::Context::InvalidSlides => todo!(),
-                    hitobject_parser::Context::InvalidLength => todo!(),
-                    hitobject_parser::Context::InvalidEndTime => todo!(),
-                    hitobject_parser::Context::InvalidHitsound => todo!(),
-                    hitobject_parser::Context::InvalidHitsample => todo!(),
-                    hitobject_parser::Context::InvalidEdgeSounds => todo!(),
-                    hitobject_parser::Context::InvalidEdgeSets => todo!(),
-                    hitobject_parser::Context::MissingY => todo!(),
-                    hitobject_parser::Context::MissingTime => todo!(),
-                    hitobject_parser::Context::MissingObjType => todo!(),
-                    hitobject_parser::Context::MissingCurveType => todo!(),
-                    hitobject_parser::Context::MissingCurvePoints => todo!(),
-                    hitobject_parser::Context::MissingSlides => todo!(),
-                    hitobject_parser::Context::MissingLength => todo!(),
-                    hitobject_parser::Context::MissingEndTime => todo!(),
-                    hitobject_parser::Context::MissingHitsound => todo!(),
-                    hitobject_parser::Context::MissingHitsample => todo!(),
-                    hitobject_parser::Context::MissingEdgeSounds => todo!(),
-                    hitobject_parser::Context::MissingEdgeSets => todo!(),
-                    hitobject_parser::Context::MissingObjParams => todo!(),
-                    hitobject_parser::Context::UnknownObjType => todo!(),
-                }
+                let err = match Context::from_str(context).unwrap() {
+                    Context::InvalidX
+                    | Context::InvalidY
+                    | Context::InvalidTime
+                    | Context::InvalidObjType
+                    | Context::InvalidEndTime => {
+                        HitObjectParseError::ParseIntError(input.to_string())
+                    }
+                    Context::InvalidCurveType => {
+                        HitObjectParseError::ParseCurveTypeError(input.to_string())
+                    }
+                    Context::InvalidCurvePoints => {
+                        HitObjectParseError::ParseCurvePointsError(input.to_string())
+                    }
+                    Context::InvalidSlides => {
+                        HitObjectParseError::ParseSlidesError(input.to_string())
+                    }
+                    Context::InvalidLength => {
+                        HitObjectParseError::ParseDecimalError(input.to_string())
+                    }
+                    Context::InvalidHitsound => {
+                        HitObjectParseError::ParseHitSoundError(input.to_string())
+                    }
+                    Context::InvalidHitsample => {
+                        HitObjectParseError::ParseHitsampleError(input.to_string())
+                    }
+                    Context::InvalidEdgeSounds => {
+                        HitObjectParseError::ParseEdgeSoundsError(input.to_string())
+                    }
+                    Context::InvalidEdgeSets => {
+                        HitObjectParseError::ParseEdgeSetsError(input.to_string())
+                    }
+                    Context::MissingY => HitObjectParseError::MissingField(FieldName::Y),
+                    Context::MissingTime => HitObjectParseError::MissingField(FieldName::Time),
+                    Context::MissingObjType => {
+                        HitObjectParseError::MissingField(FieldName::ObjType)
+                    }
+                    Context::MissingCurveType => {
+                        HitObjectParseError::MissingField(FieldName::CurveType)
+                    }
+                    Context::MissingCurvePoints => {
+                        HitObjectParseError::MissingField(FieldName::CurvePoints)
+                    }
+                    Context::MissingSlides => HitObjectParseError::MissingField(FieldName::Slides),
+                    Context::MissingLength => HitObjectParseError::MissingField(FieldName::Length),
+                    Context::MissingEndTime => {
+                        HitObjectParseError::MissingField(FieldName::EndTime)
+                    }
+                    Context::MissingHitsound => {
+                        HitObjectParseError::MissingField(FieldName::Hitsound)
+                    }
+                    Context::MissingHitsample => {
+                        HitObjectParseError::MissingField(FieldName::Hitsample)
+                    }
+                    Context::MissingEdgeSounds => {
+                        HitObjectParseError::MissingField(FieldName::EdgeSounds)
+                    }
+                    Context::MissingEdgeSets => {
+                        HitObjectParseError::MissingField(FieldName::EdgeSets)
+                    }
+                    Context::MissingObjParams => HitObjectParseError::MissingObjParams,
+                    Context::UnknownObjType => HitObjectParseError::UnknownObjType,
+                };
 
-                todo!()
+                Err(err)
             }
         }
     }
@@ -220,6 +256,13 @@ pub enum FieldName {
     ObjType,
     Hitsound,
     Hitsample,
+    Length,
+    EndTime,
+    Slides,
+    CurvePoints,
+    EdgeSounds,
+    EdgeSets,
+    CurveType,
 }
 
 impl Display for HitObject {
