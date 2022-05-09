@@ -422,6 +422,7 @@ SliderTickRate:1
                 obj_params: HitObjectParams::HitCircle,
                 new_combo: false,
                 combo_skip_count: ComboSkipCount::try_from(0).unwrap(),
+                // TODO use of builder pattern
                 hitsound: HitSound::new(false, true, false, false),
                 hitsample: HitSample::new(
                     osu_file::hitobject::types::SampleSet::NoCustomSampleSet,
