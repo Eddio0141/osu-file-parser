@@ -158,7 +158,7 @@ pub fn hitobject(s: &str) -> IResult<&str, HitObject, VerboseError<&str>> {
         ))
     } else {
         // osu file format didn't specify what to do with no bit flags set
-        return context(Context::UnknownObjType.into(), fail)(s);
+        context(Context::UnknownObjType.into(), fail)(s)
     }
 }
 
