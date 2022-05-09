@@ -242,7 +242,6 @@ pub enum ObjectType {
     Animation(Animation),
 }
 
-// TODO investigate if integer form is valid
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, Display, FromRepr, EnumString)]
 pub enum Origin {
     TopLeft,

@@ -148,7 +148,6 @@ pub enum Addition {
     Clap,
 }
 
-// TODO does this have integer form?
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, FromRepr)]
 pub enum Easing {
     Linear,
