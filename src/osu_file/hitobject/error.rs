@@ -33,29 +33,29 @@ pub enum ColonSetParseError {
 #[derive(Debug, Error)]
 /// Error used when there was a problem parsing a `str` into a [`hitobject`][super::HitObjectWrapper].
 pub enum HitObjectParseError {
-    #[error("The hitobject is missing the {0} field")]
+    #[error("The hitobject is missing the `{0}` field")]
     MissingField(FieldName),
     #[error("Failed to parse `{0}` as an integer")]
     ParseIntError(String),
-    #[error("Failed to parse {0} as a decimal")]
+    #[error("Failed to parse `{0}` as a decimal")]
     ParseDecimalError(String),
-    #[error("The hitobject failed to parse the CurveType from {0}")]
+    #[error("The hitobject failed to parse the CurveType from `{0}`")]
     ParseCurveTypeError(String),
-    #[error("The hitobject failed to parse the CurvePoints from {0}")]
+    #[error("The hitobject failed to parse the CurvePoints from `{0}`")]
     ParseCurvePointsError(String),
-    #[error("The hitobject failed to parse the Hitsample from {0}")]
+    #[error("The hitobject failed to parse the Hitsample from `{0}`")]
     ParseHitsampleError(String),
-    #[error("The hitobject failed to parse the Slides from {0}")]
+    #[error("The hitobject failed to parse the Slides from `{0}`")]
     ParseSlidesError(String),
-    #[error("The hitobject failed to parse the EdgeSounds from {0}")]
+    #[error("The hitobject failed to parse the EdgeSounds from `{0}`")]
     ParseEdgeSoundsError(String),
-    #[error("The hitobject failed to parse the EdgeSets from {0}")]
+    #[error("The hitobject failed to parse the EdgeSets from `{0}`")]
     ParseEdgeSetsError(String),
     #[error("Unknown object type")]
     UnknownObjType,
     #[error("Missing object params")]
     MissingObjParams,
-    #[error("Failed to parse {0} as a HitSound")]
+    #[error("Failed to parse `{0}` as a HitSound")]
     ParseHitSoundError(String),
 }
 
