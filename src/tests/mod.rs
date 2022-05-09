@@ -1,3 +1,4 @@
+mod hitobject;
 mod storyboard;
 
 #[cfg(test)]
@@ -11,13 +12,13 @@ use std::{
 use rust_decimal_macros::dec;
 
 use crate::osu_file::{
+    self,
     colours::{Colour, Colours, Rgb},
     difficulty::Difficulty,
     editor::Editor,
     events::{Background, Break, Event, EventParams, Events},
     general::{CountdownSpeed, GameMode, General, OverlayPosition, SampleSet},
     hitobject::{
-        self,
         types::{HitSample, HitSound},
         HitObject, HitObjectParams, HitObjects,
     },
@@ -408,10 +409,10 @@ SliderTickRate:1
                 combo_skip_count: 0,
                 hitsound: HitSound::new(false, false, false, false),
                 hitsample: HitSample::new(
-                    hitobject::types::SampleSet::NoCustomSampleSet,
-                    hitobject::types::SampleSet::NoCustomSampleSet,
+                    osu_file::hitobject::types::SampleSet::NoCustomSampleSet,
+                    osu_file::hitobject::types::SampleSet::NoCustomSampleSet,
                     None,
-                    hitobject::types::Volume::new(None).unwrap(),
+                    osu_file::hitobject::types::Volume::new(None).unwrap(),
                     "".to_string(),
                 ),
             },
@@ -423,10 +424,10 @@ SliderTickRate:1
                 combo_skip_count: 0,
                 hitsound: HitSound::new(false, true, false, false),
                 hitsample: HitSample::new(
-                    hitobject::types::SampleSet::NoCustomSampleSet,
-                    hitobject::types::SampleSet::NoCustomSampleSet,
+                    osu_file::hitobject::types::SampleSet::NoCustomSampleSet,
+                    osu_file::hitobject::types::SampleSet::NoCustomSampleSet,
                     None,
-                    hitobject::types::Volume::new(None).unwrap(),
+                    osu_file::hitobject::types::Volume::new(None).unwrap(),
                     "".to_string(),
                 ),
             },
@@ -502,31 +503,4 @@ fn osu_file_smallest_parse() {
     let o: OsuFile = i.parse().unwrap();
 
     assert_eq!(i, o.to_string());
-}
-
-#[test]
-fn hitobject_invalid_parse() {
-    let i = "";
-
-    let o = i.parse::<HitObject>().unwrap_err();
-
-    assert_eq!("Failed to parse `` as an integer", format!("{}", o));
-}
-
-#[test]
-fn hitobjects_parse() {
-    let hitcircle_str = "221,350,9780,1,0,0:0:0:0:";
-    let slider_str = "31,85,3049,2,0,B|129:55|123:136|228:86,1,172.51,2|0,3:2|0:2,0:2:0:0:";
-    let spinner_str = "256,192,33598,12,0,431279,0:0:0:0:";
-    let osu_mania_hold_str = "51,192,350,128,2,849:0:0:0:0:";
-
-    let hitcircle: HitObject = hitcircle_str.parse().unwrap();
-    let slider: HitObject = slider_str.parse().unwrap();
-    let spinner: HitObject = spinner_str.parse().unwrap();
-    let osu_mania_hold: HitObject = osu_mania_hold_str.parse().unwrap();
-
-    assert_eq!(hitcircle_str, hitcircle.to_string());
-    assert_eq!(slider_str, slider.to_string());
-    assert_eq!(spinner_str, spinner.to_string());
-    assert_eq!(osu_mania_hold_str, osu_mania_hold.to_string());
 }
