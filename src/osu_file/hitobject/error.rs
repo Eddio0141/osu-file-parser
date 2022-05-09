@@ -7,7 +7,11 @@ use std::{
 
 use thiserror::Error;
 
-use super::{ComboSkipCount, FieldName};
+use super::FieldName;
+
+#[derive(Debug, Error)]
+#[error("Expected combo skip count to be 3 bits, got {0}")]
+pub struct ComboSkipCountTooHigh(pub u8);
 
 #[derive(Debug, Error)]
 /// Error used when there was a problem parsing a `str` having a `F:S` format.
@@ -143,8 +147,3 @@ impl From<TryFromIntError> for HitSoundParseError {
         HitSoundParseError(Box::new(err))
     }
 }
-
-#[derive(Debug, Error)]
-#[error("Attempted to set the combo skip count but the value was higher than the 3-bit limit: `7`, got {0}")]
-/// Error used when the `ComboSkipCount` was tried to set higher than the limit of 3 bits: `7`.
-pub struct ComboSkipCountSetError(pub ComboSkipCount);

@@ -11,6 +11,44 @@ use crate::{
 
 use super::error::*;
 
+#[derive(Clone, Copy, Debug, Default, Hash, PartialEq, Eq, PartialOrd, Ord)]
+pub struct ComboSkipCount(u8);
+
+impl ComboSkipCount {
+    pub fn new(count: u8) -> Result<Self, ComboSkipCountTooHigh> {
+        Self::try_from(count)
+    }
+
+    pub fn get(&self) -> u8 {
+        self.0
+    }
+
+    pub fn set(&mut self, count: u8) -> Result<(), ComboSkipCountTooHigh> {
+        let new_self = Self::try_from(count)?;
+        *self = new_self;
+        Ok(())
+    }
+}
+
+impl TryFrom<u8> for ComboSkipCount {
+    type Error = ComboSkipCountTooHigh;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        // limit to 3 bits
+        if value > 0b111 {
+            Err(ComboSkipCountTooHigh(value))
+        } else {
+            Ok(Self(value))
+        }
+    }
+}
+
+impl From<ComboSkipCount> for u8 {
+    fn from(count: ComboSkipCount) -> Self {
+        count.0
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default, Hash)]
 /// Sample sets used for the `edgeSounds`.
 pub struct EdgeSet {

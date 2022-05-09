@@ -21,8 +21,6 @@ use super::Position;
 use crate::helper::*;
 use crate::parsers::comma_field;
 
-type ComboSkipCount = u8;
-
 #[derive(Clone, Debug, Default, Hash, PartialEq, Eq)]
 pub struct HitObjects(pub Vec<HitObject>);
 
@@ -82,7 +80,6 @@ pub struct HitObject {
     pub new_combo: bool,
 
     /// A 3-bit integer specifying how many combo colours to skip, if this object starts a new combo.
-    // TODO limit this to 3 bits input
     pub combo_skip_count: ComboSkipCount,
 
     /// The [hitsound][HitSound] property of the hitobject.
@@ -108,7 +105,7 @@ impl HitObject {
         }
 
         // 3 bit value from 4th ~ 6th bits
-        bit_flag |= self.combo_skip_count << 4;
+        bit_flag |= self.combo_skip_count.get() << 4;
 
         bit_flag.to_string()
     }
@@ -178,16 +175,19 @@ impl FromStr for HitObject {
 
                 let context = context.unwrap();
                 let input = input.unwrap();
-                let input_field = || comma_field::<nom::error::Error<_>>()(input).unwrap().1.to_string();
+                let input_field = || {
+                    comma_field::<nom::error::Error<_>>()(input)
+                        .unwrap()
+                        .1
+                        .to_string()
+                };
 
                 let err = match Context::from_str(context).unwrap() {
                     Context::InvalidX
                     | Context::InvalidY
                     | Context::InvalidTime
                     | Context::InvalidObjType
-                    | Context::InvalidEndTime => {
-                        HitObjectParseError::ParseIntError(input_field())
-                    }
+                    | Context::InvalidEndTime => HitObjectParseError::ParseIntError(input_field()),
                     Context::InvalidCurveType => {
                         HitObjectParseError::ParseCurveTypeError(input.to_string())
                     }

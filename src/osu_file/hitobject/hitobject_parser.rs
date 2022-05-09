@@ -37,7 +37,7 @@ pub fn hitobject(s: &str) -> IResult<&str, HitObject, VerboseError<&str>> {
     let position = Position { x, y };
 
     let new_combo = nth_bit_state_i64(obj_type as i64, 2);
-    let combo_skip_count = (obj_type >> 4 & 0b111) as u8;
+    let combo_skip_count = ComboSkipCount::try_from((obj_type >> 4 & 0b111) as u8).unwrap();
 
     if nth_bit_state_i64(obj_type as i64, 0) {
         let (s, hitsample) = hitsample(s)?;
