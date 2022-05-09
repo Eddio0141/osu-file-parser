@@ -19,7 +19,7 @@ use crate::osu_file::{
     events::{Background, Break, Event, EventParams, Events},
     general::{CountdownSpeed, GameMode, General, OverlayPosition, SampleSet},
     hitobject::{
-        types::{HitSample, HitSound},
+        types::{ComboSkipCount, HitSample, HitSound},
         HitObject, HitObjectParams, HitObjects,
     },
     metadata::Metadata,
@@ -406,7 +406,7 @@ SliderTickRate:1
                 time: 8016,
                 obj_params: HitObjectParams::HitCircle,
                 new_combo: false,
-                combo_skip_count: 0,
+                combo_skip_count: ComboSkipCount::try_from(0).unwrap(),
                 hitsound: HitSound::new(false, false, false, false),
                 hitsample: HitSample::new(
                     osu_file::hitobject::types::SampleSet::NoCustomSampleSet,
@@ -421,7 +421,7 @@ SliderTickRate:1
                 time: 8183,
                 obj_params: HitObjectParams::HitCircle,
                 new_combo: false,
-                combo_skip_count: 0,
+                combo_skip_count: ComboSkipCount::try_from(0).unwrap(),
                 hitsound: HitSound::new(false, true, false, false),
                 hitsample: HitSample::new(
                     osu_file::hitobject::types::SampleSet::NoCustomSampleSet,
