@@ -57,7 +57,6 @@ impl FromStr for Events {
                         .next()
                         .ok_or(EventsParseError::MissingField("eventType"))?;
                     let header_indent = {
-                        // TODO find out if u can alternate indentation by _ and space
                         let mut count = 0usize;
                         while let Some(header_no_indent) = header.strip_prefix([' ', '_']) {
                             header = header_no_indent;
