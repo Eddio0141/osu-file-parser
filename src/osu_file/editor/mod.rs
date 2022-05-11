@@ -12,15 +12,15 @@ use self::error::*;
 #[derive(Default, Debug, PartialEq, Clone, Hash, Eq)]
 pub struct Editor {
     /// Time in milliseconds of bookmarks.
-    pub bookmarks: Vec<Integer>,
+    pub bookmarks: Option<Vec<Integer>>,
     /// Distance snap multiplier.
-    pub distance_spacing: Decimal,
+    pub distance_spacing: Option<Decimal>,
     /// Beat snap divisor.
-    pub beat_divisor: Decimal,
+    pub beat_divisor: Option<Decimal>,
     /// Grid size.
-    pub grid_size: Integer,
+    pub grid_size: Option<Integer>,
     /// Scale factor for the objecct timeline.
-    pub timeline_zoom: Decimal,
+    pub timeline_zoom: Option<Decimal>,
 }
 
 impl FromStr for Editor {
@@ -60,40 +60,40 @@ impl FromStr for Editor {
                                         name: "Bookmarks",
                                     })
                                 }
-                                None => editor.bookmarks = bookmarks,
+                                None => editor.bookmarks = Some(bookmarks),
                             }
                         }
                         "DistanceSpacing" => {
-                            editor.distance_spacing = value.parse().map_err(|err| {
+                            editor.distance_spacing = Some(value.parse().map_err(|err| {
                                 EditorParseError::SectionParseError {
                                     source: Box::new(err),
                                     name: "DistanceSpacing",
                                 }
-                            })?
+                            })?)
                         }
                         "BeatDivisor" => {
-                            editor.beat_divisor = value.parse().map_err(|err| {
+                            editor.beat_divisor = Some(value.parse().map_err(|err| {
                                 EditorParseError::SectionParseError {
                                     source: Box::new(err),
                                     name: "BeatDivisor",
                                 }
-                            })?
+                            })?)
                         }
                         "GridSize" => {
-                            editor.grid_size = value.parse().map_err(|err| {
+                            editor.grid_size = Some(value.parse().map_err(|err| {
                                 EditorParseError::SectionParseError {
                                     source: Box::new(err),
                                     name: "GridSize",
                                 }
-                            })?
+                            })?)
                         }
                         "TimelineZoom" => {
-                            editor.timeline_zoom = value.parse().map_err(|err| {
+                            editor.timeline_zoom = Some(value.parse().map_err(|err| {
                                 EditorParseError::SectionParseError {
                                     source: Box::new(err),
                                     name: "TimelineZoom",
                                 }
-                            })?
+                            })?)
                         }
                         _ => return Err(EditorParseError::InvalidKey(key.to_string())),
                     }
@@ -110,19 +110,45 @@ impl Display for Editor {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut key_value = Vec::new();
 
-        key_value.push(format!(
-            "Bookmarks: {}",
-            self.bookmarks
-                .iter()
-                .map(|bookmark| bookmark.to_string())
-                .collect::<Vec<_>>()
-                .join(",")
+        if let Some(bookmarks) = &self.bookmarks {
+            writeln!(
+                f,
+                "Bookmarks: {}",
+                bookmarks
+                    .iter()
+                    .map(std::string::ToString::to_string)
+                    .collect::<Vec<_>>()
+                    .join(","),
+            )?;
+        }
+        key_value.push((
+            "DistanceSpacing",
+            self.distance_spacing
+                .map(|distance_spacing| distance_spacing.to_string()),
         ));
-        key_value.push(format!("DistanceSpacing: {}", self.distance_spacing));
-        key_value.push(format!("BeatDivisor: {}", self.beat_divisor));
-        key_value.push(format!("GridSize: {}", self.grid_size));
-        key_value.push(format!("TimelineZoom: {}", self.timeline_zoom));
+        key_value.push((
+            "BeatDivisor",
+            self.beat_divisor
+                .map(|beat_divisor| beat_divisor.to_string()),
+        ));
+        key_value.push(("GridSize", self.grid_size.map(|grid| grid.to_string())));
+        key_value.push((
+            "TimelineZoom",
+            self.timeline_zoom.map(|zoom| zoom.to_string()),
+        ));
 
-        write!(f, "{}", key_value.join("\n"))
+        write!(
+            f,
+            "{}",
+            key_value
+                .iter()
+                .filter_map(|(k, v)| if let Some(v) = v {
+                    Some(format!("{k}: {v}"))
+                } else {
+                    None
+                })
+                .collect::<Vec<_>>()
+                .join("\n")
+        )
     }
 }

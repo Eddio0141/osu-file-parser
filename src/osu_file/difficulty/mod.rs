@@ -12,17 +12,17 @@ use self::error::*;
 /// Difficulty settings.
 pub struct Difficulty {
     /// `HP` settings.
-    pub hp_drain_rate: Decimal,
+    pub hp_drain_rate: Option<Decimal>,
     /// `CS` settings.
-    pub circle_size: Decimal,
+    pub circle_size: Option<Decimal>,
     /// `OD` settings.
-    pub overall_difficulty: Decimal,
+    pub overall_difficulty: Option<Decimal>,
     /// `AR` settings.
-    pub approach_rate: Decimal,
+    pub approach_rate: Option<Decimal>,
     /// Base slider velocity in hundreds of `osu!pixels` per beat.
-    pub slider_multiplier: Decimal,
+    pub slider_multiplier: Option<Decimal>,
     /// Amount of slider ticks per beat.
-    pub slider_tickrate: Decimal,
+    pub slider_tickrate: Option<Decimal>,
 }
 
 impl FromStr for Difficulty {
@@ -37,52 +37,52 @@ impl FromStr for Difficulty {
             match line.split_once(SECTION_DELIMITER) {
                 Some((key, value)) => match key.trim() {
                     "HPDrainRate" => {
-                        difficulty.hp_drain_rate = value.parse().map_err(|err| {
+                        difficulty.hp_drain_rate = Some(value.parse().map_err(|err| {
                             DifficultyParseError::SectionParseError {
                                 source: err,
                                 name: "HPDrainRate",
                             }
-                        })?
+                        })?)
                     }
                     "CircleSize" => {
-                        difficulty.circle_size = value.parse().map_err(|err| {
+                        difficulty.circle_size = Some(value.parse().map_err(|err| {
                             DifficultyParseError::SectionParseError {
                                 source: err,
                                 name: "CircleSize",
                             }
-                        })?
+                        })?)
                     }
                     "OverallDifficulty" => {
-                        difficulty.overall_difficulty = value.parse().map_err(|err| {
+                        difficulty.overall_difficulty = Some(value.parse().map_err(|err| {
                             DifficultyParseError::SectionParseError {
                                 source: err,
                                 name: "OverallDifficulty",
                             }
-                        })?
+                        })?)
                     }
                     "ApproachRate" => {
-                        difficulty.approach_rate = value.parse().map_err(|err| {
+                        difficulty.approach_rate = Some(value.parse().map_err(|err| {
                             DifficultyParseError::SectionParseError {
                                 source: err,
                                 name: "ApproachRate",
                             }
-                        })?
+                        })?)
                     }
                     "SliderMultiplier" => {
-                        difficulty.slider_multiplier = value.parse().map_err(|err| {
+                        difficulty.slider_multiplier = Some(value.parse().map_err(|err| {
                             DifficultyParseError::SectionParseError {
                                 source: err,
                                 name: "SliderMultiplier",
                             }
-                        })?
+                        })?)
                     }
                     "SliderTickRate" => {
-                        difficulty.slider_tickrate = value.parse().map_err(|err| {
+                        difficulty.slider_tickrate = Some(value.parse().map_err(|err| {
                             DifficultyParseError::SectionParseError {
                                 source: err,
                                 name: "SliderTickRate",
                             }
-                        })?
+                        })?)
                     }
                     _ => return Err(DifficultyParseError::InvalidKey(key.to_string())),
                 },
@@ -98,13 +98,25 @@ impl Display for Difficulty {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut key_value = Vec::new();
 
-        key_value.push(format!("HPDrainRate:{}", self.hp_drain_rate));
-        key_value.push(format!("CircleSize:{}", self.circle_size));
-        key_value.push(format!("OverallDifficulty:{}", self.overall_difficulty));
-        key_value.push(format!("ApproachRate:{}", self.approach_rate));
-        key_value.push(format!("SliderMultiplier:{}", self.slider_multiplier));
-        key_value.push(format!("SliderTickRate:{}", self.slider_tickrate));
+        key_value.push(("HPDrainRate", &self.hp_drain_rate));
+        key_value.push(("CircleSize", &self.circle_size));
+        key_value.push(("OverallDifficulty", &self.overall_difficulty));
+        key_value.push(("ApproachRate", &self.approach_rate));
+        key_value.push(("SliderMultiplier", &self.slider_multiplier));
+        key_value.push(("SliderTickRate", &self.slider_tickrate));
 
-        write!(f, "{}", key_value.join("\n"))
+        write!(
+            f,
+            "{}",
+            key_value
+                .iter()
+                .filter_map(|(k, v)| if let Some(v) = v {
+                    Some(format!("{k}:{v}"))
+                } else {
+                    None
+                })
+                .collect::<Vec<_>>()
+                .join("\n")
+        )
     }
 }

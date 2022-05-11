@@ -86,13 +86,13 @@ TimelineZoom: 2";
     let i: Editor = i_str.parse().unwrap();
 
     let e = Editor {
-        bookmarks: vec![
+        bookmarks: Some(vec![
             11018, 21683, 32349, 37683, 48349, 59016, 69683, 80349, 91016,
-        ],
-        distance_spacing: dec!(0.8),
-        beat_divisor: dec!(12),
-        grid_size: 8,
-        timeline_zoom: dec!(2),
+        ]),
+        distance_spacing: Some(dec!(0.8)),
+        beat_divisor: Some(dec!(12)),
+        grid_size: Some(8),
+        timeline_zoom: Some(dec!(2)),
     };
 
     assert_eq!(i, e);
@@ -114,14 +114,14 @@ BeatmapSetID:1499093";
     let i: Metadata = i_str.parse().unwrap();
 
     let m = Metadata {
-        title: "LOVE IS ORANGE".to_string(),
-        title_unicode: "LOVE IS ORANGE".to_string(),
-        artist: "Orange Lounge".to_string(),
-        artist_unicode: "Orange Lounge".to_string(),
-        creator: "Xnery".to_string(),
-        version: "Bittersweet Love".to_string(),
-        source: "beatmania IIDX 8th style".to_string(),
-        tags: vec![
+        title: Some("LOVE IS ORANGE".to_string()),
+        title_unicode: Some("LOVE IS ORANGE".to_string()),
+        artist: Some("Orange Lounge".to_string()),
+        artist_unicode: Some("Orange Lounge".to_string()),
+        creator: Some("Xnery".to_string()),
+        version: Some("Bittersweet Love".to_string()),
+        source: Some("beatmania IIDX 8th style".to_string()),
+        tags: Some(vec![
             "famoss".to_string(),
             "舟木智介".to_string(),
             "tomosuke".to_string(),
@@ -130,9 +130,9 @@ BeatmapSetID:1499093";
             "videogame".to_string(),
             "ハードシャンソン".to_string(),
             "Tart&Toffee".to_string(),
-        ],
-        beatmap_id: 3072232,
-        beatmap_set_id: 1499093,
+        ]),
+        beatmap_id: Some(3072232),
+        beatmap_set_id: Some(1499093),
     };
 
     assert_eq!(i, m);
@@ -150,12 +150,12 @@ SliderTickRate:1";
     let i: Difficulty = i_str.parse().unwrap();
 
     let d = Difficulty {
-        hp_drain_rate: dec!(8),
-        circle_size: dec!(5),
-        overall_difficulty: dec!(8),
-        approach_rate: dec!(5),
-        slider_multiplier: dec!(1.4),
-        slider_tickrate: Decimal::ONE,
+        hp_drain_rate: Some(dec!(8)),
+        circle_size: Some(dec!(5)),
+        overall_difficulty: Some(dec!(8)),
+        approach_rate: Some(dec!(5)),
+        slider_multiplier: Some(dec!(1.4)),
+        slider_tickrate: Some(Decimal::ONE),
     };
 
     assert_eq!(i, d);
@@ -265,7 +265,6 @@ fn events_parse() {
     assert_eq!(i_str, i.to_string());
 }
 
-// TODO make all fields optional
 #[test]
 fn osu_file_parse() {
     let i = "osu file format v14
@@ -339,23 +338,23 @@ SliderTickRate:1
             ..General::empty()
         }),
         editor: Some(Editor {
-            bookmarks: vec![
+            bookmarks: Some(vec![
                 11018, 21683, 32349, 37683, 48349, 59016, 69683, 80349, 91016,
-            ],
-            distance_spacing: dec!(0.8),
-            beat_divisor: dec!(12),
-            grid_size: 8,
-            timeline_zoom: dec!(2),
+            ]),
+            distance_spacing: Some(dec!(0.8)),
+            beat_divisor: Some(dec!(12)),
+            grid_size: Some(8),
+            timeline_zoom: Some(dec!(2)),
         }),
         metadata: Some(Metadata {
-            title: "LOVE IS ORANGE".to_string(),
-            title_unicode: "LOVE IS ORANGE".to_string(),
-            artist: "Orange Lounge".to_string(),
-            artist_unicode: "Orange Lounge".to_string(),
-            creator: "Xnery".to_string(),
-            version: "Bittersweet Love".to_string(),
-            source: "beatmania IIDX 8th style".to_string(),
-            tags: vec![
+            title: Some("LOVE IS ORANGE".to_string()),
+            title_unicode: Some("LOVE IS ORANGE".to_string()),
+            artist: Some("Orange Lounge".to_string()),
+            artist_unicode: Some("Orange Lounge".to_string()),
+            creator: Some("Xnery".to_string()),
+            version: Some("Bittersweet Love".to_string()),
+            source: Some("beatmania IIDX 8th style".to_string()),
+            tags: Some(vec![
                 "famoss".to_string(),
                 "舟木智介".to_string(),
                 "tomosuke".to_string(),
@@ -365,17 +364,17 @@ SliderTickRate:1
                 "tokui".to_string(),
                 "ddr".to_string(),
                 "dancedancerevolution".to_string(),
-            ],
-            beatmap_id: 3072232,
-            beatmap_set_id: 1499093,
+            ]),
+            beatmap_id: Some(3072232),
+            beatmap_set_id: Some(1499093),
         }),
         difficulty: Some(Difficulty {
-            hp_drain_rate: dec!(8),
-            circle_size: dec!(5),
-            overall_difficulty: dec!(8),
-            approach_rate: dec!(5),
-            slider_multiplier: dec!(1.4),
-            slider_tickrate: Decimal::ONE,
+            hp_drain_rate: Some(dec!(8)),
+            circle_size: Some(dec!(5)),
+            overall_difficulty: Some(dec!(8)),
+            approach_rate: Some(dec!(5)),
+            slider_multiplier: Some(dec!(1.4)),
+            slider_tickrate: Some(Decimal::ONE),
         }),
         events: Some(Events(vec![
             Event::Comment("Background and Video events".to_string()),
