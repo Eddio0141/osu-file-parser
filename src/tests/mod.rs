@@ -1,4 +1,5 @@
 mod hitobject;
+mod osu_files;
 mod storyboard;
 
 #[cfg(test)]
