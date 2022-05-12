@@ -35,57 +35,60 @@ impl FromStr for Difficulty {
 
         for line in s.lines() {
             match line.split_once(SECTION_DELIMITER) {
-                Some((key, value)) => match key.trim() {
-                    "HPDrainRate" => {
-                        difficulty.hp_drain_rate = Some(value.parse().map_err(|err| {
-                            DifficultyParseError::SectionParseError {
-                                source: err,
-                                name: "HPDrainRate",
-                            }
-                        })?)
+                Some((key, value)) => {
+                    let value = value.trim();
+                    match key.trim() {
+                        "HPDrainRate" => {
+                            difficulty.hp_drain_rate = Some(value.parse().map_err(|err| {
+                                DifficultyParseError::SectionParseError {
+                                    source: err,
+                                    name: "HPDrainRate",
+                                }
+                            })?)
+                        }
+                        "CircleSize" => {
+                            difficulty.circle_size = Some(value.parse().map_err(|err| {
+                                DifficultyParseError::SectionParseError {
+                                    source: err,
+                                    name: "CircleSize",
+                                }
+                            })?)
+                        }
+                        "OverallDifficulty" => {
+                            difficulty.overall_difficulty = Some(value.parse().map_err(|err| {
+                                DifficultyParseError::SectionParseError {
+                                    source: err,
+                                    name: "OverallDifficulty",
+                                }
+                            })?)
+                        }
+                        "ApproachRate" => {
+                            difficulty.approach_rate = Some(value.parse().map_err(|err| {
+                                DifficultyParseError::SectionParseError {
+                                    source: err,
+                                    name: "ApproachRate",
+                                }
+                            })?)
+                        }
+                        "SliderMultiplier" => {
+                            difficulty.slider_multiplier = Some(value.parse().map_err(|err| {
+                                DifficultyParseError::SectionParseError {
+                                    source: err,
+                                    name: "SliderMultiplier",
+                                }
+                            })?)
+                        }
+                        "SliderTickRate" => {
+                            difficulty.slider_tickrate = Some(value.parse().map_err(|err| {
+                                DifficultyParseError::SectionParseError {
+                                    source: err,
+                                    name: "SliderTickRate",
+                                }
+                            })?)
+                        }
+                        _ => return Err(DifficultyParseError::InvalidKey(key.to_string())),
                     }
-                    "CircleSize" => {
-                        difficulty.circle_size = Some(value.parse().map_err(|err| {
-                            DifficultyParseError::SectionParseError {
-                                source: err,
-                                name: "CircleSize",
-                            }
-                        })?)
-                    }
-                    "OverallDifficulty" => {
-                        difficulty.overall_difficulty = Some(value.parse().map_err(|err| {
-                            DifficultyParseError::SectionParseError {
-                                source: err,
-                                name: "OverallDifficulty",
-                            }
-                        })?)
-                    }
-                    "ApproachRate" => {
-                        difficulty.approach_rate = Some(value.parse().map_err(|err| {
-                            DifficultyParseError::SectionParseError {
-                                source: err,
-                                name: "ApproachRate",
-                            }
-                        })?)
-                    }
-                    "SliderMultiplier" => {
-                        difficulty.slider_multiplier = Some(value.parse().map_err(|err| {
-                            DifficultyParseError::SectionParseError {
-                                source: err,
-                                name: "SliderMultiplier",
-                            }
-                        })?)
-                    }
-                    "SliderTickRate" => {
-                        difficulty.slider_tickrate = Some(value.parse().map_err(|err| {
-                            DifficultyParseError::SectionParseError {
-                                source: err,
-                                name: "SliderTickRate",
-                            }
-                        })?)
-                    }
-                    _ => return Err(DifficultyParseError::InvalidKey(key.to_string())),
-                },
+                }
                 None => return Err(DifficultyParseError::MissingValue(line.to_owned())),
             }
         }
