@@ -1,8 +1,7 @@
+mod colour_parser;
 pub mod error;
 
 use std::{fmt::Display, str::FromStr};
-
-use super::Integer;
 
 use self::error::*;
 
@@ -37,11 +36,12 @@ impl FromStr for Colours {
     }
 }
 
+// TODO check of combo can be i32
 /// Struct representing a single `colour` component in the `Colours` section.
 #[derive(Clone, Copy, Hash, PartialEq, Eq, Debug)]
 pub enum Colour {
     /// Additive combo colours.
-    Combo(Integer, Rgb),
+    Combo(u32, Rgb),
     /// Additive slider track colour.
     SliderTrackOverride(Rgb),
     /// Slider border colour.
