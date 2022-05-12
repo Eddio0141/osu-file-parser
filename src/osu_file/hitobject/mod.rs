@@ -1,5 +1,5 @@
 pub mod error;
-mod hitobject_parser;
+mod parser;
 pub mod types;
 
 use std::fmt::Display;
@@ -13,8 +13,8 @@ use strum_macros::Display;
 use thiserror::Error;
 
 use self::error::*;
-use self::hitobject_parser::hitobject;
-use self::hitobject_parser::Context;
+use self::parser::hitobject;
+use self::parser::Context;
 use self::types::*;
 use super::Integer;
 use super::Position;
