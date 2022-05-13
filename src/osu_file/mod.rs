@@ -65,9 +65,9 @@ pub struct OsuFile {
 }
 
 impl OsuFile {
-    pub fn empty() -> Self {
+    pub fn new() -> Self {
         Self {
-            version: Default::default(),
+            version: LATEST_VERSION,
             general: None,
             editor: None,
             metadata: None,
