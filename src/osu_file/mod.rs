@@ -255,6 +255,40 @@ impl Default for OsuFile {
     }
 }
 
+// TODO way of combining the Error types together as well as line_number being calculated
+pub struct Error<E> {
+    pub line_number: usize,
+    pub error: E,
+}
+
+impl<E> Error<E>
+where
+    E: std::fmt::Display,
+{
+    /// Shows a pretty error message with the affected line and the error.
+    /// - Expensive than showing line number and error with the `Display` trait, as this iterates over the lines of the file input string.
+    pub fn display_error_with_line(
+        &self,
+        f: &mut std::fmt::Formatter,
+        file_input: &str,
+    ) -> std::fmt::Result {
+        let line = file_input.lines().nth(self.line_number).unwrap_or_default();
+
+        writeln!(f, "Line {}: {}", self.line_number, line)?;
+        writeln!(f, "{}", self.error)
+    }
+}
+
+impl<E> Display for Error<E>
+where
+    E: std::fmt::Display,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "Line {}", self.line_number)?;
+        writeln!(f, "{}", self.error)
+    }
+}
+
 #[derive(Debug, Error)]
 #[non_exhaustive]
 /// Error for when there's a problem parsing an .osu file.
@@ -332,10 +366,9 @@ pub enum OsuFileParseError {
     },
 }
 
-/// Latest file version.
 const LATEST_VERSION: Integer = 14;
+// const MIN_VERSION: Integer = 3;
 
-/// Delimiter for the `key: value` pair.
 const SECTION_DELIMITER: &str = ":";
 
 /// Definition of the `Integer` type.
