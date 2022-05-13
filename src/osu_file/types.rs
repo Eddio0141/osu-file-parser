@@ -18,7 +18,6 @@ impl Default for Position {
     }
 }
 
-// TODO way of combining the Error types together as well as line_number being calculated
 pub struct Error<E> {
     /// Line number of the error.
     pub line_number: usize,
