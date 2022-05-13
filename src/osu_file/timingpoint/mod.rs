@@ -1,16 +1,19 @@
+pub mod error;
+
 use std::{
     error::Error,
     fmt::Display,
-    num::{NonZeroUsize, ParseIntError},
+    num::NonZeroUsize,
     str::{FromStr, Split},
 };
 
 use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
 use strum_macros::FromRepr;
-use thiserror::Error;
 
 use crate::helper::{nth_bit_state_i64, parse_zero_one_bool};
+
+use self::error::*;
 
 use super::Integer;
 
@@ -18,7 +21,7 @@ use super::Integer;
 pub struct TimingPoints(pub Vec<TimingPoint>);
 
 impl FromStr for TimingPoints {
-    type Err = TimingPointsParseError;
+    type Err = ParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut timing_points = Vec::new();
@@ -46,10 +49,6 @@ impl Display for TimingPoints {
         )
     }
 }
-
-#[derive(Debug, Error)]
-#[error(transparent)]
-pub struct TimingPointsParseError(#[from] TimingPointParseError);
 
 /// Struct representing a timing point.
 /// Each timing point influences a specified portion of the map, commonly called a `timing section`.
@@ -285,23 +284,6 @@ impl Display for TimingPoint {
     }
 }
 
-/// Error used when there was a problem parsing the [`TimingPoint`].
-#[derive(Debug, Error)]
-pub enum TimingPointParseError {
-    // TODO replace all static strings with a enum instead
-    /// A field is missing.
-    #[error("The field {0} is missing")]
-    MissingField(&'static str),
-    #[error("There was a problem parsing the value {value}")]
-    /// The field failed to parse to some type from a `str`.
-    FieldParseError {
-        #[source]
-        source: Box<dyn Error>,
-        value: String,
-        field_name: &'static str,
-    },
-}
-
 // TODO figure out default
 /// Default sample set for hitobjects.
 #[derive(Clone, Copy, Hash, PartialEq, Eq, Debug, FromRepr)]
@@ -342,21 +324,6 @@ impl Display for SampleSet {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", *self as u8)
     }
-}
-
-/// There was some problem parsing the [`SampleSet`].
-#[derive(Debug, Error, PartialEq)]
-pub enum SampleSetParseError {
-    /// The value failed to parse from a `str`.
-    #[error("There was a problem parsing {value} as an `Integer`")]
-    ValueParseError {
-        #[source]
-        source: ParseIntError,
-        value: String,
-    },
-    /// The `SampleSet` type is invalid.
-    #[error("Expected `SampleSet` to have a value of 0 ~ 3, got {0}")]
-    UnknownSampleSet(usize),
 }
 
 // TODO figure out default
@@ -411,15 +378,6 @@ impl Display for Effects {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", u8::from(*self))
     }
-}
-
-/// There was a problem parsing `str` as [`Effects`].
-#[derive(Debug, Error)]
-#[error("There was a problem parsing {value} as an `Integer`")]
-pub struct EffectsParseError {
-    #[source]
-    pub source: ParseIntError,
-    pub value: String,
 }
 
 /// Custom sample index for hitobjects.
@@ -479,15 +437,6 @@ impl Default for SampleIndex {
     fn default() -> Self {
         Self::OsuDefaultHitsounds
     }
-}
-
-/// Error used when `str` failed to parse as [`SampleIndex`].
-#[derive(Debug, Error)]
-#[error("There was a problem parsing {value} as an usize for `SampleIndex`")]
-pub struct SampleIndexParseError {
-    #[source]
-    pub source: Box<dyn Error>,
-    pub value: String,
 }
 
 /// The volume percentage in the range of 0 ~ 100.
@@ -555,19 +504,4 @@ impl Volume {
             Ok(())
         }
     }
-}
-
-/// Error for when there was a problem setting / parsing the volume.
-#[derive(Debug, Error, PartialEq)]
-pub enum VolumeError {
-    /// Error when volume is out of range of the 0 ~ 100 range.
-    #[error("The volume was too high, expected 0 ~ 100, got {0}")]
-    VolumeTooHigh(u8),
-    /// There was a problem parsing the `str` as [`Volume`].
-    #[error("There was a problem parsing a `str` as [`Volume`]")]
-    VolumeParseError {
-        #[source]
-        source: ParseIntError,
-        value: String,
-    },
 }
