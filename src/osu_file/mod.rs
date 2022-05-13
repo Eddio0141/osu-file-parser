@@ -65,6 +65,8 @@ pub struct OsuFile {
 }
 
 impl OsuFile {
+    /// New `OsuFile` with no data.
+    /// - Difference from `Default` is that all fields are `None` instead of Some(`Default`).
     pub fn new() -> Self {
         Self {
             version: LATEST_VERSION,
