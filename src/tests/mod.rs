@@ -25,7 +25,8 @@ use crate::osu_file::{
     },
     metadata::Metadata,
     timingpoint::{self, Effects, SampleIndex, TimingPoint, TimingPoints, Volume},
-    OsuFile, Position,
+    types::Position,
+    OsuFile,
 };
 
 #[test]

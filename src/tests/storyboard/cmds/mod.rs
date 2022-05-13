@@ -8,7 +8,8 @@ use rust_decimal_macros::dec;
 use crate::osu_file::events::storyboard::cmds::*;
 use crate::osu_file::events::storyboard::sprites::*;
 use crate::osu_file::events::storyboard::types::*;
-use crate::osu_file::{events::*, Position};
+use crate::osu_file::events::*;
+use crate::osu_file::types::Position;
 
 #[test]
 fn storyboard_sprites_cmd_parse() {
