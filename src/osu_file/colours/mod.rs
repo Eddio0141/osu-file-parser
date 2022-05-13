@@ -3,6 +3,8 @@ pub mod error;
 
 use std::{fmt::Display, str::FromStr};
 
+use nom::{bytes::complete::take_till, error::VerboseErrorKind, Finish};
+
 use self::error::*;
 
 #[derive(Clone, Debug, Default, Hash, PartialEq, Eq)]
@@ -29,7 +31,9 @@ impl FromStr for Colours {
         let mut colours = Vec::new();
 
         for s in s.lines() {
-            colours.push(s.parse()?);
+            if !s.is_empty() {
+                colours.push(s.parse()?);
+            }
         }
 
         Ok(Colours(colours))
@@ -52,31 +56,57 @@ impl FromStr for Colour {
     type Err = ColourParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        // delimiter not the same
-        if let Some((key, value)) = s.split_once(':') {
-            let rgb = || value.parse();
+        match colour_parser::colour(s).finish() {
+            Ok((_, colour)) => Ok(colour),
+            Err(err) => {
+                for err in &err.errors {
+                    if let VerboseErrorKind::Context(context) = err.1 {
+                        let err = match colour_parser::Context::from_str(context).unwrap() {
+                            colour_parser::Context::UnknownColourOption => {
+                                ColourParseError::UnknownColourOption(
+                                    take_till::<_, _, nom::error::Error<_>>(|c| c == ':')(err.0)
+                                        .unwrap()
+                                        .1
+                                        .trim()
+                                        .to_string(),
+                                )
+                            }
+                            colour_parser::Context::InvalidAdditiveComboCount => {
+                                ColourParseError::InvalidComboCount(
+                                    take_till::<_, _, nom::error::Error<_>>(|c| c == ' ')(err.0)
+                                        .unwrap()
+                                        .1
+                                        .trim()
+                                        .to_string(),
+                                )
+                            }
+                            colour_parser::Context::InvalidRed
+                            | colour_parser::Context::InvalidBlue
+                            | colour_parser::Context::InvalidGreen => {
+                                ColourParseError::InvalidColourValue(
+                                    take_till::<_, _, nom::error::Error<_>>(|c| {
+                                        c == ',' || c == ' '
+                                    })(err.0)
+                                    .unwrap()
+                                    .1
+                                    .trim()
+                                    .to_string(),
+                                )
+                            }
+                            colour_parser::Context::NoCommaAfterRed => {
+                                ColourParseError::MissingGreenValue
+                            }
+                            colour_parser::Context::NoCommaAfterGreen => {
+                                ColourParseError::MissingBlueValue
+                            }
+                        };
 
-            let key = key.trim();
-            if key.starts_with("Combo") {
-                let combo_count = key.strip_prefix("Combo").unwrap();
-                let combo_count =
-                    combo_count
-                        .parse()
-                        .map_err(|err| ColourParseError::ComboCountParseError {
-                            source: err,
-                            value: combo_count.to_string(),
-                        })?;
-
-                Ok(Colour::Combo(combo_count, rgb()?))
-            } else {
-                match key {
-                    "SliderTrackOverride" => Ok(Colour::SliderTrackOverride(rgb()?)),
-                    "SliderBorder" => Ok(Colour::SliderBorder(rgb()?)),
-                    _ => Err(ColourParseError::InvalidKey(key.to_string())),
+                        return Err(err);
+                    }
                 }
+
+                unimplemented!("unimplemented colour nom parser error, {}", err)
             }
-        } else {
-            Err(ColourParseError::NoValue(s.to_string()))
         }
     }
 }
@@ -102,39 +132,6 @@ pub struct Rgb {
     pub green: u8,
     /// Blue colour.
     pub blue: u8,
-}
-
-impl FromStr for Rgb {
-    type Err = RGBParseError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut s = s.split(',');
-
-        let red = s.next().ok_or(RGBParseError::NoRedDefined)?.trim();
-        let red = red.parse().map_err(|err| RGBParseError::ValueParseError {
-            source: err,
-            value: red.to_string(),
-            field_name: "red",
-        })?;
-
-        let green = s.next().ok_or(RGBParseError::NoGreenDefined)?.trim();
-        let green = green
-            .parse()
-            .map_err(|err| RGBParseError::ValueParseError {
-                source: err,
-                value: green.to_string(),
-                field_name: "green",
-            })?;
-
-        let blue = s.next().ok_or(RGBParseError::NoBlueDefined)?.trim();
-        let blue = blue.parse().map_err(|err| RGBParseError::ValueParseError {
-            source: err,
-            value: blue.to_string(),
-            field_name: "blue",
-        })?;
-
-        Ok(Self { red, green, blue })
-    }
 }
 
 impl Display for Rgb {
