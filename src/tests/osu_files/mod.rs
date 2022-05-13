@@ -1,5 +1,8 @@
 use crate::osu_file::OsuFile;
+#[cfg(test)]
+use pretty_assertions::assert_eq;
 
+// TODO idea: instead of error containing string for affected section, store whole line for user to see
 #[test]
 fn all_files_parse_back() {
     // let v3 = include_str!("./files/v3.osu");
@@ -10,6 +13,8 @@ fn all_files_parse_back() {
     let files = vec![v14];
 
     for file in files {
+        let file = file.replace("\r\n", "\n");
+
         let osu_file = file.parse::<OsuFile>().unwrap();
         let osu_file_str = osu_file.to_string();
 
