@@ -288,6 +288,7 @@ impl Display for TimingPoint {
 /// Error used when there was a problem parsing the [`TimingPoint`].
 #[derive(Debug, Error)]
 pub enum TimingPointParseError {
+    // TODO replace all static strings with a enum instead
     /// A field is missing.
     #[error("The field {0} is missing")]
     MissingField(&'static str),
