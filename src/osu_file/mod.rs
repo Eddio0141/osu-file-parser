@@ -6,14 +6,14 @@ pub mod general;
 pub mod hitobject;
 pub mod metadata;
 pub mod timingpoint;
+pub mod types;
 
-use std::fmt::Display;
+use std::fmt::{Debug, Display};
 use std::hash::Hash;
 use std::str::FromStr;
 
 use nom::bytes::complete::{tag, take_till};
-use nom::character::complete::char;
-use nom::character::is_newline;
+use nom::character::complete::{char, multispace0};
 use nom::combinator::map_res;
 use nom::multi::many0;
 use nom::sequence::{delimited, tuple};
@@ -30,7 +30,8 @@ use self::general::General;
 use self::hitobject::{HitObjects, HitObjectsParseError};
 use self::metadata::{error::MetadataParseError, Metadata};
 
-use self::timingpoint::{TimingPoints, TimingPointsParseError};
+use self::timingpoint::TimingPoints;
+use self::types::*;
 
 /// An .osu file represented as a struct.
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
@@ -120,7 +121,7 @@ impl Display for OsuFile {
 }
 
 impl FromStr for OsuFile {
-    type Err = OsuFileParseError;
+    type Err = Error<ParseError>;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let version_text = tag::<_, _, nom::error::Error<_>>("osu file format v");
@@ -131,48 +132,43 @@ impl FromStr for OsuFile {
 
         let section_open = char::<_, nom::error::Error<_>>('[');
         let section_close = char(']');
-        let section_name_inner = take_till(|c: char| c == ']' || is_newline(c as u8));
+        let section_name_inner = take_till(|c: char| c == ']' || c == '\r' || c == '\n');
         let section_name = delimited(section_open, section_name_inner, section_close);
 
         let section_until = take_till(|c| c == '[');
-        let section = tuple((ws(section_name), section_until));
+        let section = tuple((multispace0, section_name, multispace0, section_until));
 
         // TODO fix this mess
         let (s, (_, version)) = match tuple((version_text, version_number))(s) {
             Ok(ok) => ok,
             Err(err) => {
                 // wrong line?
-                if s.starts_with('\n') || s.starts_with("\r\n") {
-                    return Err(OsuFileParseError::FileVersionInWrongLine);
+                let err = if s.starts_with('\n') || s.starts_with("\r\n") {
+                    ParseError::FileVersionInWrongLine
                 } else if let nom::Err::Error(err) = err {
-                    let err = match err.code {
-                        nom::error::ErrorKind::Tag => {
-                            Err(OsuFileParseError::FileVersionDefinedWrong)
-                        }
-                        nom::error::ErrorKind::MapRes => {
-                            Err(OsuFileParseError::InvalidFileVersion(
-                                s.lines()
-                                    .next()
-                                    .unwrap()
-                                    .strip_prefix("osu file format v")
-                                    .unwrap()
-                                    .to_string(),
-                            ))
-                        }
+                    match err.code {
+                        nom::error::ErrorKind::Tag => ParseError::FileVersionDefinedWrong,
+                        nom::error::ErrorKind::MapRes => ParseError::InvalidFileVersion,
                         _ => {
                             unreachable!("Not possible to have the error kind {:#?}", err.code)
                         }
-                    };
-
-                    return err;
+                    }
                 } else {
                     unreachable!("Not possible to reach when the errors are already handled");
-                }
+                };
+
+                return Err(Error {
+                    line_number: 0,
+                    error: err,
+                });
             }
         };
 
-        if version > LATEST_VERSION {
-            return Err(OsuFileParseError::InvalidFileVersion(version.to_string()));
+        if version > LATEST_VERSION || version < MIN_VERSION {
+            return Err(Error {
+                line_number: 0,
+                error: ParseError::InvalidFileVersion,
+            });
         }
 
         let (_, sections) = many0(section)(s).unwrap();
@@ -188,37 +184,60 @@ impl FromStr for OsuFile {
             mut timing_points,
             mut colours,
             mut hitobjects,
-        ) = (
-            Default::default(),
-            Default::default(),
-            Default::default(),
-            Default::default(),
-            Default::default(),
-            Default::default(),
-            Default::default(),
-            Default::default(),
-        );
+        ) = (None, None, None, None, None, None, None, None);
 
-        for (section_name, section) in sections {
+        let mut line_number = 1;
+
+        fn parse_error_to_error<P>(
+            result: Result<P, <P as FromStr>::Err>,
+            line_number: usize,
+        ) -> Result<P, Error<ParseError>>
+        where
+            P: FromStr,
+            ParseError: From<P::Err>,
+        {
+            match result {
+                Ok(ok) => Ok(ok),
+                Err(err) => Err(Error {
+                    line_number,
+                    error: err.into(),
+                }),
+            }
+        }
+
+        for (ws, section_name, ws2, section) in sections {
+            line_number += ws.lines().count();
+
             if section_parsed.contains(&section_name) {
-                return Err(OsuFileParseError::DuplicateSections(
-                    section_name.to_string(),
-                ));
+                return Err(Error {
+                    line_number,
+                    error: ParseError::DuplicateSections,
+                });
             }
 
+            let section_name_line = line_number;
+            line_number += ws2.lines().count();
+
             match section_name {
-                "General" => general = Some(section.parse()?),
-                "Editor" => editor = Some(section.parse()?),
-                "Metadata" => metadata = Some(section.parse()?),
-                "Difficulty" => difficulty = Some(section.parse()?),
-                "Events" => events = Some(section.parse()?),
-                "TimingPoints" => timing_points = Some(section.parse()?),
-                "Colours" => colours = Some(section.parse()?),
-                "HitObjects" => hitobjects = Some(section.parse()?),
+                "General" => general = Some(parse_error_to_error(section.parse(), line_number)?),
+                "Editor" => editor = Some(parse_error_to_error(section.parse(), line_number)?),
+                "Metadata" => metadata = Some(parse_error_to_error(section.parse(), line_number)?),
+                "Difficulty" => {
+                    difficulty = Some(parse_error_to_error(section.parse(), line_number)?)
+                }
+                "Events" => events = Some(parse_error_to_error(section.parse(), line_number)?),
+                "TimingPoints" => {
+                    timing_points = Some(parse_error_to_error(section.parse(), line_number)?)
+                }
+                "Colours" => colours = Some(parse_error_to_error(section.parse(), line_number)?),
+                "HitObjects" => {
+                    hitobjects = Some(parse_error_to_error(section.parse(), line_number)?)
+                }
                 _ => {
-                    return Err(OsuFileParseError::UnknownSectionName(
-                        section_name.to_string(),
-                    ))
+                    return Err(Error {
+                        line_number: section_name_line,
+                        error: ParseError::UnknownSection,
+                    })
                 }
             }
 
@@ -255,49 +274,15 @@ impl Default for OsuFile {
     }
 }
 
-// TODO way of combining the Error types together as well as line_number being calculated
-pub struct Error<E> {
-    pub line_number: usize,
-    pub error: E,
-}
-
-impl<E> Error<E>
-where
-    E: std::fmt::Display,
-{
-    /// Shows a pretty error message with the affected line and the error.
-    /// - Expensive than showing line number and error with the `Display` trait, as this iterates over the lines of the file input string.
-    pub fn display_error_with_line(
-        &self,
-        f: &mut std::fmt::Formatter,
-        file_input: &str,
-    ) -> std::fmt::Result {
-        let line = file_input.lines().nth(self.line_number).unwrap_or_default();
-
-        writeln!(f, "Line {}: {}", self.line_number, line)?;
-        writeln!(f, "{}", self.error)
-    }
-}
-
-impl<E> Display for Error<E>
-where
-    E: std::fmt::Display,
-{
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "Line {}", self.line_number)?;
-        writeln!(f, "{}", self.error)
-    }
-}
-
 #[derive(Debug, Error)]
 #[non_exhaustive]
 /// Error for when there's a problem parsing an .osu file.
-pub enum OsuFileParseError {
+pub enum ParseError {
     /// File version is invalid.
+    // TODO redesign this error
     // TODO multiple file versions for this crate somehow
-    // TODO first file version number?
-    #[error("Invalid file version, expected integer from 1 ~ {LATEST_VERSION}, got {0}")]
-    InvalidFileVersion(String),
+    #[error("Invalid file version, expected versions from {MIN_VERSION} ~ {LATEST_VERSION}")]
+    InvalidFileVersion,
     /// File version is defined wrong.
     #[error("File version defined wrong, expected `osu file format v..` at the first line")]
     FileVersionDefinedWrong,
@@ -305,11 +290,11 @@ pub enum OsuFileParseError {
     #[error("Found file version definition, but not defined at the first line")]
     FileVersionInWrongLine,
     /// Duplicate section names defined.
-    #[error("There are multiple sections defined as the same name {0}")]
-    DuplicateSections(String),
+    #[error("There are multiple sections defined as the same name")]
+    DuplicateSections,
     /// Unknown section name defined.
-    #[error("There is an unknown section name `{0}`")]
-    UnknownSectionName(String),
+    #[error("There is an unknown section")]
+    UnknownSection,
     /// Error used when the opening bracket for the section is missing.
     #[error("The opening bracket of the section is missing, expected `[` before {0}")]
     SectionNameNoOpenBracket(String),
@@ -350,7 +335,7 @@ pub enum OsuFileParseError {
     #[error(transparent)]
     TimingPointsParseError {
         #[from]
-        source: TimingPointsParseError,
+        source: timingpoint::error::ParseError,
     },
     /// Error parsing the colours section.
     #[error(transparent)]
@@ -367,24 +352,6 @@ pub enum OsuFileParseError {
 }
 
 const LATEST_VERSION: Integer = 14;
-// const MIN_VERSION: Integer = 3;
+const MIN_VERSION: Integer = 3;
 
 const SECTION_DELIMITER: &str = ":";
-
-/// Definition of the `Integer` type.
-pub type Integer = i32;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-/// The position of something in `osu!pixels` with the `x` `y` form.
-pub struct Position {
-    /// x coordinate.
-    pub x: Integer,
-    /// y coordinate.
-    pub y: Integer,
-}
-
-impl Default for Position {
-    fn default() -> Self {
-        Self { x: 256, y: 192 }
-    }
-}
