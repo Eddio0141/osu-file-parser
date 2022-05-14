@@ -15,7 +15,7 @@ use self::storyboard::{
     sprites::Object,
 };
 
-use super::{Integer, Position};
+use super::{types::Error, Integer, Position};
 
 use self::error::*;
 
@@ -37,86 +37,106 @@ impl Display for Events {
 }
 
 impl FromStr for Events {
-    type Err = EventsParseError;
+    type Err = crate::osu_file::types::Error<ParseError>;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let s = s.lines();
         let mut events = Events::default();
+        let mut line_number = 0;
 
         for line in s {
-            if line.trim().is_empty() {
-                continue;
-            }
+            if !line.trim().is_empty() {
+                match line.trim().strip_prefix("//") {
+                    Some(comment) => events.0.push(Event::Comment(comment.to_string())),
+                    None => {
+                        let mut s = line.split(',');
 
-            match line.trim().strip_prefix("//") {
-                Some(comment) => events.0.push(Event::Comment(comment.to_string())),
-                None => {
-                    let mut s = line.split(',');
-
-                    let mut header = s
-                        .next()
-                        .ok_or(EventsParseError::MissingField("eventType"))?;
-                    let header_indent = {
-                        let mut count = 0usize;
-                        while let Some(header_no_indent) = header.strip_prefix([' ', '_']) {
-                            header = header_no_indent;
-                            count += 1;
-                        }
-                        count
-                    };
-                    let header = header;
-
-                    // its a storyboard command
-                    if header_indent > 0 {
-                        match events.0.last_mut() {
-                            Some(Event::Storyboard(sprite)) => {
-                                sprite.try_push_cmd(line.parse()?, header_indent)?;
+                        let mut header = s.next().ok_or(ParseError::MissingField("eventType"))?;
+                        let header_indent = {
+                            let mut count = 0usize;
+                            while let Some(header_no_indent) = header.strip_prefix([' ', '_']) {
+                                header = header_no_indent;
+                                count += 1;
                             }
-                            _ => return Err(EventsParseError::StoryboardCmdWithNoSprite),
-                        }
-                        continue;
-                    }
+                            count
+                        };
+                        let header = header;
 
-                    // is it a storyboard object?
-                    match line.parse() {
-                        Ok(object) => {
-                            events.0.push(Event::Storyboard(object));
+                        // its a storyboard command
+                        if header_indent > 0 {
+                            match events.0.last_mut() {
+                                Some(Event::Storyboard(sprite)) => {
+                                    sprite
+                                        .try_push_cmd(
+                                            line.parse().map_err(|err| {
+                                                Error::from(err).combine(line_number)
+                                            })?,
+                                            header_indent,
+                                        )
+                                        .map_err(|err| Error::from(err).combine(line_number))?;
+                                }
+                                _ => {
+                                    return Err(Error::from_err_with_line(
+                                        ParseError::StoryboardCmdWithNoSprite,
+                                        line_number,
+                                    ))
+                                }
+                            }
                             continue;
                         }
-                        Err(err) => {
-                            if let ObjectParseError::UnknownObjectType(_) = err {
-                                let start_time = s
-                                    .next()
-                                    .ok_or(EventsParseError::MissingField("startTime"))?;
-                                let start_time = start_time.parse().map_err(|err| {
-                                    EventsParseError::FieldParseError {
-                                        source: Box::new(err),
-                                        value: start_time.to_string(),
-                                        field_name: "startTime",
-                                    }
-                                })?;
 
-                                let event_params = EventParams::try_from((header, &mut s))
-                                    .map_err(|err| {
-                                        EventsParseError::FieldParseError {
+                        // is it a storyboard object?
+                        match line.parse() {
+                            Ok(object) => {
+                                events.0.push(Event::Storyboard(object));
+                                continue;
+                            }
+                            Err(err) => {
+                                if let ObjectParseError::UnknownObjectType(_) = err {
+                                    let start_time =
+                                        s.next().ok_or(ParseError::MissingField("startTime"))?;
+                                    let start_time = start_time.parse().map_err(|err| {
+                                        ParseError::FieldParseError {
                                             source: Box::new(err),
-                                            // TODO does this even work
-                                            value: format!("{}{}", header, s.collect::<String>()),
-                                            field_name: "eventParams",
+                                            value: start_time.to_string(),
+                                            field_name: "startTime",
                                         }
                                     })?;
 
-                                events.0.push(Event::NormalEvent {
-                                    start_time,
-                                    event_params,
-                                })
-                            } else {
-                                return Err(EventsParseError::StoryboardObjectParseError(err));
+                                    let event_params = EventParams::try_from((header, &mut s))
+                                        .map_err(|err| {
+                                            Error::from_err_with_line(
+                                                ParseError::FieldParseError {
+                                                    source: Box::new(err),
+                                                    // TODO does this even work
+                                                    value: format!(
+                                                        "{}{}",
+                                                        header,
+                                                        s.collect::<String>()
+                                                    ),
+                                                    field_name: "eventParams",
+                                                },
+                                                line_number,
+                                            )
+                                        })?;
+
+                                    events.0.push(Event::NormalEvent {
+                                        start_time,
+                                        event_params,
+                                    })
+                                } else {
+                                    return Err(Error::from_err_with_line(
+                                        ParseError::StoryboardObjectParseError(err),
+                                        line_number,
+                                    ));
+                                }
                             }
                         }
                     }
                 }
             }
+
+            line_number += 1;
         }
 
         Ok(events)
@@ -141,21 +161,29 @@ impl Display for Event {
             Event::NormalEvent {
                 start_time,
                 event_params,
-            } => match event_params {
-                EventParams::Background(background) => format!(
-                    "0,{start_time},{},{},{}",
-                    background.filename.to_string_lossy(),
-                    background.position.x,
-                    background.position.y
-                ),
-                EventParams::Video(video) => format!(
-                    "1,{start_time},{},{},{}",
-                    video.filename.to_string_lossy(),
-                    video.position.x,
-                    video.position.y
-                ),
-                EventParams::Break(_break) => format!("2,{start_time},{}", _break.end_time),
-            },
+            } => {
+                let position_str = |position: &Position| {
+                    if position.x == 0 && position.y == 0 {
+                        String::new()
+                    } else {
+                        format!(",{},{}", position.x, position.y)
+                    }
+                };
+
+                match event_params {
+                    EventParams::Background(background) => format!(
+                        "0,{start_time},{}{}",
+                        background.filename.to_string_lossy(),
+                        position_str(&background.position),
+                    ),
+                    EventParams::Video(video) => format!(
+                        "1,{start_time},{}{}",
+                        video.filename.to_string_lossy(),
+                        position_str(&video.position),
+                    ),
+                    EventParams::Break(_break) => format!("2,{start_time},{}", _break.end_time),
+                }
+            }
             Event::Storyboard(object) => {
                 let pos_str = format!("{},{}", object.position.x, object.position.y);
 
@@ -254,12 +282,14 @@ pub enum EventParams {
 
 impl<'a, T> TryFrom<(&str, &mut T)> for EventParams
 where
-    T: Iterator<Item = &'a str>,
+    T: Iterator<Item = &'a str> + Clone + std::fmt::Debug,
 {
     type Error = EventParamsParseError;
 
     fn try_from((event_type, event_params): (&str, &mut T)) -> Result<Self, Self::Error> {
         let event_type = event_type.trim();
+
+        dbg!(event_type, event_params.clone().collect::<String>());
 
         match event_type {
             "0" | "1" | "Video" => {
@@ -267,9 +297,15 @@ where
                     .next()
                     .ok_or(EventParamsParseError::MissingField("filename"))?;
                 let position = {
-                    let x = event_params
-                        .next()
-                        .ok_or(EventParamsParseError::MissingField("xOffset"))?;
+                    let mut has_position = false;
+
+                    let x = match event_params.next() {
+                        Some(x) => {
+                            has_position = true;
+                            x
+                        }
+                        None => "0",
+                    };
                     let x = x
                         .parse()
                         .map_err(|err| EventParamsParseError::ParseFieldError {
@@ -278,9 +314,22 @@ where
                             field_name: "xOffset",
                         })?;
 
-                    let y = event_params
-                        .next()
-                        .ok_or(EventParamsParseError::MissingField("yOffset"))?;
+                    let y = match event_params.next() {
+                        Some(y) => {
+                            if has_position {
+                                y
+                            } else {
+                                return Err(EventParamsParseError::MissingField("xOffset"));
+                            }
+                        }
+                        None => {
+                            if has_position {
+                                return Err(EventParamsParseError::MissingField("yOffset"));
+                            } else {
+                                "0"
+                            }
+                        }
+                    };
                     let y = y
                         .parse()
                         .map_err(|err| EventParamsParseError::ParseFieldError {
