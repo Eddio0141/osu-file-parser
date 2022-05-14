@@ -72,6 +72,16 @@ impl<E> Error<E> {
             }),
         }
     }
+
+    pub fn from_combine<E2>(inner_error: E2, line_number: usize) -> Error<E>
+    where
+        E: From<E2>,
+    {
+        Error {
+            line_index: line_number,
+            error: inner_error.into(),
+        }
+    }
 }
 
 impl<E> Display for Error<E>
