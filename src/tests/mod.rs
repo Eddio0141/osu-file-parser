@@ -235,7 +235,7 @@ fn timing_points_parse() {
 
 #[test]
 fn events_parse() {
-    let i_str = "0,0,\"bg2.jpg\"
+    let i_str = "0,0,\"bg2.jpg\",0,0
 0,0,bg2.jpg,0,1
 //Break Periods
 2,100,163";
@@ -484,7 +484,7 @@ SliderTickRate:1
 
 [Events]
 //Background and Video events
-0,0,\"bg.jpg\"
+0,0,\"bg.jpg\",0,0
 
 [TimingPoints]
 350,333.333333333333,4,2,1,60,1,0
