@@ -1,7 +1,7 @@
 use std::num::ParseIntError;
 
 use nom::{
-    bytes::complete::{is_not, take_while},
+    bytes::complete::take_while,
     character::complete::char,
     character::complete::multispace0,
     combinator::{map, map_res, opt},
@@ -38,16 +38,18 @@ where
     delimited(multispace0, inner, multispace0)
 }
 
-pub fn get_colon_field_value_lines(s: &str) -> IResult<&str, Vec<(&str, &str)>> {
-    let field_name = is_not::<_, _, nom::error::Error<_>>(": ");
-    let field_separator = ws(char(':'));
-    let field_value = is_not("\n\r");
-    let field = tuple((
+pub fn get_colon_field_value_lines(s: &str) -> IResult<&str, Vec<(&str, &str, &str)>> {
+    let field_name = take_while(|c| c != ':' && c != '\n');
+    let field_separator = char(':');
+    let field_value = take_while(|c| c != '\n');
+    // we keep whitespace information that can contain newlines
+    let field_line = tuple((
         terminated(field_name, field_separator),
-        trailing_ws(field_value),
+        field_value,
+        multispace0,
     ));
 
-    many0(field)(s)
+    many0(field_line)(s)
 }
 
 pub fn pipe_vec<'a, O, E, M, E2>(mapper: M) -> impl FnMut(&'a str) -> IResult<&'a str, Vec<O>, E>
