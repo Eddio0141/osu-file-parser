@@ -450,10 +450,8 @@ fn move_command() {
         properties: CommandProperties::Move {
             easing: Easing::from_repr(0).unwrap(),
             end_time: Some(0),
-            positions_xy: ContinuingFields {
-                start: (dec!(-5), dec!(10)),
-                continuing: vec![(dec!(55), None)],
-            },
+            positions_xy: ContinuingFields::new((dec!(-5), dec!(10)), vec![(dec!(55), None)])
+                .unwrap(),
         },
     };
 
