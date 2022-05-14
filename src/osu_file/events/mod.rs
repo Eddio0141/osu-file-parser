@@ -171,10 +171,12 @@ impl Display for Event {
                 };
 
                 match event_params {
+                    // background by default doesn't print the shorthand for some reason
                     EventParams::Background(background) => format!(
-                        "0,{start_time},{}{}",
+                        "0,{start_time},{},{},{}",
                         background.filename.to_string_lossy(),
-                        position_str(&background.position),
+                        background.position.x,
+                        background.position.y,
                     ),
                     EventParams::Video(video) => format!(
                         "1,{start_time},{}{}",
