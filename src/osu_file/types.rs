@@ -35,20 +35,19 @@ where
 }
 
 impl<E> Error<E> {
-    /// Shows a pretty error message with the affected line and the error.
+    /// Returns a pretty error message with the affected line and the error.
     /// - Expensive than showing line number and error with the `Display` trait, as this iterates over the lines of the file input string.
-    pub fn display_error_with_line(
-        &self,
-        f: &mut std::fmt::Formatter,
-        file_input: &str,
-    ) -> std::fmt::Result
+    pub fn display_error_with_line(&self, file_input: &str) -> String
     where
         E: std::fmt::Display,
     {
         let line = file_input.lines().nth(self.line_number).unwrap_or_default();
 
-        writeln!(f, "Line {}: {}", self.line_number + 1, line)?;
-        writeln!(f, "{}", self.error)
+        format!("Line {}: {}, {}", self.line_number + 1, line, self.error)
+    }
+
+    pub fn from_err_with_line(error: E, line_number: usize) -> Self {
+        Self { line_number, error }
     }
 
     /// Combines other `Error` with a higher level error and line number of where it was being processed.
@@ -61,6 +60,22 @@ impl<E> Error<E> {
             error: E2::from(self.error),
         }
     }
+
+    pub fn combine_result<T, E2>(
+        inner: Result<T, Error<E>>,
+        line_number: usize,
+    ) -> Result<T, Error<E2>>
+    where
+        E2: From<E>,
+    {
+        match inner {
+            Ok(ok) => Ok(ok),
+            Err(err) => Err(Error {
+                line_number: line_number + err.line_number,
+                error: err.error.into(),
+            }),
+        }
+    }
 }
 
 impl<E> Display for Error<E>
@@ -68,8 +83,7 @@ where
     E: std::fmt::Display,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "Line {}", self.line_number + 1)?;
-        writeln!(f, "{}", self.error)
+        write!(f, "Line {}, {}", self.line_number + 1, self.error)
     }
 }
 
