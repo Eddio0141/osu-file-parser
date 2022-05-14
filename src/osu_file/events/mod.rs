@@ -182,6 +182,10 @@ impl Display for Event {
                         position_str(&video.position),
                     ),
                     EventParams::Break(_break) => format!("2,{start_time},{}", _break.end_time),
+                    EventParams::ColourTransformation(transformation) => format!(
+                        "3,{start_time},{},{},{}",
+                        transformation.red, transformation.green, transformation.blue
+                    ),
                 }
             }
             Event::Storyboard(object) => {
@@ -274,10 +278,18 @@ pub struct Break {
 }
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
+pub struct ColourTransformation {
+    pub red: u8,
+    pub green: u8,
+    pub blue: u8,
+}
+
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub enum EventParams {
     Background(Background),
     Video(Video),
     Break(Break),
+    ColourTransformation(ColourTransformation),
 }
 
 impl<'a, T> TryFrom<(&str, &mut T)> for EventParams
@@ -288,8 +300,6 @@ where
 
     fn try_from((event_type, event_params): (&str, &mut T)) -> Result<Self, Self::Error> {
         let event_type = event_type.trim();
-
-        dbg!(event_type, event_params.clone().collect::<String>());
 
         match event_type {
             "0" | "1" | "Video" => {
@@ -369,6 +379,47 @@ where
                         })?;
 
                 Ok(EventParams::Break(Break { end_time }))
+            }
+            "3" => {
+                let red = event_params
+                    .next()
+                    .ok_or(EventParamsParseError::MissingField("red"))?;
+                let red = red
+                    .parse()
+                    .map_err(|err| EventParamsParseError::ParseFieldError {
+                        source: Box::new(err),
+                        value: red.to_string(),
+                        field_name: "red",
+                    })?;
+
+                let green = event_params
+                    .next()
+                    .ok_or(EventParamsParseError::MissingField("green"))?;
+                let green =
+                    green
+                        .parse()
+                        .map_err(|err| EventParamsParseError::ParseFieldError {
+                            source: Box::new(err),
+                            value: green.to_string(),
+                            field_name: "green",
+                        })?;
+
+                let blue = event_params
+                    .next()
+                    .ok_or(EventParamsParseError::MissingField("blue"))?;
+                let blue = blue
+                    .parse()
+                    .map_err(|err| EventParamsParseError::ParseFieldError {
+                        source: Box::new(err),
+                        value: blue.to_string(),
+                        field_name: "blue",
+                    })?;
+
+                Ok(EventParams::ColourTransformation(ColourTransformation {
+                    red,
+                    green,
+                    blue,
+                }))
             }
             _ => Err(EventParamsParseError::UnknownParamType(
                 event_type.to_string(),
