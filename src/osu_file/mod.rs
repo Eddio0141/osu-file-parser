@@ -216,28 +216,33 @@ impl FromStr for OsuFile {
             }
 
             let section_name_line = line_number;
+            let section_start_line = line_number + 1;
             line_number += ws2.lines().count();
 
             match section_name {
                 "General" => {
-                    general = Some(Error::combine_result(section.parse(), line_number + 1)?)
+                    general = Some(Error::combine_result(section.parse(), section_start_line)?)
                 }
-                "Editor" => editor = Some(parse_error_to_error(section.parse(), line_number + 1)?),
+                "Editor" => {
+                    editor = Some(parse_error_to_error(section.parse(), section_start_line)?)
+                }
                 "Metadata" => {
-                    metadata = Some(parse_error_to_error(section.parse(), line_number + 1)?)
+                    metadata = Some(parse_error_to_error(section.parse(), section_start_line)?)
                 }
                 "Difficulty" => {
-                    difficulty = Some(parse_error_to_error(section.parse(), line_number + 1)?)
+                    difficulty = Some(parse_error_to_error(section.parse(), section_start_line)?)
                 }
-                "Events" => events = Some(Error::combine_result(section.parse(), line_number + 1)?),
+                "Events" => {
+                    events = Some(Error::combine_result(section.parse(), section_start_line)?)
+                }
                 "TimingPoints" => {
-                    timing_points = Some(parse_error_to_error(section.parse(), line_number + 1)?)
+                    timing_points = Some(parse_error_to_error(section.parse(), section_start_line)?)
                 }
                 "Colours" => {
-                    colours = Some(parse_error_to_error(section.parse(), line_number + 1)?)
+                    colours = Some(parse_error_to_error(section.parse(), section_start_line)?)
                 }
                 "HitObjects" => {
-                    hitobjects = Some(parse_error_to_error(section.parse(), line_number + 1)?)
+                    hitobjects = Some(parse_error_to_error(section.parse(), section_start_line)?)
                 }
                 _ => {
                     return Err(Error {
