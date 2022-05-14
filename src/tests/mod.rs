@@ -337,7 +337,7 @@ SliderTickRate:1
             letterbox_in_breaks: Some(false),
             special_style: Some(false),
             widescreen_storyboard: Some(false),
-            ..General::empty()
+            ..General::new()
         }),
         editor: Some(Editor {
             bookmarks: Some(vec![
