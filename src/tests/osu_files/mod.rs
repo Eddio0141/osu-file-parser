@@ -35,6 +35,22 @@ fn v9_file() {
 }
 
 #[test]
+fn v12_file() {
+    let v12 = include_str!("./files/v12.osu").replace("\r\n", "\n");
+    let osu_file = v12.parse::<OsuFile>().unwrap();
+
+    assert_eq!(v12, osu_file.to_string());
+}
+
+#[test]
+fn v13_file() {
+    let v13 = include_str!("./files/v13.osu").replace("\r\n", "\n");
+    let osu_file = v13.parse::<OsuFile>().unwrap();
+
+    assert_eq!(v13, osu_file.to_string());
+}
+
+#[test]
 fn v14_file() {
     let v14 = include_str!("./files/v14.osu").replace("\r\n", "\n");
     let osu_file = v14.parse::<OsuFile>().unwrap();
