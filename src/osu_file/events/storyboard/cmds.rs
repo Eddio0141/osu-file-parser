@@ -242,8 +242,8 @@ pub enum CommandProperties {
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq, Default)]
 pub struct ContinuingFields<T> {
-    pub start: (T, T),
-    pub continuing: Vec<(T, Option<T>)>,
+    start: (T, T),
+    continuing: Vec<(T, Option<T>)>,
 }
 
 impl<T> ContinuingFields<T> {
@@ -494,6 +494,7 @@ impl FromStr for Command {
                 };
 
                 let err = match context {
+                    // TODO context to enum
                     Some(context) => match context {
                         MISSING_START_TIME => CommandParseError::MissingField(Field::StartTime),
                         MISSING_END_TIME => CommandParseError::MissingField(Field::EndTime),
