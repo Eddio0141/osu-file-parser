@@ -158,7 +158,7 @@ impl FromStr for OsuFile {
                 };
 
                 return Err(Error {
-                    line_number: 0,
+                    line_index: 0,
                     error: err,
                 });
             }
@@ -166,7 +166,7 @@ impl FromStr for OsuFile {
 
         if version > LATEST_VERSION || version < MIN_VERSION {
             return Err(Error {
-                line_number: 0,
+                line_index: 0,
                 error: ParseError::InvalidFileVersion,
             });
         }
@@ -200,7 +200,7 @@ impl FromStr for OsuFile {
             match result {
                 Ok(ok) => Ok(ok),
                 Err(err) => Err(Error {
-                    line_number,
+                    line_index: line_number,
                     error: err.into(),
                 }),
             }
@@ -211,7 +211,7 @@ impl FromStr for OsuFile {
 
             if section_parsed.contains(&section_name) {
                 return Err(Error {
-                    line_number,
+                    line_index: line_number,
                     error: ParseError::DuplicateSections,
                 });
             }
@@ -220,29 +220,36 @@ impl FromStr for OsuFile {
             line_number += ws2.lines().count();
 
             match section_name {
-                "General" => general = Some(parse_error_to_error(section.parse(), line_number)?),
-                "Editor" => editor = Some(parse_error_to_error(section.parse(), line_number)?),
-                "Metadata" => metadata = Some(parse_error_to_error(section.parse(), line_number)?),
+                "General" => {
+                    general = Some(parse_error_to_error(section.parse(), line_number + 1)?)
+                }
+                "Editor" => editor = Some(parse_error_to_error(section.parse(), line_number + 1)?),
+                "Metadata" => {
+                    metadata = Some(parse_error_to_error(section.parse(), line_number + 1)?)
+                }
                 "Difficulty" => {
-                    difficulty = Some(parse_error_to_error(section.parse(), line_number)?)
+                    difficulty = Some(parse_error_to_error(section.parse(), line_number + 1)?)
                 }
-                "Events" => events = Some(Error::combine_result(section.parse(), line_number)?),
+                "Events" => events = Some(Error::combine_result(section.parse(), line_number + 1)?),
                 "TimingPoints" => {
-                    timing_points = Some(parse_error_to_error(section.parse(), line_number)?)
+                    timing_points = Some(parse_error_to_error(section.parse(), line_number + 1)?)
                 }
-                "Colours" => colours = Some(parse_error_to_error(section.parse(), line_number)?),
+                "Colours" => {
+                    colours = Some(parse_error_to_error(section.parse(), line_number + 1)?)
+                }
                 "HitObjects" => {
-                    hitobjects = Some(parse_error_to_error(section.parse(), line_number)?)
+                    hitobjects = Some(parse_error_to_error(section.parse(), line_number + 1)?)
                 }
                 _ => {
                     return Err(Error {
-                        line_number: section_name_line,
+                        line_index: section_name_line,
                         error: ParseError::UnknownSection,
                     })
                 }
             }
 
             section_parsed.push(section_name);
+            line_number += section.lines().count();
         }
 
         Ok(OsuFile {
