@@ -2,24 +2,42 @@ use crate::osu_file::OsuFile;
 #[cfg(test)]
 use pretty_assertions::assert_eq;
 
-// TODO idea: instead of error containing string for affected section, store whole line for user to see, maybe with line number
-// extension of error type to use the line number and input string to show the user what went wrong
 #[test]
-fn all_files_parse_back() {
-    // let v3 = include_str!("./files/v3.osu");
-    // let v4 = include_str!("./files/v4.osu");
-    // let v5 = include_str!("./files/v5.osu");
-    let v9 = include_str!("./files/v9.osu");
-    let v14 = include_str!("./files/v14.osu");
+fn v3_file() {
+    let v3 = include_str!("./files/v3.osu").replace("\r\n", "\n");
+    let osu_file = v3.parse::<OsuFile>().unwrap();
 
-    let files = vec![v9, v14];
+    assert_eq!(v3, osu_file.to_string());
+}
 
-    for file in files {
-        let file = file.replace("\r\n", "\n");
+#[test]
+fn v4_file() {
+    let v4 = include_str!("./files/v4.osu").replace("\r\n", "\n");
+    let osu_file = v4.parse::<OsuFile>().unwrap();
 
-        let osu_file = file.parse::<OsuFile>().unwrap();
-        let osu_file_str = osu_file.to_string();
+    assert_eq!(v4, osu_file.to_string());
+}
 
-        assert_eq!(file, osu_file_str);
-    }
+#[test]
+fn v5_file() {
+    let v5 = include_str!("./files/v5.osu").replace("\r\n", "\n");
+    let osu_file = v5.parse::<OsuFile>().unwrap();
+
+    assert_eq!(v5, osu_file.to_string());
+}
+
+#[test]
+fn v9_file() {
+    let v9 = include_str!("./files/v9.osu").replace("\r\n", "\n");
+    let osu_file = v9.parse::<OsuFile>().unwrap();
+
+    assert_eq!(v9, osu_file.to_string());
+}
+
+#[test]
+fn v14_file() {
+    let v14 = include_str!("./files/v14.osu").replace("\r\n", "\n");
+    let osu_file = v14.parse::<OsuFile>().unwrap();
+
+    assert_eq!(v14, osu_file.to_string());
 }
