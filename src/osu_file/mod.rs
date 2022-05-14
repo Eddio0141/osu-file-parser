@@ -21,16 +21,15 @@ use thiserror::Error;
 
 use crate::parsers::*;
 
-use self::colours::{error::ColoursParseError, Colours};
-use self::difficulty::{error::DifficultyParseError, Difficulty};
-use self::editor::{error::EditorParseError, Editor};
+use self::colours::Colours;
+use self::difficulty::Difficulty;
+use self::editor::Editor;
 use self::events::Events;
-use self::general::error::GeneralParseError;
 use self::general::General;
-use self::hitobject::{HitObjects, HitObjectsParseError};
-use self::metadata::{error::MetadataParseError, Metadata};
-
+use self::hitobject::HitObjects;
+use self::metadata::Metadata;
 use self::timingpoint::TimingPoints;
+
 use self::types::*;
 
 /// An .osu file represented as a struct.
@@ -313,49 +312,49 @@ pub enum ParseError {
     #[error(transparent)]
     GeneralParseError {
         #[from]
-        source: GeneralParseError,
+        source: general::ParseError,
     },
     /// Error parsing the editor section.
     #[error(transparent)]
     EditorParseError {
         #[from]
-        source: EditorParseError,
+        source: editor::ParseError,
     },
     /// Error parsing the metadata section.
     #[error(transparent)]
     MetadataParseError {
         #[from]
-        source: MetadataParseError,
+        source: metadata::MetadataParseError,
     },
     /// Error parsing the difficulty section.
     #[error(transparent)]
     DifficultyParseError {
         #[from]
-        source: DifficultyParseError,
+        source: difficulty::DifficultyParseError,
     },
     /// Error parsing the events section.
     #[error(transparent)]
     EventsParseError {
         #[from]
-        source: events::error::ParseError,
+        source: events::ParseError,
     },
     /// Error parsing the timingpoints section.
     #[error(transparent)]
     TimingPointsParseError {
         #[from]
-        source: timingpoint::error::ParseError,
+        source: timingpoint::ParseError,
     },
     /// Error parsing the colours section.
     #[error(transparent)]
     ColoursParseError {
         #[from]
-        source: ColoursParseError,
+        source: colours::ColoursParseError,
     },
     /// Error parsing the hitobjects section.
     #[error(transparent)]
     HitObjectsParseError {
         #[from]
-        source: HitObjectsParseError,
+        source: hitobject::HitObjectsParseError,
     },
 }
 

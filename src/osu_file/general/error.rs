@@ -1,13 +1,12 @@
 use std::num::ParseIntError;
 
-use strum::ParseError;
 use thiserror::Error;
 
 use crate::helper::ParseZeroOneBoolError;
 
 #[derive(Debug, Error)]
 /// Error used when there was a problem parsing the `General` section.
-pub enum GeneralParseError {
+pub enum ParseError {
     /// A Field in `General` failed to parse.
     #[error(transparent)]
     FieldParseError {
@@ -46,7 +45,7 @@ pub enum FieldError {
     #[error("The `SampleSet` field failed to parse from {value}")]
     SampleSet {
         #[source]
-        source: ParseError,
+        source: strum::ParseError,
         value: String,
     },
     #[error("The `StackLeniency` field failed to parse from {value}")]
@@ -88,7 +87,7 @@ pub enum FieldError {
     #[error("The `OverlayPosition` field failed to parse from {value}")]
     OverlayPosition {
         #[source]
-        source: ParseError,
+        source: strum::ParseError,
         value: String,
     },
     #[error("The `EpilepsyWarning` field failed to parse from {value}")]

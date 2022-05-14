@@ -12,9 +12,9 @@ use strum_macros::{Display, EnumString, FromRepr};
 
 use crate::{helper::*, parsers::get_colon_field_value_lines};
 
-use self::error::*;
-
 use crate::osu_file::Integer;
+
+pub use self::error::*;
 
 /// A struct representing the general section of the .osu file.
 #[derive(PartialEq, Debug, Clone, Eq, Hash)]
@@ -129,7 +129,7 @@ impl Default for General {
 }
 
 impl FromStr for General {
-    type Err = GeneralParseError;
+    type Err = ParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut general = General::empty();
@@ -137,7 +137,7 @@ impl FromStr for General {
         let (s, fields) = get_colon_field_value_lines(s).unwrap();
 
         if !s.trim().is_empty() {
-            return Err(GeneralParseError::InvalidColonSet(
+            return Err(ParseError::InvalidColonSet(
                 s.lines().next().unwrap_or_default().to_string(),
             ));
         }
@@ -272,7 +272,7 @@ impl FromStr for General {
                             }
                         })?)
                 }
-                _ => return Err(GeneralParseError::InvalidKey(name.to_string())),
+                _ => return Err(ParseError::InvalidKey(name.to_string())),
             }
         }
 

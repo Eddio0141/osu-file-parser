@@ -13,9 +13,9 @@ use strum_macros::FromRepr;
 
 use crate::helper::{nth_bit_state_i64, parse_zero_one_bool};
 
-use self::error::*;
-
 use super::Integer;
+
+pub use self::error::*;
 
 #[derive(Clone, Debug, Default, Hash, PartialEq, Eq)]
 pub struct TimingPoints(pub Vec<TimingPoint>);

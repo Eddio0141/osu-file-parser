@@ -5,7 +5,7 @@ use std::{fmt::Display, str::FromStr};
 
 use nom::{bytes::complete::take_till, error::VerboseErrorKind, Finish};
 
-use self::error::*;
+pub use self::error::*;
 
 #[derive(Clone, Debug, Default, Hash, PartialEq, Eq)]
 pub struct Colours(pub Vec<Colour>);

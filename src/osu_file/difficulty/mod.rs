@@ -6,7 +6,7 @@ use rust_decimal::Decimal;
 
 use super::SECTION_DELIMITER;
 
-use self::error::*;
+pub use self::error::*;
 
 #[derive(Default, Clone, Copy, Debug, Hash, PartialEq, Eq)]
 /// Difficulty settings.

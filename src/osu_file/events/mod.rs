@@ -17,7 +17,7 @@ use self::storyboard::{
 
 use super::{types::Error, Integer, Position};
 
-use self::error::*;
+pub use self::error::*;
 
 #[derive(Default, Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Events(pub Vec<Event>);

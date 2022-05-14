@@ -6,7 +6,7 @@ use rust_decimal::Decimal;
 
 use super::{Integer, SECTION_DELIMITER};
 
-use self::error::*;
+pub use self::error::*;
 
 /// A struct representing the editor section of the .osu file.
 #[derive(Default, Debug, PartialEq, Clone, Hash, Eq)]
@@ -24,7 +24,7 @@ pub struct Editor {
 }
 
 impl FromStr for Editor {
-    type Err = EditorParseError;
+    type Err = ParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut editor = Editor::default();
@@ -55,7 +55,7 @@ impl FromStr for Editor {
 
                             match err {
                                 Some(err) => {
-                                    return Err(EditorParseError::SectionParseError {
+                                    return Err(ParseError::SectionParseError {
                                         source: Box::new(err),
                                         name: "Bookmarks",
                                     })
@@ -65,7 +65,7 @@ impl FromStr for Editor {
                         }
                         "DistanceSpacing" => {
                             editor.distance_spacing = Some(value.parse().map_err(|err| {
-                                EditorParseError::SectionParseError {
+                                ParseError::SectionParseError {
                                     source: Box::new(err),
                                     name: "DistanceSpacing",
                                 }
@@ -73,7 +73,7 @@ impl FromStr for Editor {
                         }
                         "BeatDivisor" => {
                             editor.beat_divisor = Some(value.parse().map_err(|err| {
-                                EditorParseError::SectionParseError {
+                                ParseError::SectionParseError {
                                     source: Box::new(err),
                                     name: "BeatDivisor",
                                 }
@@ -81,7 +81,7 @@ impl FromStr for Editor {
                         }
                         "GridSize" => {
                             editor.grid_size = Some(value.parse().map_err(|err| {
-                                EditorParseError::SectionParseError {
+                                ParseError::SectionParseError {
                                     source: Box::new(err),
                                     name: "GridSize",
                                 }
@@ -89,16 +89,16 @@ impl FromStr for Editor {
                         }
                         "TimelineZoom" => {
                             editor.timeline_zoom = Some(value.parse().map_err(|err| {
-                                EditorParseError::SectionParseError {
+                                ParseError::SectionParseError {
                                     source: Box::new(err),
                                     name: "TimelineZoom",
                                 }
                             })?)
                         }
-                        _ => return Err(EditorParseError::InvalidKey(key.to_string())),
+                        _ => return Err(ParseError::InvalidKey(key.to_string())),
                     }
                 }
-                None => return Err(EditorParseError::MissingValue(line.to_string())),
+                None => return Err(ParseError::MissingValue(line.to_string())),
             }
         }
 

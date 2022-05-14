@@ -5,7 +5,7 @@ use std::str::FromStr;
 
 use super::{Integer, SECTION_DELIMITER};
 
-use self::error::*;
+pub use self::error::*;
 
 /// A struct representing the metadata section of the .osu file.
 #[derive(Default, Clone, Hash, PartialEq, Eq, Debug)]
