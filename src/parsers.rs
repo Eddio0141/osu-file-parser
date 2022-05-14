@@ -24,7 +24,7 @@ pub fn trailing_ws<'a, F: 'a, O, E: ParseError<&'a str>>(
     inner: F,
 ) -> impl FnMut(&'a str) -> IResult<&'a str, O, E>
 where
-    F: Fn(&'a str) -> IResult<&'a str, O, E>,
+    F: FnMut(&'a str) -> IResult<&'a str, O, E>,
 {
     terminated(inner, multispace0)
 }
@@ -44,7 +44,7 @@ pub fn get_colon_field_value_lines(s: &str) -> IResult<&str, Vec<(&str, &str, &s
     let field_value = take_while(|c| c != '\n');
     // we keep whitespace information that can contain newlines
     let field_line = tuple((
-        terminated(field_name, field_separator),
+        trailing_ws(terminated(field_name, field_separator)),
         field_value,
         multispace0,
     ));
