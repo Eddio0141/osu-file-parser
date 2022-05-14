@@ -16,6 +16,8 @@ use crate::osu_file::Integer;
 
 pub use self::error::*;
 
+use super::types::Error;
+
 /// A struct representing the general section of the .osu file.
 #[derive(PartialEq, Debug, Clone, Eq, Hash)]
 #[non_exhaustive]
@@ -77,7 +79,7 @@ pub struct General {
 
 impl General {
     /// Creates an empty `General` instance, with all fields being `None`.
-    pub fn empty() -> Self {
+    pub fn new() -> Self {
         Self {
             audio_filename: None,
             audio_lead_in: None,
@@ -129,151 +131,102 @@ impl Default for General {
 }
 
 impl FromStr for General {
-    type Err = ParseError;
+    type Err = Error<ParseError>;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut general = General::empty();
+        let mut general = General::new();
 
         let (s, fields) = get_colon_field_value_lines(s).unwrap();
 
         if !s.trim().is_empty() {
-            return Err(ParseError::InvalidColonSet(
-                s.lines().next().unwrap_or_default().to_string(),
+            // line count from fields
+            let line_count = { fields.iter().map(|(_, _, ws)| ws.lines().count()).sum() };
+
+            return Err(Error::from_err_with_line(
+                ParseError::InvalidColonSet,
+                line_count,
             ));
         }
 
-        for (name, value) in fields {
+        let mut line_count = 0;
+
+        for (name, value, ws) in fields {
+            let from_combine_int = move |err| Error::from_combine(err, line_count);
+            let from_combine_decimal = move |err| Error::from_combine(err, line_count);
+            let from_combine_zero_one_bool = move |err| Error::from_combine(err, line_count);
+            let from_combine_countdown_speed = move |err| Error::from_combine(err, line_count);
+            let from_combine_strum_parse_error = move |err| Error::from_combine(err, line_count);
+            let from_combine_game_mode = move |err| Error::from_combine(err, line_count);
+
             match name {
                 "AudioFilename" => general.audio_filename = Some(value.to_owned()),
                 "AudioLeadIn" => {
-                    general.audio_lead_in =
-                        Some(value.parse().map_err(|err| FieldError::AudioLeadIn {
-                            source: err,
-                            value: value.to_string(),
-                        })?)
+                    general.audio_lead_in = Some(value.parse().map_err(from_combine_int)?)
                 }
                 "AudioHash" => general.audio_hash = Some(value.to_owned()),
                 "PreviewTime" => {
-                    general.preview_time =
-                        Some(value.parse().map_err(|err| FieldError::PreviewTime {
-                            source: err,
-                            value: value.to_string(),
-                        })?)
+                    general.preview_time = Some(value.parse().map_err(from_combine_int)?)
                 }
                 "Countdown" => {
-                    general.countdown =
-                        Some(value.parse().map_err(|err| FieldError::Countdown {
-                            source: err,
-                            value: value.to_string(),
-                        })?)
+                    general.countdown = Some(value.parse().map_err(from_combine_countdown_speed)?)
                 }
                 "SampleSet" => {
                     general.sample_set =
-                        Some(value.parse().map_err(|err| FieldError::SampleSet {
-                            source: err,
-                            value: value.to_string(),
-                        })?)
+                        Some(value.parse().map_err(from_combine_strum_parse_error)?)
                 }
                 "StackLeniency" => {
-                    general.stack_leniency =
-                        Some(value.parse().map_err(|err| FieldError::StackLeniency {
-                            source: err,
-                            value: value.to_string(),
-                        })?)
+                    general.stack_leniency = Some(value.parse().map_err(from_combine_decimal)?)
                 }
-                "Mode" => {
-                    general.mode = Some(value.parse().map_err(|err| FieldError::Mode {
-                        source: err,
-                        value: value.to_string(),
-                    })?)
-                }
+                "Mode" => general.mode = Some(value.parse().map_err(from_combine_game_mode)?),
                 "LetterboxInBreaks" => {
                     general.letterbox_in_breaks =
-                        Some(parse_zero_one_bool(value).map_err(|err| {
-                            FieldError::LetterboxInBreaks {
-                                source: err,
-                                value: value.to_string(),
-                            }
-                        })?)
+                        Some(parse_zero_one_bool(value).map_err(from_combine_zero_one_bool)?)
                 }
                 "StoryFireInFront" => {
                     general.story_fire_in_front =
-                        Some(parse_zero_one_bool(value).map_err(|err| {
-                            FieldError::StoryFireInFront {
-                                source: err,
-                                value: value.to_string(),
-                            }
-                        })?)
+                        Some(parse_zero_one_bool(value).map_err(from_combine_zero_one_bool)?)
                 }
                 "UseSkinSprites" => {
-                    general.use_skin_sprites = Some(parse_zero_one_bool(value).map_err(|err| {
-                        FieldError::UseSkinSprites {
-                            source: err,
-                            value: value.to_string(),
-                        }
-                    })?)
+                    general.use_skin_sprites =
+                        Some(parse_zero_one_bool(value).map_err(from_combine_zero_one_bool)?)
                 }
                 "AlwaysShowPlayfield" => {
                     general.always_show_playfield =
-                        Some(parse_zero_one_bool(value).map_err(|err| {
-                            FieldError::AlwaysShowPlayfield {
-                                source: err,
-                                value: value.to_string(),
-                            }
-                        })?)
+                        Some(parse_zero_one_bool(value).map_err(from_combine_zero_one_bool)?)
                 }
                 "OverlayPosition" => {
                     general.overlay_position =
-                        Some(value.parse().map_err(|err| FieldError::OverlayPosition {
-                            source: err,
-                            value: value.to_string(),
-                        })?)
+                        Some(value.parse().map_err(from_combine_strum_parse_error)?)
                 }
                 "SkinPreference" => general.skin_preference = Some(value.to_owned()),
                 "EpilepsyWarning" => {
-                    general.epilepsy_warning = Some(parse_zero_one_bool(value).map_err(|err| {
-                        FieldError::EpilepsyWarning {
-                            source: err,
-                            value: value.to_string(),
-                        }
-                    })?)
+                    general.epilepsy_warning =
+                        Some(parse_zero_one_bool(value).map_err(from_combine_zero_one_bool)?)
                 }
                 "CountdownOffset" => {
-                    general.countdown_offset =
-                        Some(value.parse().map_err(|err| FieldError::CountdownOffset {
-                            source: err,
-                            value: value.to_string(),
-                        })?)
+                    general.countdown_offset = Some(value.parse().map_err(from_combine_int)?)
                 }
                 "SpecialStyle" => {
-                    general.special_style = Some(parse_zero_one_bool(value).map_err(|err| {
-                        FieldError::SpecialStyle {
-                            source: err,
-                            value: value.to_string(),
-                        }
-                    })?)
+                    general.special_style =
+                        Some(parse_zero_one_bool(value).map_err(from_combine_zero_one_bool)?)
                 }
                 "WidescreenStoryboard" => {
                     general.widescreen_storyboard =
-                        Some(parse_zero_one_bool(value).map_err(|err| {
-                            FieldError::WidescreenStoryboard {
-                                source: err,
-                                value: value.to_string(),
-                            }
-                        })?)
+                        Some(parse_zero_one_bool(value).map_err(from_combine_zero_one_bool)?)
                 }
                 "SamplesMatchPlaybackRate" => {
-                    println!("{value}");
                     general.samples_match_playback_rate =
-                        Some(parse_zero_one_bool(value).map_err(|err| {
-                            FieldError::SamplesMatchPlaybackRate {
-                                source: err,
-                                value: value.to_string(),
-                            }
-                        })?)
+                        Some(parse_zero_one_bool(value).map_err(from_combine_zero_one_bool)?)
                 }
-                _ => return Err(ParseError::InvalidKey(name.to_string())),
+                _ => {
+                    return Err(Error::from_err_with_line(
+                        ParseError::InvalidKey,
+                        line_count,
+                    ))
+                }
             }
+
+            line_count += ws.lines().count();
         }
 
         Ok(general)
