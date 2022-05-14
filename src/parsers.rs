@@ -7,7 +7,7 @@ use nom::{
     combinator::{map, map_res, opt},
     error::{FromExternalError, ParseError},
     multi::{many0, many_till},
-    sequence::{delimited, preceded, terminated, tuple},
+    sequence::{preceded, terminated, tuple},
     IResult,
 };
 
@@ -29,14 +29,14 @@ where
     terminated(inner, multispace0)
 }
 
-pub fn ws<'a, F: 'a, O, E: ParseError<&'a str>>(
-    inner: F,
-) -> impl FnMut(&'a str) -> IResult<&'a str, O, E>
-where
-    F: FnMut(&'a str) -> IResult<&'a str, O, E>,
-{
-    delimited(multispace0, inner, multispace0)
-}
+// pub fn ws<'a, F: 'a, O, E: ParseError<&'a str>>(
+//     inner: F,
+// ) -> impl FnMut(&'a str) -> IResult<&'a str, O, E>
+// where
+//     F: FnMut(&'a str) -> IResult<&'a str, O, E>,
+// {
+//     delimited(multispace0, inner, multispace0)
+// }
 
 pub fn get_colon_field_value_lines(s: &str) -> IResult<&str, Vec<(&str, &str, &str)>> {
     let field_name = take_while(|c| c != ':' && c != '\n');
