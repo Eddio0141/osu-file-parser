@@ -235,8 +235,8 @@ fn timing_points_parse() {
 
 #[test]
 fn events_parse() {
-    let i_str = "0,0,\"bg2.jpg\",0,0
-0,0,bg2.jpg,0,0
+    let i_str = "0,0,\"bg2.jpg\"
+0,0,bg2.jpg,0,1
 //Break Periods
 2,100,163";
     let i: Events = i_str.parse().unwrap();
@@ -253,7 +253,7 @@ fn events_parse() {
             start_time: 0,
             event_params: EventParams::Background(Background::new(
                 Path::new("bg2.jpg"),
-                Position { x: 0, y: 0 },
+                Position { x: 0, y: 1 },
             )),
         },
         Event::Comment("Break Periods".to_string()),
@@ -484,7 +484,7 @@ SliderTickRate:1
 
 [Events]
 //Background and Video events
-0,0,\"bg.jpg\",0,0
+0,0,\"bg.jpg\"
 
 [TimingPoints]
 350,333.333333333333,4,2,1,60,1,0
