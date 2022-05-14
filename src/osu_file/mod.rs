@@ -24,7 +24,7 @@ use crate::parsers::*;
 use self::colours::{error::ColoursParseError, Colours};
 use self::difficulty::{error::DifficultyParseError, Difficulty};
 use self::editor::{error::EditorParseError, Editor};
-use self::events::{error::EventsParseError, Events};
+use self::events::Events;
 use self::general::error::GeneralParseError;
 use self::general::General;
 use self::hitobject::{HitObjects, HitObjectsParseError};
@@ -138,7 +138,6 @@ impl FromStr for OsuFile {
         let section_until = take_till(|c| c == '[');
         let section = tuple((multispace0, section_name, multispace0, section_until));
 
-        // TODO fix this mess
         let (s, (_, version)) = match tuple((version_text, version_number))(s) {
             Ok(ok) => ok,
             Err(err) => {
@@ -146,6 +145,7 @@ impl FromStr for OsuFile {
                 let err = if s.starts_with('\n') || s.starts_with("\r\n") {
                     ParseError::FileVersionInWrongLine
                 } else if let nom::Err::Error(err) = err {
+                    // TODO fix this mess
                     match err.code {
                         nom::error::ErrorKind::Tag => ParseError::FileVersionDefinedWrong,
                         nom::error::ErrorKind::MapRes => ParseError::InvalidFileVersion,
@@ -188,6 +188,7 @@ impl FromStr for OsuFile {
 
         let mut line_number = 1;
 
+        // TODO eventually remove this
         fn parse_error_to_error<P>(
             result: Result<P, <P as FromStr>::Err>,
             line_number: usize,
@@ -225,7 +226,7 @@ impl FromStr for OsuFile {
                 "Difficulty" => {
                     difficulty = Some(parse_error_to_error(section.parse(), line_number)?)
                 }
-                "Events" => events = Some(parse_error_to_error(section.parse(), line_number)?),
+                "Events" => events = Some(Error::combine_result(section.parse(), line_number)?),
                 "TimingPoints" => {
                     timing_points = Some(parse_error_to_error(section.parse(), line_number)?)
                 }
@@ -329,7 +330,7 @@ pub enum ParseError {
     #[error(transparent)]
     EventsParseError {
         #[from]
-        source: EventsParseError,
+        source: events::error::ParseError,
     },
     /// Error parsing the timingpoints section.
     #[error(transparent)]
