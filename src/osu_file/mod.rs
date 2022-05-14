@@ -220,7 +220,7 @@ impl FromStr for OsuFile {
 
             match section_name {
                 "General" => {
-                    general = Some(parse_error_to_error(section.parse(), line_number + 1)?)
+                    general = Some(Error::combine_result(section.parse(), line_number + 1)?)
                 }
                 "Editor" => editor = Some(parse_error_to_error(section.parse(), line_number + 1)?),
                 "Metadata" => {
