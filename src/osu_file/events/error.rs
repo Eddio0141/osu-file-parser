@@ -6,7 +6,7 @@ use super::storyboard::error::*;
 
 /// Errors used when there was a problem parsing an [`Event`] from a `str`.
 #[derive(Debug, Error)]
-pub enum EventsParseError {
+pub enum ParseError {
     /// A field is missing from the [`Event`].
     #[error("The field {0} is missing")]
     MissingField(&'static str),
