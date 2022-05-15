@@ -3,6 +3,11 @@ use std::fmt::{Debug, Display};
 /// Definition of the `Integer` type.
 pub type Integer = i32;
 
+pub const LATEST_VERSION: Integer = 14;
+pub const MIN_VERSION: Integer = 3;
+
+pub const SECTION_DELIMITER: &str = ":";
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 /// The position of something in `osu!pixels` with the `x` `y` form.
 pub struct Position {
@@ -102,3 +107,5 @@ impl<E> From<E> for Error<E> {
         }
     }
 }
+
+pub trait V14 {}
