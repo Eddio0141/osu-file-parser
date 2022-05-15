@@ -30,7 +30,7 @@ use self::hitobject::HitObjects;
 use self::metadata::Metadata;
 use self::timingpoint::TimingPoints;
 
-use self::types::*;
+pub use self::types::*;
 
 /// An .osu file represented as a struct.
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
@@ -362,8 +362,3 @@ pub enum ParseError {
         source: hitobject::HitObjectsParseError,
     },
 }
-
-const LATEST_VERSION: Integer = 14;
-const MIN_VERSION: Integer = 3;
-
-const SECTION_DELIMITER: &str = ":";
