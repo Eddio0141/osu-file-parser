@@ -111,7 +111,7 @@ impl Display for OsuFile {
                     sections.push(format!("[TimingPoints]\n{}", timing_points));
                 }
                 if let Some(colours) = &self.colours {
-                    sections.push(format!("[Colours]\n{}", colours));
+                    sections.push(format!("[Colours]\n{}", colours.to_string_v14()));
                 }
                 if let Some(hitobjects) = &self.hitobjects {
                     sections.push(format!("[HitObjects]\n{}", hitobjects));
@@ -160,18 +160,12 @@ impl FromStr for OsuFile {
                     unreachable!("Not possible to reach when the errors are already handled");
                 };
 
-                return Err(Error {
-                    line_index: 0,
-                    error: err,
-                });
+                return Err(err.into());
             }
         };
 
         if version > LATEST_VERSION || version < MIN_VERSION {
-            return Err(Error {
-                line_index: 0,
-                error: ParseError::InvalidFileVersion,
-            });
+            return Err(ParseError::InvalidFileVersion.into());
         }
 
         let (_, sections) = many0(section)(s).unwrap();
@@ -202,10 +196,7 @@ impl FromStr for OsuFile {
         {
             match result {
                 Ok(ok) => Ok(ok),
-                Err(err) => Err(Error {
-                    line_index: line_number,
-                    error: err.into(),
-                }),
+                Err(err) => Err(Error::new(err.into(), line_number)),
             }
         }
 
@@ -213,10 +204,7 @@ impl FromStr for OsuFile {
             line_number += ws.lines().count();
 
             if section_parsed.contains(&section_name) {
-                return Err(Error {
-                    line_index: line_number,
-                    error: ParseError::DuplicateSections,
-                });
+                return Err(Error::new(ParseError::DuplicateSections, line_number));
             }
 
             let section_name_line = line_number;
@@ -227,7 +215,7 @@ impl FromStr for OsuFile {
                 14 => match section_name {
                     "General" => {
                         general = Some(
-                            Error::combine_result(
+                            Error::processing_line(
                                 General::from_str_v14(section),
                                 section_start_line,
                             )?
@@ -245,25 +233,26 @@ impl FromStr for OsuFile {
                             Some(parse_error_to_error(section.parse(), section_start_line)?)
                     }
                     "Events" => {
-                        events = Some(Error::combine_result(section.parse(), section_start_line)?)
+                        events = Some(Error::processing_line(section.parse(), section_start_line)?)
                     }
                     "TimingPoints" => {
                         timing_points =
                             Some(parse_error_to_error(section.parse(), section_start_line)?)
                     }
                     "Colours" => {
-                        colours = Some(parse_error_to_error(section.parse(), section_start_line)?)
+                        colours = Some(
+                            Error::processing_line(
+                                Colours::from_str_v14(section),
+                                section_start_line,
+                            )?
+                            .unwrap(),
+                        )
                     }
                     "HitObjects" => {
                         hitobjects =
                             Some(parse_error_to_error(section.parse(), section_start_line)?)
                     }
-                    _ => {
-                        return Err(Error {
-                            line_index: section_name_line,
-                            error: ParseError::UnknownSection,
-                        })
-                    }
+                    _ => return Err(Error::new(ParseError::UnknownSection, section_name_line)),
                 },
                 _ => unimplemented!("osu! file version {} not implemented", version),
             }
@@ -369,7 +358,7 @@ pub enum ParseError {
     #[error(transparent)]
     ColoursParseError {
         #[from]
-        source: colours::ColoursParseError,
+        source: colours::ParseError,
     },
     /// Error parsing the hitobjects section.
     #[error(transparent)]
