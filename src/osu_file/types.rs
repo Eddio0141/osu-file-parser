@@ -111,75 +111,130 @@ impl<E> From<E> for Error<E> {
 pub trait Version {
     type ParseError;
 
-    fn from_str_v3(s: &str) -> std::result::Result<Self, Self::ParseError>
+    fn from_str_v3(s: &str) -> std::result::Result<Option<Self>, Self::ParseError>
     where
         Self: Sized;
 
     fn to_string_v3(&self) -> String;
 
-    fn from_str_v4(s: &str) -> std::result::Result<Self, Self::ParseError>
+    fn from_str_v4(s: &str) -> std::result::Result<Option<Self>, Self::ParseError>
     where
-        Self: Sized;
+        Self: Sized,
+    {
+        Self::from_str_v3(s)
+    }
 
-    fn to_string_v4(&self) -> String;
+    fn to_string_v4(&self) -> String {
+        self.to_string_v3()
+    }
 
-    fn from_str_v5(s: &str) -> std::result::Result<Self, Self::ParseError>
+    fn from_str_v5(s: &str) -> std::result::Result<Option<Self>, Self::ParseError>
     where
-        Self: Sized;
+        Self: Sized,
+    {
+        Self::from_str_v4(s)
+    }
 
-    fn to_string_v5(&self) -> String;
+    fn to_string_v5(&self) -> String {
+        self.to_string_v4()
+    }
 
-    fn from_str_v6(s: &str) -> std::result::Result<Self, Self::ParseError>
+    fn from_str_v6(s: &str) -> std::result::Result<Option<Self>, Self::ParseError>
     where
-        Self: Sized;
+        Self: Sized,
+    {
+        Self::from_str_v5(s)
+    }
 
-    fn to_string_v6(&self) -> String;
+    fn to_string_v6(&self) -> String {
+        self.to_string_v5()
+    }
 
-    fn from_str_v7(s: &str) -> std::result::Result<Self, Self::ParseError>
+    fn from_str_v7(s: &str) -> std::result::Result<Option<Self>, Self::ParseError>
     where
-        Self: Sized;
+        Self: Sized,
+    {
+        Self::from_str_v6(s)
+    }
 
-    fn to_string_v7(&self) -> String;
+    fn to_string_v7(&self) -> String {
+        self.to_string_v6()
+    }
 
-    fn from_str_v8(s: &str) -> std::result::Result<Self, Self::ParseError>
+    fn from_str_v8(s: &str) -> std::result::Result<Option<Self>, Self::ParseError>
     where
-        Self: Sized;
+        Self: Sized,
+    {
+        Self::from_str_v7(s)
+    }
 
-    fn to_string_v8(&self) -> String;
+    fn to_string_v8(&self) -> String {
+        self.to_string_v7()
+    }
 
-    fn from_str_v9(s: &str) -> std::result::Result<Self, Self::ParseError>
+    fn from_str_v9(s: &str) -> std::result::Result<Option<Self>, Self::ParseError>
     where
-        Self: Sized;
+        Self: Sized,
+    {
+        Self::from_str_v8(s)
+    }
 
-    fn to_string_v9(&self) -> String;
+    fn to_string_v9(&self) -> String {
+        self.to_string_v8()
+    }
 
-    fn from_str_v10(s: &str) -> std::result::Result<Self, Self::ParseError>
+    fn from_str_v10(s: &str) -> std::result::Result<Option<Self>, Self::ParseError>
     where
-        Self: Sized;
+        Self: Sized,
+    {
+        Self::from_str_v9(s)
+    }
 
-    fn to_string_v10(&self) -> String;
+    fn to_string_v10(&self) -> String {
+        self.to_string_v9()
+    }
 
-    fn from_str_v11(s: &str) -> std::result::Result<Self, Self::ParseError>
+    fn from_str_v11(s: &str) -> std::result::Result<Option<Self>, Self::ParseError>
     where
-        Self: Sized;
+        Self: Sized,
+    {
+        Self::from_str_v10(s)
+    }
 
-    fn to_string_v11(&self) -> String;
+    fn to_string_v11(&self) -> String {
+        self.to_string_v10()
+    }
 
-    fn from_str_v12(s: &str) -> std::result::Result<Self, Self::ParseError>
+    fn from_str_v12(s: &str) -> std::result::Result<Option<Self>, Self::ParseError>
     where
-        Self: Sized;
+        Self: Sized,
+    {
+        Self::from_str_v11(s)
+    }
 
-    fn to_string_v12(&self) -> String;
+    fn to_string_v12(&self) -> String {
+        self.to_string_v11()
+    }
 
-    fn from_str_v13(s: &str) -> std::result::Result<Self, Self::ParseError>
+    fn from_str_v13(s: &str) -> std::result::Result<Option<Self>, Self::ParseError>
     where
-        Self: Sized;
+        Self: Sized,
+    {
+        Self::from_str_v12(s)
+    }
 
-    fn to_string_v13(&self) -> String;
+    fn to_string_v13(&self) -> String {
+        self.to_string_v12()
+    }
 
-    fn from_str_v14(s: &str) -> std::result::Result<Self, Self::ParseError>
+    fn from_str_v14(s: &str) -> std::result::Result<Option<Self>, Self::ParseError>
     where
-        Self: Sized;
+        Self: Sized,
+    {
+        Self::from_str_v13(s)
+    }
 
-    fn to_string_v14(&self) -> String;
+    fn to_string_v14(&self) -> String {
+        self.to_string_v13()
+    }
 }

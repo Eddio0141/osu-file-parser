@@ -1,9 +1,6 @@
 pub mod error;
 
-use std::{
-    fmt::{Debug, Display},
-    str::FromStr,
-};
+use std::{fmt::Debug, str::FromStr};
 
 use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
@@ -16,7 +13,7 @@ use crate::osu_file::Integer;
 
 pub use self::error::*;
 
-use super::types::Error;
+use super::{types::Error, Version};
 
 /// A struct representing the general section of the .osu file.
 #[derive(PartialEq, Debug, Clone, Eq, Hash)]
@@ -130,10 +127,61 @@ impl Default for General {
     }
 }
 
-impl FromStr for General {
-    type Err = Error<ParseError>;
+impl Version for General {
+    type ParseError = Error<ParseError>;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    // TODO what fields are in each version?
+    fn from_str_v3(s: &str) -> std::result::Result<Option<Self>, Self::ParseError>
+    where
+        Self: Sized,
+    {
+        let mut general = General::new();
+
+        let (s, fields) = get_colon_field_value_lines(s).unwrap();
+
+        if !s.trim().is_empty() {
+            // line count from fields
+            let line_count = { fields.iter().map(|(_, _, ws)| ws.lines().count()).sum() };
+
+            return Err(Error::from_err_with_line(
+                ParseError::InvalidColonSet,
+                line_count,
+            ));
+        }
+
+        let mut line_count = 0;
+
+        for (name, value, ws) in fields {
+            match name {
+                "AudioFilename" => general.audio_filename = Some(value.to_owned()),
+                "AudioHash" => general.audio_hash = Some(value.to_owned()),
+                _ => {
+                    return Err(Error::from_err_with_line(
+                        ParseError::InvalidKey,
+                        line_count,
+                    ))
+                }
+            }
+
+            line_count += ws.lines().count();
+        }
+
+        Ok(Some(general))
+    }
+
+    fn to_string_v3(&self) -> String {
+        let fields = [
+            ("AudioFilename", &self.audio_filename),
+            ("AudioHash", &self.audio_hash),
+        ];
+
+        display_colon_fields(&fields, true)
+    }
+
+    fn from_str_v14(s: &str) -> std::result::Result<Option<Self>, Self::ParseError>
+    where
+        Self: Sized,
+    {
         let mut general = General::new();
 
         let (s, fields) = get_colon_field_value_lines(s).unwrap();
@@ -229,12 +277,10 @@ impl FromStr for General {
             line_count += ws.lines().count();
         }
 
-        Ok(general)
+        Ok(Some(general))
     }
-}
 
-impl Display for General {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn to_string_v14(&self) -> String {
         let fields = [
             ("AudioFilename", &self.audio_filename),
             ("AudioLeadIn", &self.audio_lead_in.map(|v| v.to_string())),
@@ -299,7 +345,7 @@ impl Display for General {
             ),
         ];
 
-        display_colon_fields(f, &fields, true)
+        display_colon_fields(&fields, true)
     }
 }
 
@@ -338,6 +384,22 @@ impl Default for CountdownSpeed {
     }
 }
 
+impl Version for CountdownSpeed {
+    type ParseError = CountdownSpeedParseError;
+
+    // TODO investigate versions
+    fn from_str_v3(s: &str) -> std::result::Result<Option<Self>, Self::ParseError>
+    where
+        Self: Sized,
+    {
+        s.parse().map(Some)
+    }
+
+    fn to_string_v3(&self) -> String {
+        (*self as usize).to_string()
+    }
+}
+
 /// Sample set that will be used if timing points do not override it
 #[derive(PartialEq, Eq, Debug, Clone, Copy, Hash, Display, EnumString)]
 #[non_exhaustive]
@@ -353,6 +415,46 @@ pub enum SampleSet {
 impl Default for SampleSet {
     fn default() -> Self {
         SampleSet::Normal
+    }
+}
+
+impl Version for SampleSet {
+    type ParseError = strum::ParseError;
+
+    // TODO investigate versions
+    fn from_str_v3(_: &str) -> std::result::Result<Option<Self>, Self::ParseError>
+    where
+        Self: Sized,
+    {
+        Ok(None)
+    }
+
+    fn to_string_v3(&self) -> String {
+        String::new()
+    }
+
+    fn from_str_v5(s: &str) -> std::result::Result<Option<Self>, Self::ParseError>
+    where
+        Self: Sized,
+    {
+        // TODO test this
+        if s == "None" {
+            Ok(Some(Self::Soft))
+        } else {
+            s.parse().map(Some)
+        }
+    }
+
+    fn to_string_v5(&self) -> String {
+        // I dont think we have to revert to None
+        self.to_string()
+    }
+
+    fn from_str_v14(s: &str) -> std::result::Result<Option<Self>, Self::ParseError>
+    where
+        Self: Sized,
+    {
+        s.parse().map(Some)
     }
 }
 
@@ -391,6 +493,22 @@ impl From<GameMode> for Integer {
     }
 }
 
+impl Version for GameMode {
+    type ParseError = GameModeParseError;
+
+    // TODO check what gamemodes exist in versions
+    fn from_str_v3(s: &str) -> std::result::Result<Option<Self>, Self::ParseError>
+    where
+        Self: Sized,
+    {
+        s.parse().map(Some)
+    }
+
+    fn to_string_v3(&self) -> String {
+        (*self as usize).to_string()
+    }
+}
+
 /// Draw order of hit circle overlays compared to hit numbers
 #[derive(PartialEq, Eq, Debug, Clone, Copy, Hash, Display, EnumString)]
 #[non_exhaustive]
@@ -406,5 +524,21 @@ pub enum OverlayPosition {
 impl Default for OverlayPosition {
     fn default() -> Self {
         Self::NoChange
+    }
+}
+
+impl Version for OverlayPosition {
+    type ParseError = strum::ParseError;
+
+    // TODO investigate versions
+    fn from_str_v3(s: &str) -> std::result::Result<Option<Self>, Self::ParseError>
+    where
+        Self: Sized,
+    {
+        s.parse().map(Some)
+    }
+
+    fn to_string_v3(&self) -> String {
+        self.to_string()
     }
 }
