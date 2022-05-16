@@ -86,32 +86,29 @@ impl FromStr for Metadata {
 
 impl Display for Metadata {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut key_value = Vec::new();
-
-        key_value.push(("Title", &self.title));
-        key_value.push(("TitleUnicode", &self.title));
-        key_value.push(("Artist", &self.artist));
-        key_value.push(("ArtistUnicode", &self.artist_unicode));
-        key_value.push(("Creator", &self.creator));
-        key_value.push(("Version", &self.version));
-        key_value.push(("Source", &self.source));
         let tags = self.tags.as_ref().map(|v| v.join(" "));
-        key_value.push(("Tags", &tags));
         let beatmap_id = self.beatmap_id.map(|v| v.to_string());
-        key_value.push(("BeatmapID", &beatmap_id));
         let beatmap_set_id = self.beatmap_set_id.map(|v| v.to_string());
-        key_value.push(("BeatmapSetID", &beatmap_set_id));
+
+        let key_value = vec![
+            ("Title", &self.title),
+            ("TitleUnicode", &self.title),
+            ("Artist", &self.artist),
+            ("ArtistUnicode", &self.artist_unicode),
+            ("Creator", &self.creator),
+            ("Version", &self.version),
+            ("Source", &self.source),
+            ("Tags", &tags),
+            ("BeatmapID", &beatmap_id),
+            ("BeatmapSetID", &beatmap_set_id),
+        ];
 
         write!(
             f,
             "{}",
             key_value
                 .iter()
-                .filter_map(|(k, v)| if let Some(v) = v {
-                    Some(format!("{k}:{v}"))
-                } else {
-                    None
-                })
+                .filter_map(|(k, v)| v.as_ref().map(|v| format!("{k}:{v}")))
                 .collect::<Vec<_>>()
                 .join("\n")
         )

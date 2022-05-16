@@ -164,7 +164,7 @@ impl FromStr for OsuFile {
             }
         };
 
-        if version > LATEST_VERSION || version < MIN_VERSION {
+        if !(MIN_VERSION..=LATEST_VERSION).contains(&version) {
             return Err(ParseError::InvalidFileVersion.into());
         }
 

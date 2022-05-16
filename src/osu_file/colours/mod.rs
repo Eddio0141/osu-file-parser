@@ -23,14 +23,10 @@ impl Version for Colours {
     {
         let mut colours = Vec::new();
 
-        let mut line_index = 0;
-
-        for s in s.lines() {
+        for (line_index, s) in s.lines().enumerate() {
             if !s.is_empty() {
                 colours.push(Error::new_from_result_into(s.parse(), line_index)?);
             }
-
-            line_index += 1;
         }
 
         Ok(Some(Colours(colours)))

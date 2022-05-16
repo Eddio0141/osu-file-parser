@@ -113,11 +113,7 @@ impl Display for Difficulty {
             "{}",
             key_value
                 .iter()
-                .filter_map(|(k, v)| if let Some(v) = v {
-                    Some(format!("{k}:{v}"))
-                } else {
-                    None
-                })
+                .filter_map(|(k, v)| v.as_ref().map(|v| format!("{k}:{v}")))
                 .collect::<Vec<_>>()
                 .join("\n")
         )
