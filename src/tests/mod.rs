@@ -26,11 +26,11 @@ use crate::osu_file::{
     metadata::Metadata,
     timingpoint::{self, Effects, SampleIndex, TimingPoint, TimingPoints, Volume},
     types::Position,
-    OsuFile,
+    OsuFile, Version,
 };
 
 #[test]
-fn general_parse() {
+fn general_parse_v14() {
     let i_str = "AudioFilename: test.mp3
 AudioLeadIn: 555
 AudioHash: no.mp3
@@ -50,7 +50,7 @@ CountdownOffset: 120
 SpecialStyle: 1
 WidescreenStoryboard: 1
 SamplesMatchPlaybackRate: 1";
-    let i = i_str.parse::<General>().unwrap();
+    let i = General::from_str_v14(i_str).unwrap().unwrap();
 
     let g = General {
         audio_filename: Some("test.mp3".to_string()),
@@ -75,7 +75,7 @@ SamplesMatchPlaybackRate: 1";
     };
 
     assert_eq!(i, g);
-    assert_eq!(i_str, i.to_string());
+    assert_eq!(i_str, i.to_string_v14());
 }
 
 #[test]

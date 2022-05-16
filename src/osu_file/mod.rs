@@ -37,7 +37,7 @@ pub use self::types::*;
 #[non_exhaustive]
 pub struct OsuFile {
     /// Version of the file format.
-    pub version: Integer,
+    pub version: u8,
     /// General information about the beatmap.
     /// - `key`: `value` pairs.
     pub general: Option<General>,
@@ -90,29 +90,34 @@ impl Display for OsuFile {
 
         sections.push(format!("osu file format v{}", self.version));
 
-        if let Some(general) = &self.general {
-            sections.push(format!("[General]\n{}", general));
-        }
-        if let Some(editor) = &self.editor {
-            sections.push(format!("[Editor]\n{}", editor));
-        }
-        if let Some(metadata) = &self.metadata {
-            sections.push(format!("[Metadata]\n{}", metadata));
-        }
-        if let Some(difficulty) = &self.difficulty {
-            sections.push(format!("[Difficulty]\n{}", difficulty));
-        }
-        if let Some(events) = &self.events {
-            sections.push(format!("[Events]\n{}", events));
-        }
-        if let Some(timing_points) = &self.timing_points {
-            sections.push(format!("[TimingPoints]\n{}", timing_points));
-        }
-        if let Some(colours) = &self.colours {
-            sections.push(format!("[Colours]\n{}", colours));
-        }
-        if let Some(hitobjects) = &self.hitobjects {
-            sections.push(format!("[HitObjects]\n{}", hitobjects));
+        match self.version {
+            14 => {
+                if let Some(general) = &self.general {
+                    sections.push(format!("[General]\n{}", general.to_string_v14()));
+                }
+                if let Some(editor) = &self.editor {
+                    sections.push(format!("[Editor]\n{}", editor));
+                }
+                if let Some(metadata) = &self.metadata {
+                    sections.push(format!("[Metadata]\n{}", metadata));
+                }
+                if let Some(difficulty) = &self.difficulty {
+                    sections.push(format!("[Difficulty]\n{}", difficulty));
+                }
+                if let Some(events) = &self.events {
+                    sections.push(format!("[Events]\n{}", events));
+                }
+                if let Some(timing_points) = &self.timing_points {
+                    sections.push(format!("[TimingPoints]\n{}", timing_points));
+                }
+                if let Some(colours) = &self.colours {
+                    sections.push(format!("[Colours]\n{}", colours));
+                }
+                if let Some(hitobjects) = &self.hitobjects {
+                    sections.push(format!("[HitObjects]\n{}", hitobjects));
+                }
+            }
+            _ => unimplemented!("osu! file version {} not implemented", self.version),
         }
 
         write!(f, "{}", sections.join("\n\n"))
@@ -126,14 +131,13 @@ impl FromStr for OsuFile {
         let version_text = tag::<_, _, nom::error::Error<_>>("osu file format v");
         let version_number = map_res(
             trailing_ws(take_till(|ch| ch == '\r' || ch == '\n')),
-            |s: &str| s.parse::<Integer>(),
+            |s: &str| s.parse::<u8>(),
         );
 
         let section_open = char::<_, nom::error::Error<_>>('[');
         let section_close = char(']');
         let section_name_inner = take_till(|c: char| c == ']' || c == '\r' || c == '\n');
         let section_name = delimited(section_open, section_name_inner, section_close);
-
         let section_until = take_till(|c| c == '[');
         let section = tuple((multispace0, section_name, multispace0, section_until));
 
@@ -219,37 +223,49 @@ impl FromStr for OsuFile {
             let section_start_line = line_number + 1;
             line_number += ws2.lines().count();
 
-            match section_name {
-                "General" => {
-                    general = Some(Error::combine_result(section.parse(), section_start_line)?)
-                }
-                "Editor" => {
-                    editor = Some(parse_error_to_error(section.parse(), section_start_line)?)
-                }
-                "Metadata" => {
-                    metadata = Some(parse_error_to_error(section.parse(), section_start_line)?)
-                }
-                "Difficulty" => {
-                    difficulty = Some(parse_error_to_error(section.parse(), section_start_line)?)
-                }
-                "Events" => {
-                    events = Some(Error::combine_result(section.parse(), section_start_line)?)
-                }
-                "TimingPoints" => {
-                    timing_points = Some(parse_error_to_error(section.parse(), section_start_line)?)
-                }
-                "Colours" => {
-                    colours = Some(parse_error_to_error(section.parse(), section_start_line)?)
-                }
-                "HitObjects" => {
-                    hitobjects = Some(parse_error_to_error(section.parse(), section_start_line)?)
-                }
-                _ => {
-                    return Err(Error {
-                        line_index: section_name_line,
-                        error: ParseError::UnknownSection,
-                    })
-                }
+            match version {
+                14 => match section_name {
+                    "General" => {
+                        general = Some(
+                            Error::combine_result(
+                                General::from_str_v14(section),
+                                section_start_line,
+                            )?
+                            .unwrap(),
+                        )
+                    }
+                    "Editor" => {
+                        editor = Some(parse_error_to_error(section.parse(), section_start_line)?)
+                    }
+                    "Metadata" => {
+                        metadata = Some(parse_error_to_error(section.parse(), section_start_line)?)
+                    }
+                    "Difficulty" => {
+                        difficulty =
+                            Some(parse_error_to_error(section.parse(), section_start_line)?)
+                    }
+                    "Events" => {
+                        events = Some(Error::combine_result(section.parse(), section_start_line)?)
+                    }
+                    "TimingPoints" => {
+                        timing_points =
+                            Some(parse_error_to_error(section.parse(), section_start_line)?)
+                    }
+                    "Colours" => {
+                        colours = Some(parse_error_to_error(section.parse(), section_start_line)?)
+                    }
+                    "HitObjects" => {
+                        hitobjects =
+                            Some(parse_error_to_error(section.parse(), section_start_line)?)
+                    }
+                    _ => {
+                        return Err(Error {
+                            line_index: section_name_line,
+                            error: ParseError::UnknownSection,
+                        })
+                    }
+                },
+                _ => unimplemented!("osu! file version {} not implemented", version),
             }
 
             section_parsed.push(section_name);
