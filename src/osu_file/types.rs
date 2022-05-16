@@ -3,8 +3,8 @@ use std::fmt::{Debug, Display};
 /// Definition of the `Integer` type.
 pub type Integer = i32;
 
-pub const LATEST_VERSION: Integer = 14;
-pub const MIN_VERSION: Integer = 3;
+pub const LATEST_VERSION: u8 = 14;
+pub const MIN_VERSION: u8 = 3;
 
 pub const SECTION_DELIMITER: &str = ":";
 
@@ -108,7 +108,7 @@ impl<E> From<E> for Error<E> {
     }
 }
 
-pub trait Version {
+pub trait Version: Sized {
     type ParseError;
 
     fn from_str_v3(s: &str) -> std::result::Result<Option<Self>, Self::ParseError>
