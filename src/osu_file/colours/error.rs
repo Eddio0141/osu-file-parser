@@ -2,7 +2,7 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 #[error(transparent)]
-pub struct ColoursParseError(#[from] ColourParseError);
+pub struct ParseError(#[from] ColourParseError);
 
 /// Error used when there was a problem parsing a `str` as a `Colour`.
 #[derive(Debug, Error)]
