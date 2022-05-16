@@ -26,9 +26,9 @@ impl Default for Position {
 #[derive(Debug)]
 pub struct Error<E> {
     /// Line index of the error.
-    pub line_index: usize,
+    line_index: usize,
     /// The error.
-    pub error: E,
+    error: E,
 }
 
 impl<E> Error<E> {
@@ -44,48 +44,94 @@ impl<E> Error<E> {
         format!("Line {}: {}, {}", self.line_index + 1, line, self.error)
     }
 
-    pub fn from_err_with_line(error: E, line_number: usize) -> Self {
-        Self {
-            line_index: line_number,
-            error,
-        }
+    /// Creates a new `Error` instance with the given line index and error.
+    /// - If you have a higher error that `E` needs to convert from, use `new_into` instead.
+    pub fn new(error: E, line_index: usize) -> Self {
+        Self { line_index, error }
     }
 
-    /// Combines other `Error` with a higher level error and line number of where it was being processed.
-    pub fn combine<E2>(self, line_number: usize) -> Error<E2>
+    /// Creates a new `Error` instance with the given line index and error.
+    /// - Shorthand for `Error::new(error.into(), line_index)`.
+    pub fn new_into<E2>(error: E, line_index: usize) -> Error<E2>
     where
         E2: From<E>,
     {
         Error {
-            line_index: self.line_index + line_number,
-            error: E2::from(self.error),
+            line_index,
+            error: error.into(),
         }
     }
 
-    pub fn combine_result<T, E2>(
-        inner: Result<T, Error<E>>,
-        line_number: usize,
+    /// Creates a new `Error` instance with the given line index and error.
+    /// - For use when you have some Result<T, E> and want to convert it to a `Error`.
+    pub fn new_from_result<T>(result: Result<T, E>, line_index: usize) -> Result<T, Error<E>> {
+        result.map_err(|err| Error {
+            line_index,
+            error: err,
+        })
+    }
+
+    /// Creates a new `Error` instance with the given line index and error.
+    /// - For use when you have some Result<T, E> and want to convert it into `Error<E2>`.
+    pub fn new_from_result_into<T, E2>(
+        result: Result<T, E>,
+        line_index: usize,
     ) -> Result<T, Error<E2>>
     where
         E2: From<E>,
     {
-        match inner {
-            Ok(ok) => Ok(ok),
-            Err(err) => Err(Error {
-                line_index: line_number + err.line_index,
-                error: err.error.into(),
-            }),
+        result.map_err(|err| Error {
+            line_index,
+            error: err.into(),
+        })
+    }
+
+    /// Uses `Into` to convert the inner error into `E2`.
+    pub fn error_into<E2>(self) -> Error<E2>
+    where
+        E2: From<E>,
+    {
+        Error {
+            line_index: self.line_index,
+            error: self.error.into(),
         }
     }
 
-    pub fn from_combine<E2>(inner_error: E2, line_number: usize) -> Error<E>
+    /// `error_into` function for `Result` types.
+    pub fn error_result_into<T, E2>(result: Result<T, Error<E>>) -> Result<T, Error<E2>>
     where
-        E: From<E2>,
+        E2: From<E>,
     {
-        Error {
-            line_index: line_number,
-            error: inner_error.into(),
-        }
+        result.map_err(|err| Error {
+            line_index: err.line_index,
+            error: err.error.into(),
+        })
+    }
+
+    /// Increases `Error`'s processing line using the `Result<_, Error<E>>` type.
+    /// - This will also convert the inner error into `E2`.
+    /// - For use when you have something return `Result<_, Error<E>>` and want to convert it to `Result<_, Error<E2>>`.
+    pub fn processing_line<T, E2>(
+        result: Result<T, Error<E>>,
+        line_index: usize,
+    ) -> Result<T, Error<E2>>
+    where
+        E2: From<E>,
+    {
+        result.map_err(|err| Error {
+            line_index: err.line_index + line_index,
+            error: err.error.into(),
+        })
+    }
+
+    /// Get the error's line index.
+    pub fn line_index(&self) -> usize {
+        self.line_index
+    }
+
+    /// Get a reference to the error's error.
+    pub fn error(&self) -> &E {
+        &self.error
     }
 }
 

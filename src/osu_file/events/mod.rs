@@ -42,7 +42,7 @@ impl FromStr for Events {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let s = s.lines();
         let mut events = Events::default();
-        let mut line_number = 0;
+        let mut line_index = 0;
 
         for line in s {
             if !line.trim().is_empty() {
@@ -65,20 +65,17 @@ impl FromStr for Events {
                         // its a storyboard command
                         if header_indent > 0 {
                             match events.0.last_mut() {
-                                Some(Event::Storyboard(sprite)) => {
-                                    sprite
-                                        .try_push_cmd(
-                                            line.parse().map_err(|err| {
-                                                Error::from(err).combine(line_number)
-                                            })?,
-                                            header_indent,
-                                        )
-                                        .map_err(|err| Error::from(err).combine(line_number))?;
-                                }
+                                Some(Event::Storyboard(sprite)) => Error::new_from_result_into(
+                                    sprite.try_push_cmd(
+                                        Error::new_from_result_into(line.parse(), line_index)?,
+                                        header_indent,
+                                    ),
+                                    line_index,
+                                )?,
                                 _ => {
-                                    return Err(Error::from_err_with_line(
+                                    return Err(Error::new(
                                         ParseError::StoryboardCmdWithNoSprite,
-                                        line_number,
+                                        line_index,
                                     ))
                                 }
                             }
@@ -105,7 +102,7 @@ impl FromStr for Events {
 
                                     let event_params = EventParams::try_from((header, &mut s))
                                         .map_err(|err| {
-                                            Error::from_err_with_line(
+                                            Error::new(
                                                 ParseError::FieldParseError {
                                                     source: Box::new(err),
                                                     // TODO does this even work
@@ -116,7 +113,7 @@ impl FromStr for Events {
                                                     ),
                                                     field_name: "eventParams",
                                                 },
-                                                line_number,
+                                                line_index,
                                             )
                                         })?;
 
@@ -125,9 +122,9 @@ impl FromStr for Events {
                                         event_params,
                                     })
                                 } else {
-                                    return Err(Error::from_err_with_line(
+                                    return Err(Error::new(
                                         ParseError::StoryboardObjectParseError(err),
-                                        line_number,
+                                        line_index,
                                     ));
                                 }
                             }
@@ -136,7 +133,7 @@ impl FromStr for Events {
                 }
             }
 
-            line_number += 1;
+            line_index += 1;
         }
 
         Ok(events)
