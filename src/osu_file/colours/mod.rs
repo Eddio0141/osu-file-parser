@@ -7,36 +7,41 @@ use nom::{bytes::complete::take_till, error::VerboseErrorKind, Finish};
 
 pub use self::error::*;
 
+use super::{Error, Version};
+
 #[derive(Clone, Debug, Default, Hash, PartialEq, Eq)]
 pub struct Colours(pub Vec<Colour>);
 
-impl Display for Colours {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            self.0
-                .iter()
-                .map(|c| c.to_string())
-                .collect::<Vec<_>>()
-                .join("\n")
-        )
-    }
-}
+impl Version for Colours {
+    type ParseError = Error<ParseError>;
 
-impl FromStr for Colours {
-    type Err = ColoursParseError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    // TODO since when did colours appear in osu files?
+    // TODO different versions of colours?
+    fn from_str_v3(s: &str) -> std::result::Result<Option<Self>, Self::ParseError>
+    where
+        Self: Sized,
+    {
         let mut colours = Vec::new();
+
+        let mut line_index = 0;
 
         for s in s.lines() {
             if !s.is_empty() {
-                colours.push(s.parse()?);
+                colours.push(Error::new_from_result_into(s.parse(), line_index)?);
             }
+
+            line_index += 1;
         }
 
-        Ok(Colours(colours))
+        Ok(Some(Colours(colours)))
+    }
+
+    fn to_string_v3(&self) -> String {
+        self.0
+            .iter()
+            .map(|c| c.to_string())
+            .collect::<Vec<_>>()
+            .join("\n")
     }
 }
 
