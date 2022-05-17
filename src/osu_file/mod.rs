@@ -96,7 +96,7 @@ impl Display for OsuFile {
                     sections.push(format!("[General]\n{}", general.to_string_v14()));
                 }
                 if let Some(editor) = &self.editor {
-                    sections.push(format!("[Editor]\n{}", editor));
+                    sections.push(format!("[Editor]\n{}", editor.to_string_v14()));
                 }
                 if let Some(metadata) = &self.metadata {
                     sections.push(format!("[Metadata]\n{}", metadata));
@@ -223,7 +223,13 @@ impl FromStr for OsuFile {
                         )
                     }
                     "Editor" => {
-                        editor = Some(parse_error_to_error(section.parse(), section_start_line)?)
+                        editor = Some(
+                            Error::processing_line(
+                                Editor::from_str_v14(section),
+                                section_start_line,
+                            )?
+                            .unwrap(),
+                        )
                     }
                     "Metadata" => {
                         metadata = Some(parse_error_to_error(section.parse(), section_start_line)?)
