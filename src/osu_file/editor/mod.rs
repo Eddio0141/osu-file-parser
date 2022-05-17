@@ -1,10 +1,16 @@
 pub mod error;
 
-use std::{fmt::Display, str::FromStr};
-
+use nom::{
+    bytes::complete::{tag, take_till},
+    combinator::map_res,
+    multi::separated_list0,
+    Finish,
+};
 use rust_decimal::Decimal;
 
-use super::{Integer, SECTION_DELIMITER};
+use crate::parsers::get_colon_field_value_lines;
+
+use super::{Error, Integer, Version};
 
 pub use self::error::*;
 
@@ -23,128 +29,104 @@ pub struct Editor {
     pub timeline_zoom: Option<Decimal>,
 }
 
-impl FromStr for Editor {
-    type Err = ParseError;
+impl Version for Editor {
+    type ParseError = Error<ParseError>;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    // TODO check versions
+    fn from_str_v3(s: &str) -> std::result::Result<Option<Self>, Self::ParseError>
+    where
+        Self: Sized,
+    {
         let mut editor = Editor::default();
 
-        let s = s.trim();
+        let (s, fields) = get_colon_field_value_lines(s).unwrap();
 
-        for line in s.lines() {
-            match line.split_once(SECTION_DELIMITER) {
-                Some((key, value)) => {
-                    let value = value.trim();
+        if !s.trim().is_empty() {
+            // line count from fields
+            let line_count = { fields.iter().map(|(_, _, ws)| ws.lines().count()).sum() };
 
-                    match key.trim() {
-                        "Bookmarks" => {
-                            let mut err = None;
-                            let mut bookmarks = Vec::new();
-
-                            for bookmark in value.split(',') {
-                                let bookmark = bookmark.parse();
-
-                                match bookmark {
-                                    Ok(bookmark) => bookmarks.push(bookmark),
-                                    Err(e) => {
-                                        err = Some(e);
-                                        break;
-                                    }
-                                }
-                            }
-
-                            match err {
-                                Some(err) => {
-                                    return Err(ParseError::SectionParseError {
-                                        source: Box::new(err),
-                                        name: "Bookmarks",
-                                    })
-                                }
-                                None => editor.bookmarks = Some(bookmarks),
-                            }
-                        }
-                        "DistanceSpacing" => {
-                            editor.distance_spacing = Some(value.parse().map_err(|err| {
-                                ParseError::SectionParseError {
-                                    source: Box::new(err),
-                                    name: "DistanceSpacing",
-                                }
-                            })?)
-                        }
-                        "BeatDivisor" => {
-                            editor.beat_divisor = Some(value.parse().map_err(|err| {
-                                ParseError::SectionParseError {
-                                    source: Box::new(err),
-                                    name: "BeatDivisor",
-                                }
-                            })?)
-                        }
-                        "GridSize" => {
-                            editor.grid_size = Some(value.parse().map_err(|err| {
-                                ParseError::SectionParseError {
-                                    source: Box::new(err),
-                                    name: "GridSize",
-                                }
-                            })?)
-                        }
-                        "TimelineZoom" => {
-                            editor.timeline_zoom = Some(value.parse().map_err(|err| {
-                                ParseError::SectionParseError {
-                                    source: Box::new(err),
-                                    name: "TimelineZoom",
-                                }
-                            })?)
-                        }
-                        _ => return Err(ParseError::InvalidKey(key.to_string())),
-                    }
-                }
-                None => return Err(ParseError::MissingValue(line.to_string())),
-            }
+            return Err(Error::new(ParseError::InvalidColonSet, line_count));
         }
 
-        Ok(editor)
-    }
-}
+        let mut line_count = 0;
 
-impl Display for Editor {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for (name, value, ws) in fields {
+            let new_into_int = move |err| Error::new_into(err, line_count);
+            let new_into_decimal = move |err| Error::new_into(err, line_count);
+
+            match name {
+                "Bookmarks" => {
+                    let bookmark = map_res(take_till(|c| c == ','), |s: &str| s.parse::<Integer>());
+                    let separator = tag::<_, _, nom::error::Error<_>>(",");
+
+                    let (s, bookmarks) = match separated_list0(separator, bookmark)(s).finish() {
+                        Ok(ok) => ok,
+                        Err(err) => {
+                            let err = match err.code {
+                                // TODO test those errors
+                                nom::error::ErrorKind::SeparatedList => {
+                                    ParseError::InvalidCommaList
+                                }
+                                nom::error::ErrorKind::MapRes => {
+                                    // get section of the input that caused the error, and re-parse to get error
+                                    let err = err.input.parse::<Integer>().unwrap_err();
+
+                                    ParseError::ParseIntError(err)
+                                }
+                                _ => unimplemented!(),
+                            };
+
+                            return Err(Error::new(err, line_count));
+                        }
+                    };
+
+                    editor.bookmarks = Some(bookmarks);
+                }
+                "DistanceSpacing" => {
+                    editor.distance_spacing = Some(value.parse().map_err(new_into_decimal)?)
+                }
+                "BeatDivisor" => {
+                    editor.beat_divisor = Some(value.parse().map_err(new_into_decimal)?)
+                }
+                "GridSize" => editor.grid_size = Some(value.parse().map_err(new_into_int)?),
+                "TimelineZoom" => {
+                    editor.timeline_zoom = Some(value.parse().map_err(new_into_decimal)?)
+                }
+                _ => return Err(Error::new(ParseError::InvalidKey, line_count)),
+            }
+
+            line_count += ws.lines().count();
+        }
+
+        Ok(Some(editor))
+    }
+
+    fn to_string_v3(&self) -> String {
         let mut key_value = Vec::new();
 
         if let Some(bookmarks) = &self.bookmarks {
-            writeln!(
-                f,
+            key_value.push(format!(
                 "Bookmarks: {}",
                 bookmarks
                     .iter()
-                    .map(std::string::ToString::to_string)
+                    .map(|b| b.to_string())
                     .collect::<Vec<_>>()
                     .join(","),
-            )?;
+            ));
         }
-        key_value.push((
-            "DistanceSpacing",
-            self.distance_spacing
-                .map(|distance_spacing| distance_spacing.to_string()),
-        ));
-        key_value.push((
-            "BeatDivisor",
-            self.beat_divisor
-                .map(|beat_divisor| beat_divisor.to_string()),
-        ));
-        key_value.push(("GridSize", self.grid_size.map(|grid| grid.to_string())));
-        key_value.push((
-            "TimelineZoom",
-            self.timeline_zoom.map(|zoom| zoom.to_string()),
-        ));
+        if let Some(spacing) = &self.distance_spacing {
+            key_value.push(format!("DistanceSpacing: {spacing}"));
+        }
+        if let Some(divisor) = &self.beat_divisor {
+            key_value.push(format!("BeatDivisor: {divisor}"));
+        }
+        if let Some(grid_size) = &self.grid_size {
+            key_value.push(format!("GridSize: {grid_size}"));
+        }
+        if let Some(zoom) = &self.timeline_zoom {
+            key_value.push(format!("TimelineZoom: {zoom}"));
+        }
 
-        write!(
-            f,
-            "{}",
-            key_value
-                .iter()
-                .filter_map(|(k, v)| v.as_ref().map(|v| format!("{k}:{v}")))
-                .collect::<Vec<_>>()
-                .join("\n")
-        )
+        key_value.join("\n")
     }
 }
