@@ -1,10 +1,10 @@
 pub mod error;
 
-use std::{fmt::Display, str::FromStr};
-
 use rust_decimal::Decimal;
 
-use super::SECTION_DELIMITER;
+use crate::parsers::get_colon_field_value_lines;
+
+use super::{Error, Version};
 
 pub use self::error::*;
 
@@ -25,97 +25,73 @@ pub struct Difficulty {
     pub slider_tickrate: Option<Decimal>,
 }
 
-impl FromStr for Difficulty {
-    type Err = DifficultyParseError;
+impl Version for Difficulty {
+    type ParseError = Error<ParseError>;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    // TODO investigate
+    fn from_str_v3(s: &str) -> std::result::Result<Option<Self>, Self::ParseError>
+    where
+        Self: Sized,
+    {
         let mut difficulty = Self::default();
 
-        let s = s.trim();
+        let (s, fields) = get_colon_field_value_lines(s).unwrap();
 
-        for line in s.lines() {
-            match line.split_once(SECTION_DELIMITER) {
-                Some((key, value)) => {
-                    let value = value.trim();
-                    match key.trim() {
-                        "HPDrainRate" => {
-                            difficulty.hp_drain_rate = Some(value.parse().map_err(|err| {
-                                DifficultyParseError::SectionParseError {
-                                    source: err,
-                                    name: "HPDrainRate",
-                                }
-                            })?)
-                        }
-                        "CircleSize" => {
-                            difficulty.circle_size = Some(value.parse().map_err(|err| {
-                                DifficultyParseError::SectionParseError {
-                                    source: err,
-                                    name: "CircleSize",
-                                }
-                            })?)
-                        }
-                        "OverallDifficulty" => {
-                            difficulty.overall_difficulty = Some(value.parse().map_err(|err| {
-                                DifficultyParseError::SectionParseError {
-                                    source: err,
-                                    name: "OverallDifficulty",
-                                }
-                            })?)
-                        }
-                        "ApproachRate" => {
-                            difficulty.approach_rate = Some(value.parse().map_err(|err| {
-                                DifficultyParseError::SectionParseError {
-                                    source: err,
-                                    name: "ApproachRate",
-                                }
-                            })?)
-                        }
-                        "SliderMultiplier" => {
-                            difficulty.slider_multiplier = Some(value.parse().map_err(|err| {
-                                DifficultyParseError::SectionParseError {
-                                    source: err,
-                                    name: "SliderMultiplier",
-                                }
-                            })?)
-                        }
-                        "SliderTickRate" => {
-                            difficulty.slider_tickrate = Some(value.parse().map_err(|err| {
-                                DifficultyParseError::SectionParseError {
-                                    source: err,
-                                    name: "SliderTickRate",
-                                }
-                            })?)
-                        }
-                        _ => return Err(DifficultyParseError::InvalidKey(key.to_string())),
-                    }
-                }
-                None => return Err(DifficultyParseError::MissingValue(line.to_owned())),
-            }
+        if !s.trim().is_empty() {
+            // line count from fields
+            // TODO test this and for general too
+            let line_count = { fields.iter().map(|(_, _, ws)| ws.lines().count()).sum() };
+
+            return Err(Error::new(ParseError::InvalidColonSet, line_count));
         }
 
-        Ok(difficulty)
+        let mut line_count = 0;
+
+        for (name, value, ws) in fields {
+            let new_into_decimal = move |err| Error::new_into(err, line_count);
+
+            match name {
+                "HPDrainRate" => {
+                    difficulty.hp_drain_rate = Some(value.parse().map_err(new_into_decimal)?)
+                }
+                "CircleSize" => {
+                    difficulty.circle_size = Some(value.parse().map_err(new_into_decimal)?)
+                }
+                "OverallDifficulty" => {
+                    difficulty.overall_difficulty = Some(value.parse().map_err(new_into_decimal)?)
+                }
+                "ApproachRate" => {
+                    difficulty.approach_rate = Some(value.parse().map_err(new_into_decimal)?)
+                }
+                "SliderMultiplier" => {
+                    difficulty.slider_multiplier = Some(value.parse().map_err(new_into_decimal)?)
+                }
+                "SliderTickRate" => {
+                    difficulty.slider_tickrate = Some(value.parse().map_err(new_into_decimal)?)
+                }
+                _ => return Err(Error::new(ParseError::InvalidKey, line_count)),
+            }
+
+            line_count += ws.lines().count();
+        }
+
+        Ok(Some(difficulty))
     }
-}
 
-impl Display for Difficulty {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut key_value = Vec::new();
+    fn to_string_v3(&self) -> String {
+        let key_value = vec![
+            ("HPDrainRate", &self.hp_drain_rate),
+            ("CircleSize", &self.circle_size),
+            ("OverallDifficulty", &self.overall_difficulty),
+            ("ApproachRate", &self.approach_rate),
+            ("SliderMultiplier", &self.slider_multiplier),
+            ("SliderTickRate", &self.slider_tickrate),
+        ];
 
-        key_value.push(("HPDrainRate", &self.hp_drain_rate));
-        key_value.push(("CircleSize", &self.circle_size));
-        key_value.push(("OverallDifficulty", &self.overall_difficulty));
-        key_value.push(("ApproachRate", &self.approach_rate));
-        key_value.push(("SliderMultiplier", &self.slider_multiplier));
-        key_value.push(("SliderTickRate", &self.slider_tickrate));
-
-        write!(
-            f,
-            "{}",
-            key_value
-                .iter()
-                .filter_map(|(k, v)| v.as_ref().map(|v| format!("{k}:{v}")))
-                .collect::<Vec<_>>()
-                .join("\n")
-        )
+        key_value
+            .iter()
+            .filter_map(|(k, v)| v.as_ref().map(|v| format!("{k}:{v}")))
+            .collect::<Vec<_>>()
+            .join("\n")
     }
 }

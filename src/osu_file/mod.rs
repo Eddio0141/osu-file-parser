@@ -102,7 +102,7 @@ impl Display for OsuFile {
                     sections.push(format!("[Metadata]\n{}", metadata));
                 }
                 if let Some(difficulty) = &self.difficulty {
-                    sections.push(format!("[Difficulty]\n{}", difficulty));
+                    sections.push(format!("[Difficulty]\n{}", difficulty.to_string_v14()));
                 }
                 if let Some(events) = &self.events {
                     sections.push(format!("[Events]\n{}", events));
@@ -229,8 +229,13 @@ impl FromStr for OsuFile {
                         metadata = Some(parse_error_to_error(section.parse(), section_start_line)?)
                     }
                     "Difficulty" => {
-                        difficulty =
-                            Some(parse_error_to_error(section.parse(), section_start_line)?)
+                        difficulty = Some(
+                            Error::processing_line(
+                                Difficulty::from_str_v14(section),
+                                section_start_line,
+                            )?
+                            .unwrap(),
+                        )
                     }
                     "Events" => {
                         events = Some(Error::processing_line(section.parse(), section_start_line)?)
@@ -340,7 +345,7 @@ pub enum ParseError {
     #[error(transparent)]
     DifficultyParseError {
         #[from]
-        source: difficulty::DifficultyParseError,
+        source: difficulty::ParseError,
     },
     /// Error parsing the events section.
     #[error(transparent)]

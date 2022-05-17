@@ -1,19 +1,20 @@
+use std::num::ParseIntError;
+
 use thiserror::Error;
 
 #[derive(Debug, Error)]
 /// Error used when there was a problem parsing the `Difficulty` section.
-pub enum DifficultyParseError {
-    #[error("There was a problem parsing the `{name}` property from a `str`")]
-    /// A section in `Difficulty` failed to parse.
-    SectionParseError {
-        #[source]
-        source: rust_decimal::Error,
-        name: &'static str,
-    },
-    #[error("The key {0} doesn't exist in `Difficulty`")]
+pub enum ParseError {
+    /// A Field in `General` failed to parse as a `Integer`.
+    #[error(transparent)]
+    ParseIntError(#[from] ParseIntError),
+    /// A Field in `General` failed to parse as a `Decimal`.
+    #[error(transparent)]
+    ParseDecimalError(#[from] rust_decimal::Error),
+    /// When the line isn't in a `key: value` format.
+    #[error("Invalid colon set, expected format of `key: value`")]
+    InvalidColonSet,
     /// Invalid key name was used.
-    InvalidKey(String),
-    #[error("The key {0} has no value set")]
-    /// The value is missing from the `key: value` set.
-    MissingValue(String),
+    #[error("The key doesn't exist in `General`")]
+    InvalidKey,
 }
