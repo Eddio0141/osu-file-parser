@@ -26,31 +26,21 @@ use self::storyboard::{
     sprites::Object,
 };
 
-use super::{types::Error, Integer, Position};
+use super::{types::Error, Integer, Position, Version};
 
 pub use self::error::*;
 
 #[derive(Default, Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Events(pub Vec<Event>);
 
-impl Display for Events {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            self.0
-                .iter()
-                .map(|i| i.to_string())
-                .collect::<Vec<_>>()
-                .join("\n")
-        )
-    }
-}
+impl Version for Events {
+    type ParseError = Error<ParseError>;
 
-impl FromStr for Events {
-    type Err = crate::osu_file::types::Error<ParseError>;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    // TODO check versions
+    fn from_str_v3(s: &str) -> std::result::Result<Option<Self>, Self::ParseError>
+    where
+        Self: Sized,
+    {
         let mut events = Events::default();
 
         let comment = preceded::<_, _, _, nom::error::Error<_>, _, _>(tag("//"), rest);
@@ -146,7 +136,15 @@ impl FromStr for Events {
             line_index += 1;
         }
 
-        Ok(events)
+        Ok(Some(events))
+    }
+
+    fn to_string_v3(&self) -> String {
+        self.0
+            .iter()
+            .map(|i| i.to_string())
+            .collect::<Vec<_>>()
+            .join("\n")
     }
 }
 
