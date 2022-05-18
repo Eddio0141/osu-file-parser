@@ -7,7 +7,18 @@ use std::{
     str::FromStr,
 };
 
-use crate::osu_file::events::storyboard::sprites;
+use nom::{
+    bytes::complete::{tag, take_while},
+    combinator::rest,
+    error::context,
+    sequence::{preceded, tuple},
+    Finish,
+};
+
+use crate::{
+    osu_file::events::storyboard::sprites,
+    parsers::{comma, comma_field, comma_field_i32},
+};
 
 use self::storyboard::{
     cmds::{Command, CommandProperties},
@@ -40,86 +51,85 @@ impl FromStr for Events {
     type Err = crate::osu_file::types::Error<ParseError>;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let s = s.lines();
         let mut events = Events::default();
+
+        let comment = preceded::<_, _, _, nom::error::Error<_>, _, _>(tag("//"), rest);
+
         let mut line_index = 0;
 
-        for line in s {
+        for line in s.lines() {
             if !line.trim().is_empty() {
-                match line.trim().strip_prefix("//") {
-                    Some(comment) => events.0.push(Event::Comment(comment.to_string())),
-                    None => {
-                        let mut s = line.split(',');
+                if let Ok((_, comment)) = comment(line) {
+                    events.0.push(Event::Comment(comment.to_string()));
+                } else {
+                    let indent = take_while::<_, _, nom::error::Error<_>>(|c| c == ' ' || c == '_');
 
-                        let mut header = s.next().ok_or(ParseError::MissingField("eventType"))?;
-                        let header_indent = {
-                            let mut count = 0usize;
-                            while let Some(header_no_indent) = header.strip_prefix([' ', '_']) {
-                                header = header_no_indent;
-                                count += 1;
-                            }
-                            count
-                        };
-                        let header = header;
+                    let indent = indent(line).unwrap().1.len();
 
-                        // its a storyboard command
-                        if header_indent > 0 {
-                            match events.0.last_mut() {
-                                Some(Event::Storyboard(sprite)) => Error::new_from_result_into(
-                                    sprite.try_push_cmd(
-                                        Error::new_from_result_into(line.parse(), line_index)?,
-                                        header_indent,
-                                    ),
+                    // its a storyboard command
+                    if indent > 0 {
+                        match events.0.last_mut() {
+                            Some(Event::Storyboard(sprite)) => Error::new_from_result_into(
+                                sprite.try_push_cmd(
+                                    Error::new_from_result_into(line.parse(), line_index)?,
+                                    indent,
+                                ),
+                                line_index,
+                            )?,
+                            _ => {
+                                return Err(Error::new(
+                                    ParseError::StoryboardCmdWithNoSprite,
                                     line_index,
-                                )?,
-                                _ => {
-                                    return Err(Error::new(
-                                        ParseError::StoryboardCmdWithNoSprite,
-                                        line_index,
-                                    ))
-                                }
+                                ))
                             }
-                            continue;
                         }
-
+                    } else {
                         // is it a storyboard object?
+
                         match line.parse() {
                             Ok(object) => {
                                 events.0.push(Event::Storyboard(object));
-                                continue;
                             }
                             Err(err) => {
                                 if let ObjectParseError::UnknownObjectType(_) = err {
-                                    let start_time =
-                                        s.next().ok_or(ParseError::MissingField("startTime"))?;
-                                    let start_time = start_time.parse().map_err(|err| {
-                                        ParseError::FieldParseError {
-                                            source: Box::new(err),
-                                            value: start_time.to_string(),
-                                            field_name: "startTime",
-                                        }
-                                    })?;
+                                    let missing_start_time = "missing_start_time";
+                                    let invalid_end_time = "invalid_end_time";
 
-                                    let event_params = EventParams::try_from((header, &mut s))
-                                        .map_err(|err| {
-                                            Error::new(
-                                                ParseError::FieldParseError {
-                                                    source: Box::new(err),
-                                                    // TODO does this even work
-                                                    value: format!(
-                                                        "{}{}",
-                                                        header,
-                                                        s.collect::<String>()
-                                                    ),
-                                                    field_name: "eventParams",
-                                                },
-                                                line_index,
-                                            )
-                                        })?;
+                                    let (_, (_, _, start_time, _)) = tuple((
+                                        comma_field(),
+                                        context(missing_start_time, comma()),
+                                        context(invalid_end_time, comma_field_i32()),
+                                        take_while(|_| true),
+                                    ))(
+                                        line
+                                    )
+                                    .finish()
+                                    .map_err(|err: nom::error::VerboseError<_>| {
+                                        for (input, err) in err.errors {
+                                            if let nom::error::VerboseErrorKind::Context(context) =
+                                                err
+                                            {
+                                                let err = match context {
+                                                    missing_start_time => {
+                                                        ParseError::MissingStartTime
+                                                    }
+                                                    invalid_end_time => ParseError::ParseStartTime,
+                                                    _ => unreachable!(),
+                                                };
+
+                                                return Error::new(err, line_index);
+                                            }
+                                        }
+
+                                        unimplemented!("I somehow forgot to implement a context");
+                                    })?;
 
                                     events.0.push(Event::NormalEvent {
                                         start_time,
-                                        event_params,
+                                        event_params: Error::new_from_result_into(
+                                            line.parse(),
+                                            line_index,
+                                        )?,
                                     })
                                 } else {
                                     return Err(Error::new(
@@ -289,6 +299,14 @@ pub enum EventParams {
     Video(Video),
     Break(Break),
     ColourTransformation(ColourTransformation),
+}
+
+impl FromStr for EventParams {
+    type Err = EventParamsParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
+    }
 }
 
 impl<'a, T> TryFrom<(&str, &mut T)> for EventParams

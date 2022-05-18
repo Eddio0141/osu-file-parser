@@ -7,23 +7,23 @@ use super::storyboard::error::*;
 /// Errors used when there was a problem parsing an [`Event`] from a `str`.
 #[derive(Debug, Error)]
 pub enum ParseError {
-    /// A field is missing from the [`Event`].
-    #[error("The field {0} is missing")]
-    MissingField(&'static str),
-    /// There was an error attempting to parse `str` as a field type.
-    #[error("There was a problem parsing the {field_name} field from a `str`")]
-    FieldParseError {
-        #[source]
-        source: Box<dyn Error>,
-        value: String,
-        field_name: &'static str,
-    },
-    /// The input has nothing or whitespace.
-    #[error("The input is empty")]
-    EmptyString,
+    /// When the line isn't in a `key: value` format.
+    #[error("Invalid colon set, expected format of `key: value`")]
+    InvalidColonSet,
+    /// Invalid key name was used.
+    #[error("The key doesn't exist in `General`")]
+    InvalidKey,
+    /// Missing the `start_time` field.
+    #[error("Missing the `start_time` field")]
+    MissingStartTime,
+    /// Failed to parse the `start_time` field.
+    #[error("Failed to parse the `start_time` field")]
+    ParseStartTime,
     /// A `storyboard` `command` was used without defined sprite or animation sprite.
     #[error("A storyboard command was used without defined sprite or animation sprite")]
     StoryboardCmdWithNoSprite,
+    #[error(transparent)]
+    EventParamsParseError(#[from] EventParamsParseError),
     #[error(transparent)]
     CommandPushError(#[from] CommandPushError),
     #[error(transparent)]
