@@ -10,6 +10,10 @@ use thiserror::Error;
 use super::FieldName;
 
 #[derive(Debug, Error)]
+#[error(transparent)]
+pub struct ParseError(#[from] HitObjectParseError);
+
+#[derive(Debug, Error)]
 #[error("Expected combo skip count to be 3 bits, got {0}")]
 pub struct ComboSkipCountTooHigh(pub u8);
 

@@ -10,51 +10,46 @@ use nom::error::VerboseErrorKind;
 use nom::Finish;
 use rust_decimal::Decimal;
 use strum_macros::Display;
-use thiserror::Error;
 
 use self::error::*;
 use self::parser::hitobject;
 use self::parser::Context;
 use self::types::*;
+use super::Error;
 use super::Integer;
 use super::Position;
+use super::Version;
 use crate::helper::*;
 use crate::parsers::comma_field;
 
 #[derive(Clone, Debug, Default, Hash, PartialEq, Eq)]
 pub struct HitObjects(pub Vec<HitObject>);
 
-impl Display for HitObjects {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            self.0
-                .iter()
-                .map(|h| h.to_string())
-                .collect::<Vec<_>>()
-                .join("\n")
-        )
-    }
-}
+impl Version for HitObjects {
+    type ParseError = Error<ParseError>;
 
-impl FromStr for HitObjects {
-    type Err = HitObjectsParseError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    // TODO different versions
+    fn from_str_v3(s: &str) -> std::result::Result<Option<Self>, Self::ParseError>
+    where
+        Self: Sized,
+    {
         let mut hitobjects = Vec::new();
 
-        for s in s.lines() {
-            hitobjects.push(s.parse()?);
+        for (line_index, s) in s.lines().enumerate() {
+            hitobjects.push(Error::new_from_result_into(s.parse(), line_index)?);
         }
 
-        Ok(HitObjects(hitobjects))
+        Ok(Some(HitObjects(hitobjects)))
+    }
+
+    fn to_string_v3(&self) -> String {
+        self.0
+            .iter()
+            .map(|h| h.to_string())
+            .collect::<Vec<_>>()
+            .join("\n")
     }
 }
-
-#[derive(Debug, Error)]
-#[error(transparent)]
-pub struct HitObjectsParseError(#[from] HitObjectParseError);
 
 /// An interface that represents a hitobject.
 ///
