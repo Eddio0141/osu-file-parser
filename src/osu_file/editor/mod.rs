@@ -56,10 +56,11 @@ impl Version for Editor {
 
             match name {
                 "Bookmarks" => {
+                    let comma = tag::<_, _, nom::error::Error<_>>(",");
                     let bookmark = map_res(take_till(|c| c == ','), |s: &str| s.parse::<Integer>());
-                    let separator = tag::<_, _, nom::error::Error<_>>(",");
+                    let mut bookmarks = separated_list0(comma, bookmark);
 
-                    let (_, bookmarks) = match separated_list0(separator, bookmark)(s).finish() {
+                    let (_, bookmarks) = match bookmarks(value).finish() {
                         Ok(ok) => ok,
                         Err(err) => {
                             let err = match err.code {

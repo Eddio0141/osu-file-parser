@@ -2,6 +2,11 @@ mod hitobject;
 mod osu_files;
 mod storyboard;
 
+use nom::{
+    bytes::complete::{tag, take_till},
+    combinator::map_res,
+    multi::separated_list0,
+};
 #[cfg(test)]
 use pretty_assertions::assert_eq;
 use rust_decimal::Decimal;
@@ -86,6 +91,7 @@ BeatDivisor: 12
 GridSize: 8
 TimelineZoom: 2";
     let i = Editor::from_str_v14(i_str).unwrap().unwrap();
+    dbg!(&i);
 
     let e = Editor {
         bookmarks: Some(vec![
@@ -505,4 +511,32 @@ fn osu_file_smallest_parse() {
     let o: OsuFile = i.parse().unwrap();
 
     assert_eq!(i, o.to_string());
+}
+
+#[test]
+fn separated_list() {
+    let mut separated_list = separated_list0(
+        tag::<_, _, nom::error::Error<_>>(" "),
+        take_till(|c| c == ' '),
+    );
+
+    let i = "foo bar baz";
+    let (i, o) = separated_list(i).unwrap();
+
+    assert!(i.is_empty());
+    assert_eq!(o, vec!["foo", "bar", "baz"]);
+}
+
+#[test]
+fn separated_list_map() {
+    let mut separated_list = separated_list0(
+        tag::<_, _, nom::error::Error<_>>(","),
+        map_res(take_till(|c| c == ','), |s: &str| s.parse::<i32>()),
+    );
+
+    let i = "1,2,345";
+    let (i, o) = separated_list(i).unwrap();
+
+    assert!(i.is_empty());
+    assert_eq!(o, vec![1, 2, 345]);
 }
