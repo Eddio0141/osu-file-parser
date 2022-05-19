@@ -59,7 +59,7 @@ impl Version for Editor {
                     let bookmark = map_res(take_till(|c| c == ','), |s: &str| s.parse::<Integer>());
                     let separator = tag::<_, _, nom::error::Error<_>>(",");
 
-                    let (s, bookmarks) = match separated_list0(separator, bookmark)(s).finish() {
+                    let (_, bookmarks) = match separated_list0(separator, bookmark)(s).finish() {
                         Ok(ok) => ok,
                         Err(err) => {
                             let err = match err.code {

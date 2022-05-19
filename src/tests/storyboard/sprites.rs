@@ -1,14 +1,14 @@
 use std::path::Path;
 
 use crate::osu_file::events::storyboard::sprites::*;
-use crate::osu_file::events::*;
 use crate::osu_file::types::Position;
+use crate::osu_file::{events::*, Version};
 
 #[test]
 fn storyboard_sprites_parse() {
     let i_str = "Sprite,Pass,Centre,\"Text\\Play2-HaveFunH.png\",320,240
 Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopForever";
-    let i: Events = i_str.parse().unwrap();
+    let i = Events::from_str_v14(i_str).unwrap().unwrap();
 
     let s = Events(vec![
         Event::Storyboard(Object {
@@ -35,7 +35,7 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
     ]);
 
     assert_eq!(i, s);
-    assert_eq!(i_str, i.to_string());
+    assert_eq!(i_str, i.to_string_v14());
 }
 
 #[test]

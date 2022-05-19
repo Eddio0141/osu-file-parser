@@ -43,11 +43,9 @@ impl Version for Events {
     {
         let mut events = Events::default();
 
-        let comment = preceded::<_, _, _, nom::error::Error<_>, _, _>(tag("//"), rest);
+        let mut comment = preceded::<_, _, _, nom::error::Error<_>, _, _>(tag("//"), rest);
 
-        let mut line_index = 0;
-
-        for line in s.lines() {
+        for (line_index, line) in s.lines().enumerate() {
             if !line.trim().is_empty() {
                 if let Ok((_, comment)) = comment(line) {
                     events.0.push(Event::Comment(comment.to_string()));
@@ -82,28 +80,27 @@ impl Version for Events {
                             }
                             Err(err) => {
                                 if let ObjectParseError::UnknownObjectType(_) = err {
-                                    let missing_start_time = "missing_start_time";
-                                    let invalid_end_time = "invalid_end_time";
-
                                     let (_, (_, _, start_time, _)) = tuple((
                                         comma_field(),
-                                        context(missing_start_time, comma()),
-                                        context(invalid_end_time, comma_field_i32()),
+                                        context("missing_start_time", comma()),
+                                        context("invalid_end_time", comma_field_i32()),
                                         take_while(|_| true),
                                     ))(
                                         line
                                     )
                                     .finish()
                                     .map_err(|err: nom::error::VerboseError<_>| {
-                                        for (input, err) in err.errors {
+                                        for (_, err) in err.errors {
                                             if let nom::error::VerboseErrorKind::Context(context) =
                                                 err
                                             {
                                                 let err = match context {
-                                                    missing_start_time => {
+                                                    "missing_start_time" => {
                                                         ParseError::MissingStartTime
                                                     }
-                                                    invalid_end_time => ParseError::ParseStartTime,
+                                                    "invalid_end_time" => {
+                                                        ParseError::ParseStartTime
+                                                    }
                                                     _ => unreachable!(),
                                                 };
 
@@ -132,8 +129,6 @@ impl Version for Events {
                     }
                 }
             }
-
-            line_index += 1;
         }
 
         Ok(Some(events))
@@ -303,18 +298,16 @@ impl FromStr for EventParams {
     type Err = EventParamsParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        todo!()
-    }
-}
+        // TODO fix this
+        let mut event_params = s.split(',');
 
-impl<'a, T> TryFrom<(&str, &mut T)> for EventParams
-where
-    T: Iterator<Item = &'a str> + Clone + std::fmt::Debug,
-{
-    type Error = EventParamsParseError;
-
-    fn try_from((event_type, event_params): (&str, &mut T)) -> Result<Self, Self::Error> {
-        let event_type = event_type.trim();
+        let event_type = event_params
+            .next()
+            .ok_or(EventParamsParseError::MissingField("event_type"))?
+            .trim();
+        event_params
+            .next()
+            .ok_or(EventParamsParseError::MissingField("start_time"))?;
 
         match event_type {
             "0" | "1" | "Video" => {

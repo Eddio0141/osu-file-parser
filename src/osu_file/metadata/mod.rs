@@ -56,7 +56,7 @@ impl Version for Metadata {
             return Err(Error::new(ParseError::InvalidColonSet, line_count));
         }
 
-        let tags = separated_list0(tag::<_, _, nom::error::Error<_>>(" "), take_until(" "))
+        let mut tags = separated_list0(tag::<_, _, nom::error::Error<_>>(" "), take_until(" "))
             .map(|tags: Vec<&str>| tags.iter().map(|tag| tag.to_string()).collect());
 
         let mut line_count = 0;

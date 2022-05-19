@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
 
+use crate::osu_file::Version;
 use crate::osu_file::events::storyboard::cmds::*;
 use crate::osu_file::events::storyboard::sprites::*;
 use crate::osu_file::events::storyboard::types::*;
@@ -43,7 +44,7 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
  T,HitSound6,0,10
  T,HitSoundPassing,0,10
  T,HitSoundFailing,0,10";
-    let i: Events = i_str.parse().unwrap();
+    let i: Events = Events::from_str_v14(i_str).unwrap().unwrap();
 
     let s = Events(vec![
         Event::Storyboard(Object {
@@ -373,7 +374,7 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
     ]);
 
     assert_eq!(i, s);
-    assert_eq!(i_str, i.to_string());
+    assert_eq!(i_str, i.to_string_v14());
 }
 
 #[test]
