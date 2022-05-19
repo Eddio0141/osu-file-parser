@@ -79,13 +79,13 @@ SamplesMatchPlaybackRate: 1";
 }
 
 #[test]
-fn editor_parse() {
+fn editor_parse_v14() {
     let i_str = "Bookmarks: 11018,21683,32349,37683,48349,59016,69683,80349,91016
 DistanceSpacing: 0.8
 BeatDivisor: 12
 GridSize: 8
 TimelineZoom: 2";
-    let i: Editor = i_str.parse().unwrap();
+    let i = Editor::from_str_v14(i_str).unwrap().unwrap();
 
     let e = Editor {
         bookmarks: Some(vec![
@@ -98,11 +98,11 @@ TimelineZoom: 2";
     };
 
     assert_eq!(i, e);
-    assert_eq!(i_str, i.to_string());
+    assert_eq!(i_str, i.to_string_v14());
 }
 
 #[test]
-fn metadata_parse() {
+fn metadata_parse_v14() {
     let i_str = "Title:LOVE IS ORANGE
 TitleUnicode:LOVE IS ORANGE
 Artist:Orange Lounge
@@ -113,7 +113,7 @@ Source:beatmania IIDX 8th style
 Tags:famoss 舟木智介 tomosuke funaki 徳井志津江 videogame ハードシャンソン Tart&Toffee
 BeatmapID:3072232
 BeatmapSetID:1499093";
-    let i: Metadata = i_str.parse().unwrap();
+    let i = Metadata::from_str_v14(i_str).unwrap().unwrap();
 
     let m = Metadata {
         title: Some("LOVE IS ORANGE".to_string()),
@@ -138,18 +138,18 @@ BeatmapSetID:1499093";
     };
 
     assert_eq!(i, m);
-    assert_eq!(i_str, i.to_string());
+    assert_eq!(i_str, i.to_string_v14());
 }
 
 #[test]
-fn difficulty_parse() {
+fn difficulty_parse_v14() {
     let i_str = "HPDrainRate:8
 CircleSize:5
 OverallDifficulty:8
 ApproachRate:5
 SliderMultiplier:1.4
 SliderTickRate:1";
-    let i: Difficulty = i_str.parse().unwrap();
+    let i = Difficulty::from_str_v14(i_str).unwrap().unwrap();
 
     let d = Difficulty {
         hp_drain_rate: Some(dec!(8)),
@@ -161,15 +161,15 @@ SliderTickRate:1";
     };
 
     assert_eq!(i, d);
-    assert_eq!(i_str, i.to_string());
+    assert_eq!(i_str, i.to_string_v14());
 }
 
 #[test]
-fn colours_parse() {
+fn colours_parse_v14() {
     let i_str = "Combo1 : 255,128,255
 SliderTrackOverride : 100,99,70
 SliderBorder : 120,130,140";
-    let i: Colours = i_str.parse().unwrap();
+    let i = Colours::from_str_v14(i_str).unwrap().unwrap();
 
     let c = vec![
         Colour::Combo(
@@ -193,14 +193,14 @@ SliderBorder : 120,130,140";
     ];
 
     assert_eq!(i, Colours(c));
-    assert_eq!(i_str, i.to_string());
+    assert_eq!(i_str, i.to_string_v14());
 }
 
 #[test]
-fn timing_points_parse() {
+fn timing_points_parse_v14() {
     let i_str = "10000,333.33,4,0,0,100,1,1
 12000,-25,4,3,0,100,0,1";
-    let i = i_str.parse::<TimingPoints>().unwrap();
+    let i = TimingPoints::from_str_v14(i_str).unwrap().unwrap();
 
     let t = vec![
         TimingPoint::new_uninherited(
@@ -230,7 +230,7 @@ fn timing_points_parse() {
     ];
 
     assert_eq!(i, TimingPoints(t));
-    assert_eq!(i_str, i.to_string());
+    assert_eq!(i_str, i.to_string_v14());
 }
 
 #[test]
@@ -239,7 +239,7 @@ fn events_parse() {
 0,0,bg2.jpg,0,1
 //Break Periods
 2,100,163";
-    let i: Events = i_str.parse().unwrap();
+    let i = Events::from_str_v14(i_str).unwrap().unwrap();
 
     let e = Events(vec![
         Event::NormalEvent {
@@ -264,7 +264,7 @@ fn events_parse() {
     ]);
 
     assert_eq!(i, e);
-    assert_eq!(i_str, i.to_string());
+    assert_eq!(i_str, i.to_string_v14());
 }
 
 #[test]
