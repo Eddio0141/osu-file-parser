@@ -99,22 +99,22 @@ impl Display for OsuFile {
                     sections.push(format!("[Editor]\n{}", editor.to_string_v14()));
                 }
                 if let Some(metadata) = &self.metadata {
-                    sections.push(format!("[Metadata]\n{}", metadata));
+                    sections.push(format!("[Metadata]\n{}", metadata.to_string_v14()));
                 }
                 if let Some(difficulty) = &self.difficulty {
                     sections.push(format!("[Difficulty]\n{}", difficulty.to_string_v14()));
                 }
                 if let Some(events) = &self.events {
-                    sections.push(format!("[Events]\n{}", events));
+                    sections.push(format!("[Events]\n{}", events.to_string_v14()));
                 }
                 if let Some(timing_points) = &self.timing_points {
-                    sections.push(format!("[TimingPoints]\n{}", timing_points));
+                    sections.push(format!("[TimingPoints]\n{}", timing_points.to_string_v14()));
                 }
                 if let Some(colours) = &self.colours {
                     sections.push(format!("[Colours]\n{}", colours.to_string_v14()));
                 }
                 if let Some(hitobjects) = &self.hitobjects {
-                    sections.push(format!("[HitObjects]\n{}", hitobjects));
+                    sections.push(format!("[HitObjects]\n{}", hitobjects.to_string_v14()));
                 }
             }
             _ => unimplemented!("osu! file version {} not implemented", self.version),
@@ -232,7 +232,13 @@ impl FromStr for OsuFile {
                         )
                     }
                     "Metadata" => {
-                        metadata = Some(parse_error_to_error(section.parse(), section_start_line)?)
+                        metadata = Some(
+                            Error::processing_line(
+                                Metadata::from_str_v14(section),
+                                section_start_line,
+                            )?
+                            .unwrap(),
+                        )
                     }
                     "Difficulty" => {
                         difficulty = Some(
@@ -244,11 +250,22 @@ impl FromStr for OsuFile {
                         )
                     }
                     "Events" => {
-                        events = Some(Error::processing_line(section.parse(), section_start_line)?)
+                        events = Some(
+                            Error::processing_line(
+                                Events::from_str_v14(section),
+                                section_start_line,
+                            )?
+                            .unwrap(),
+                        )
                     }
                     "TimingPoints" => {
-                        timing_points =
-                            Some(parse_error_to_error(section.parse(), section_start_line)?)
+                        timing_points = Some(
+                            Error::processing_line(
+                                TimingPoints::from_str_v14(section),
+                                section_start_line,
+                            )?
+                            .unwrap(),
+                        )
                     }
                     "Colours" => {
                         colours = Some(
@@ -260,8 +277,13 @@ impl FromStr for OsuFile {
                         )
                     }
                     "HitObjects" => {
-                        hitobjects =
-                            Some(parse_error_to_error(section.parse(), section_start_line)?)
+                        hitobjects = Some(
+                            Error::processing_line(
+                                HitObjects::from_str_v14(section),
+                                section_start_line,
+                            )?
+                            .unwrap(),
+                        )
                     }
                     _ => return Err(Error::new(ParseError::UnknownSection, section_name_line)),
                 },
@@ -345,7 +367,7 @@ pub enum ParseError {
     #[error(transparent)]
     MetadataParseError {
         #[from]
-        source: metadata::MetadataParseError,
+        source: metadata::ParseError,
     },
     /// Error parsing the difficulty section.
     #[error(transparent)]
@@ -375,6 +397,6 @@ pub enum ParseError {
     #[error(transparent)]
     HitObjectsParseError {
         #[from]
-        source: hitobject::HitObjectsParseError,
+        source: hitobject::ParseError,
     },
 }
