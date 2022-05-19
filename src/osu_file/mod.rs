@@ -185,21 +185,6 @@ impl FromStr for OsuFile {
 
         let mut line_number = 1;
 
-        // TODO eventually remove this
-        fn parse_error_to_error<P>(
-            result: Result<P, <P as FromStr>::Err>,
-            line_number: usize,
-        ) -> Result<P, Error<ParseError>>
-        where
-            P: FromStr,
-            ParseError: From<P::Err>,
-        {
-            match result {
-                Ok(ok) => Ok(ok),
-                Err(err) => Err(Error::new(err.into(), line_number)),
-            }
-        }
-
         for (ws, section_name, ws2, section) in sections {
             line_number += ws.lines().count();
 
