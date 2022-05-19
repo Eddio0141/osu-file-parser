@@ -11,7 +11,6 @@ use nom::Finish;
 use rust_decimal::Decimal;
 use strum_macros::Display;
 
-use self::error::*;
 use self::parser::hitobject;
 use self::parser::Context;
 use self::types::*;
@@ -21,6 +20,8 @@ use super::Position;
 use super::Version;
 use crate::helper::*;
 use crate::parsers::comma_field;
+
+pub use self::error::*;
 
 #[derive(Clone, Debug, Default, Hash, PartialEq, Eq)]
 pub struct HitObjects(pub Vec<HitObject>);
