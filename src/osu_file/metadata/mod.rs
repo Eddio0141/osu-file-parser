@@ -1,9 +1,14 @@
 pub mod error;
 
-use std::fmt::Display;
-use std::str::FromStr;
+use nom::{
+    bytes::complete::{tag, take_until},
+    multi::separated_list0,
+    Parser,
+};
 
-use super::{Integer, SECTION_DELIMITER};
+use crate::parsers::get_colon_field_value_lines;
+
+use super::{Error, Integer, Version};
 
 pub use self::error::*;
 
@@ -32,60 +37,55 @@ pub struct Metadata {
     pub beatmap_set_id: Option<Integer>,
 }
 
-impl FromStr for Metadata {
-    type Err = MetadataParseError;
+impl Version for Metadata {
+    type ParseError = Error<ParseError>;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str_v3(s: &str) -> std::result::Result<Option<Self>, Self::ParseError>
+    where
+        Self: Sized,
+    {
         let mut metadata = Metadata::default();
 
-        let s = s.trim();
+        let (s, fields) = get_colon_field_value_lines(s).unwrap();
 
-        for line in s.lines() {
-            match line.split_once(SECTION_DELIMITER) {
-                Some((key, value)) => match key.trim() {
-                    "Title" => metadata.title = Some(value.to_owned()),
-                    "TitleUnicode" => metadata.title_unicode = Some(value.to_owned()),
-                    "Artist" => metadata.artist = Some(value.to_owned()),
-                    "ArtistUnicode" => metadata.artist_unicode = Some(value.to_owned()),
-                    "Creator" => metadata.creator = Some(value.to_owned()),
-                    "Version" => metadata.version = Some(value.to_owned()),
-                    "Source" => metadata.source = Some(value.to_owned()),
-                    "Tags" => {
-                        metadata.tags = Some(
-                            value
-                                .split_whitespace()
-                                .map(|value| value.to_string())
-                                .collect(),
-                        )
-                    }
-                    "BeatmapID" => {
-                        metadata.beatmap_id = Some(value.parse().map_err(|err| {
-                            MetadataParseError::SectionParseError {
-                                source: err,
-                                name: "BeatmapID",
-                            }
-                        })?)
-                    }
-                    "BeatmapSetID" => {
-                        metadata.beatmap_set_id = Some(value.parse().map_err(|err| {
-                            MetadataParseError::SectionParseError {
-                                source: err,
-                                name: "BeatmapSetID",
-                            }
-                        })?)
-                    }
-                    _ => return Err(MetadataParseError::InvalidKey(line.to_string())),
-                },
-                None => return Err(MetadataParseError::MissingValue(line.to_owned())),
-            }
+        if !s.trim().is_empty() {
+            // line count from fields
+            let line_count = { fields.iter().map(|(_, _, ws)| ws.lines().count()).sum() };
+
+            return Err(Error::new(ParseError::InvalidColonSet, line_count));
         }
 
-        Ok(metadata)
-    }
-}
+        let tags = separated_list0(tag::<_, _, nom::error::Error<_>>(" "), take_until(" "))
+            .map(|tags: Vec<&str>| tags.iter().map(|tag| tag.to_string()).collect());
 
-impl Display for Metadata {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut line_count = 0;
+
+        for (name, value, ws) in fields {
+            let new_into_int = move |err| Error::new_into(err, line_count);
+
+            match name {
+                "Title" => metadata.title = Some(value.to_owned()),
+                "TitleUnicode" => metadata.title_unicode = Some(value.to_owned()),
+                "Artist" => metadata.artist = Some(value.to_owned()),
+                "ArtistUnicode" => metadata.artist_unicode = Some(value.to_owned()),
+                "Creator" => metadata.creator = Some(value.to_owned()),
+                "Version" => metadata.version = Some(value.to_owned()),
+                "Source" => metadata.source = Some(value.to_owned()),
+                "Tags" => metadata.tags = Some(tags.parse(value).unwrap().1),
+                "BeatmapID" => metadata.beatmap_id = Some(value.parse().map_err(new_into_int)?),
+                "BeatmapSetID" => {
+                    metadata.beatmap_set_id = Some(value.parse().map_err(new_into_int)?)
+                }
+                _ => return Err(Error::new(ParseError::InvalidKey, line_count)),
+            }
+
+            line_count += ws.lines().count();
+        }
+
+        Ok(Some(metadata))
+    }
+
+    fn to_string_v3(&self) -> String {
         let tags = self.tags.as_ref().map(|v| v.join(" "));
         let beatmap_id = self.beatmap_id.map(|v| v.to_string());
         let beatmap_set_id = self.beatmap_set_id.map(|v| v.to_string());
@@ -103,14 +103,10 @@ impl Display for Metadata {
             ("BeatmapSetID", &beatmap_set_id),
         ];
 
-        write!(
-            f,
-            "{}",
-            key_value
-                .iter()
-                .filter_map(|(k, v)| v.as_ref().map(|v| format!("{k}:{v}")))
-                .collect::<Vec<_>>()
-                .join("\n")
-        )
+        key_value
+            .iter()
+            .filter_map(|(k, v)| v.as_ref().map(|v| format!("{k}:{v}")))
+            .collect::<Vec<_>>()
+            .join("\n")
     }
 }
