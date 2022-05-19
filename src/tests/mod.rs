@@ -91,7 +91,6 @@ BeatDivisor: 12
 GridSize: 8
 TimelineZoom: 2";
     let i = Editor::from_str_v14(i_str).unwrap().unwrap();
-    dbg!(&i);
 
     let e = Editor {
         bookmarks: Some(vec![
