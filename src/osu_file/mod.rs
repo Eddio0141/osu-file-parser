@@ -13,13 +13,11 @@ use std::hash::Hash;
 use std::str::FromStr;
 
 use nom::bytes::complete::{tag, take_till};
-use nom::character::complete::{char, multispace0};
+use nom::character::complete::multispace0;
 use nom::combinator::map_res;
 use nom::multi::many0;
 use nom::sequence::{delimited, tuple};
 use thiserror::Error;
-
-use crate::parsers::*;
 
 pub use self::colours::Colours;
 pub use self::difficulty::Difficulty;
@@ -129,13 +127,12 @@ impl FromStr for OsuFile {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let version_text = tag::<_, _, nom::error::Error<_>>("osu file format v");
-        let version_number = map_res(
-            trailing_ws(take_till(|ch| ch == '\r' || ch == '\n')),
-            |s: &str| s.parse::<u8>(),
-        );
+        let version_number = map_res(take_till(|c| c == '\r' || c == '\n'), |s: &str| {
+            s.parse::<u8>()
+        });
 
-        let section_open = char::<_, nom::error::Error<_>>('[');
-        let section_close = char(']');
+        let section_open = tag::<_, _, nom::error::Error<_>>("[");
+        let section_close = tag("]");
         let section_name_inner = take_till(|c: char| c == ']' || c == '\r' || c == '\n');
         let section_name = delimited(section_open, section_name_inner, section_close);
         let section_until = take_till(|c| c == '[');
@@ -183,7 +180,7 @@ impl FromStr for OsuFile {
             mut hitobjects,
         ) = (None, None, None, None, None, None, None, None);
 
-        let mut line_number = 1;
+        let mut line_number = 0;
 
         for (ws, section_name, ws2, section) in sections {
             line_number += ws.lines().count();
@@ -193,7 +190,6 @@ impl FromStr for OsuFile {
             }
 
             let section_name_line = line_number;
-            let section_start_line = line_number + 1;
             line_number += ws2.lines().count();
 
             match section_name {
@@ -214,7 +210,7 @@ impl FromStr for OsuFile {
                             3 => General::from_str_v3(section),
                             _ => unreachable!("version {} not implemented", version),
                         },
-                        section_start_line,
+                        line_number,
                     )?
                 }
                 "Editor" => {
@@ -234,7 +230,7 @@ impl FromStr for OsuFile {
                             3 => Editor::from_str_v3(section),
                             _ => unreachable!("version {} not implemented", version),
                         },
-                        section_start_line,
+                        line_number,
                     )?
                 }
                 "Metadata" => {
@@ -254,7 +250,7 @@ impl FromStr for OsuFile {
                             3 => Metadata::from_str_v3(section),
                             _ => unreachable!("version {} not implemented", version),
                         },
-                        section_start_line,
+                        line_number,
                     )?
                 }
                 "Difficulty" => {
@@ -274,7 +270,7 @@ impl FromStr for OsuFile {
                             3 => Difficulty::from_str_v3(section),
                             _ => unreachable!("version {} not implemented", version),
                         },
-                        section_start_line,
+                        line_number,
                     )?
                 }
                 "Events" => {
@@ -294,7 +290,7 @@ impl FromStr for OsuFile {
                             3 => Events::from_str_v3(section),
                             _ => unreachable!("version {} not implemented", version),
                         },
-                        section_start_line,
+                        line_number,
                     )?
                 }
                 "TimingPoints" => {
@@ -314,7 +310,7 @@ impl FromStr for OsuFile {
                             3 => TimingPoints::from_str_v3(section),
                             _ => unreachable!("version {} not implemented", version),
                         },
-                        section_start_line,
+                        line_number,
                     )?
                 }
                 "Colours" => {
@@ -334,7 +330,7 @@ impl FromStr for OsuFile {
                             3 => Colours::from_str_v3(section),
                             _ => unreachable!("version {} not implemented", version),
                         },
-                        section_start_line,
+                        line_number,
                     )?
                 }
                 "HitObjects" => {
@@ -354,7 +350,7 @@ impl FromStr for OsuFile {
                             3 => HitObjects::from_str_v3(section),
                             _ => unreachable!("version {} not implemented", version),
                         },
-                        section_start_line,
+                        line_number,
                     )?
                 }
                 _ => return Err(Error::new(ParseError::UnknownSection, section_name_line)),
