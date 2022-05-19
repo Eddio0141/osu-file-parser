@@ -196,83 +196,168 @@ impl FromStr for OsuFile {
             let section_start_line = line_number + 1;
             line_number += ws2.lines().count();
 
-            match version {
-                14 => match section_name {
-                    "General" => {
-                        general = Some(
-                            Error::processing_line(
-                                General::from_str_v14(section),
-                                section_start_line,
-                            )?
-                            .unwrap(),
-                        )
-                    }
-                    "Editor" => {
-                        editor = Some(
-                            Error::processing_line(
-                                Editor::from_str_v14(section),
-                                section_start_line,
-                            )?
-                            .unwrap(),
-                        )
-                    }
-                    "Metadata" => {
-                        metadata = Some(
-                            Error::processing_line(
-                                Metadata::from_str_v14(section),
-                                section_start_line,
-                            )?
-                            .unwrap(),
-                        )
-                    }
-                    "Difficulty" => {
-                        difficulty = Some(
-                            Error::processing_line(
-                                Difficulty::from_str_v14(section),
-                                section_start_line,
-                            )?
-                            .unwrap(),
-                        )
-                    }
-                    "Events" => {
-                        events = Some(
-                            Error::processing_line(
-                                Events::from_str_v14(section),
-                                section_start_line,
-                            )?
-                            .unwrap(),
-                        )
-                    }
-                    "TimingPoints" => {
-                        timing_points = Some(
-                            Error::processing_line(
-                                TimingPoints::from_str_v14(section),
-                                section_start_line,
-                            )?
-                            .unwrap(),
-                        )
-                    }
-                    "Colours" => {
-                        colours = Some(
-                            Error::processing_line(
-                                Colours::from_str_v14(section),
-                                section_start_line,
-                            )?
-                            .unwrap(),
-                        )
-                    }
-                    "HitObjects" => {
-                        hitobjects = Some(
-                            Error::processing_line(
-                                HitObjects::from_str_v14(section),
-                                section_start_line,
-                            )?
-                            .unwrap(),
-                        )
-                    }
-                    _ => return Err(Error::new(ParseError::UnknownSection, section_name_line)),
-                },
-                _ => unimplemented!("osu! file version {} not implemented", version),
+            match section_name {
+                "General" => {
+                    general = Error::processing_line(
+                        match version {
+                            14 => General::from_str_v14(section),
+                            13 => General::from_str_v13(section),
+                            12 => General::from_str_v12(section),
+                            11 => General::from_str_v11(section),
+                            10 => General::from_str_v10(section),
+                            9 => General::from_str_v9(section),
+                            8 => General::from_str_v8(section),
+                            7 => General::from_str_v7(section),
+                            6 => General::from_str_v6(section),
+                            5 => General::from_str_v5(section),
+                            4 => General::from_str_v4(section),
+                            3 => General::from_str_v3(section),
+                            _ => unreachable!("version {} not implemented", version),
+                        },
+                        section_start_line,
+                    )?
+                }
+                "Editor" => {
+                    editor = Error::processing_line(
+                        match version {
+                            14 => Editor::from_str_v14(section),
+                            13 => Editor::from_str_v13(section),
+                            12 => Editor::from_str_v12(section),
+                            11 => Editor::from_str_v11(section),
+                            10 => Editor::from_str_v10(section),
+                            9 => Editor::from_str_v9(section),
+                            8 => Editor::from_str_v8(section),
+                            7 => Editor::from_str_v7(section),
+                            6 => Editor::from_str_v6(section),
+                            5 => Editor::from_str_v5(section),
+                            4 => Editor::from_str_v4(section),
+                            3 => Editor::from_str_v3(section),
+                            _ => unreachable!("version {} not implemented", version),
+                        },
+                        section_start_line,
+                    )?
+                }
+                "Metadata" => {
+                    metadata = Error::processing_line(
+                        match version {
+                            14 => Metadata::from_str_v14(section),
+                            13 => Metadata::from_str_v13(section),
+                            12 => Metadata::from_str_v12(section),
+                            11 => Metadata::from_str_v11(section),
+                            10 => Metadata::from_str_v10(section),
+                            9 => Metadata::from_str_v9(section),
+                            8 => Metadata::from_str_v8(section),
+                            7 => Metadata::from_str_v7(section),
+                            6 => Metadata::from_str_v6(section),
+                            5 => Metadata::from_str_v5(section),
+                            4 => Metadata::from_str_v4(section),
+                            3 => Metadata::from_str_v3(section),
+                            _ => unreachable!("version {} not implemented", version),
+                        },
+                        section_start_line,
+                    )?
+                }
+                "Difficulty" => {
+                    difficulty = Error::processing_line(
+                        match version {
+                            14 => Difficulty::from_str_v14(section),
+                            13 => Difficulty::from_str_v13(section),
+                            12 => Difficulty::from_str_v12(section),
+                            11 => Difficulty::from_str_v11(section),
+                            10 => Difficulty::from_str_v10(section),
+                            9 => Difficulty::from_str_v9(section),
+                            8 => Difficulty::from_str_v8(section),
+                            7 => Difficulty::from_str_v7(section),
+                            6 => Difficulty::from_str_v6(section),
+                            5 => Difficulty::from_str_v5(section),
+                            4 => Difficulty::from_str_v4(section),
+                            3 => Difficulty::from_str_v3(section),
+                            _ => unreachable!("version {} not implemented", version),
+                        },
+                        section_start_line,
+                    )?
+                }
+                "Events" => {
+                    events = Error::processing_line(
+                        match version {
+                            14 => Events::from_str_v14(section),
+                            13 => Events::from_str_v13(section),
+                            12 => Events::from_str_v12(section),
+                            11 => Events::from_str_v11(section),
+                            10 => Events::from_str_v10(section),
+                            9 => Events::from_str_v9(section),
+                            8 => Events::from_str_v8(section),
+                            7 => Events::from_str_v7(section),
+                            6 => Events::from_str_v6(section),
+                            5 => Events::from_str_v5(section),
+                            4 => Events::from_str_v4(section),
+                            3 => Events::from_str_v3(section),
+                            _ => unreachable!("version {} not implemented", version),
+                        },
+                        section_start_line,
+                    )?
+                }
+                "TimingPoints" => {
+                    timing_points = Error::processing_line(
+                        match version {
+                            14 => TimingPoints::from_str_v14(section),
+                            13 => TimingPoints::from_str_v13(section),
+                            12 => TimingPoints::from_str_v12(section),
+                            11 => TimingPoints::from_str_v11(section),
+                            10 => TimingPoints::from_str_v10(section),
+                            9 => TimingPoints::from_str_v9(section),
+                            8 => TimingPoints::from_str_v8(section),
+                            7 => TimingPoints::from_str_v7(section),
+                            6 => TimingPoints::from_str_v6(section),
+                            5 => TimingPoints::from_str_v5(section),
+                            4 => TimingPoints::from_str_v4(section),
+                            3 => TimingPoints::from_str_v3(section),
+                            _ => unreachable!("version {} not implemented", version),
+                        },
+                        section_start_line,
+                    )?
+                }
+                "Colours" => {
+                    colours = Error::processing_line(
+                        match version {
+                            14 => Colours::from_str_v14(section),
+                            13 => Colours::from_str_v13(section),
+                            12 => Colours::from_str_v12(section),
+                            11 => Colours::from_str_v11(section),
+                            10 => Colours::from_str_v10(section),
+                            9 => Colours::from_str_v9(section),
+                            8 => Colours::from_str_v8(section),
+                            7 => Colours::from_str_v7(section),
+                            6 => Colours::from_str_v6(section),
+                            5 => Colours::from_str_v5(section),
+                            4 => Colours::from_str_v4(section),
+                            3 => Colours::from_str_v3(section),
+                            _ => unreachable!("version {} not implemented", version),
+                        },
+                        section_start_line,
+                    )?
+                }
+                "HitObjects" => {
+                    hitobjects = Error::processing_line(
+                        match version {
+                            14 => HitObjects::from_str_v14(section),
+                            13 => HitObjects::from_str_v13(section),
+                            12 => HitObjects::from_str_v12(section),
+                            11 => HitObjects::from_str_v11(section),
+                            10 => HitObjects::from_str_v10(section),
+                            9 => HitObjects::from_str_v9(section),
+                            8 => HitObjects::from_str_v8(section),
+                            7 => HitObjects::from_str_v7(section),
+                            6 => HitObjects::from_str_v6(section),
+                            5 => HitObjects::from_str_v5(section),
+                            4 => HitObjects::from_str_v4(section),
+                            3 => HitObjects::from_str_v3(section),
+                            _ => unreachable!("version {} not implemented", version),
+                        },
+                        section_start_line,
+                    )?
+                }
+                _ => return Err(Error::new(ParseError::UnknownSection, section_name_line)),
             }
 
             section_parsed.push(section_name);
