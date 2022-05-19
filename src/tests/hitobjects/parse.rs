@@ -1,4 +1,4 @@
-use crate::osu_file::hitobject::HitObject;
+use crate::osu_file::hitobjects::HitObject;
 
 #[test]
 fn hitobjects_parse() {

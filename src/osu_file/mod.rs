@@ -3,7 +3,7 @@ pub mod difficulty;
 pub mod editor;
 pub mod events;
 pub mod general;
-pub mod hitobject;
+pub mod hitobjects;
 pub mod metadata;
 pub mod timingpoint;
 pub mod types;
@@ -26,7 +26,7 @@ use self::difficulty::Difficulty;
 use self::editor::Editor;
 use self::events::Events;
 use self::general::General;
-use self::hitobject::HitObjects;
+use self::hitobjects::HitObjects;
 use self::metadata::Metadata;
 use self::timingpoint::TimingPoints;
 
@@ -467,6 +467,6 @@ pub enum ParseError {
     #[error(transparent)]
     HitObjectsParseError {
         #[from]
-        source: hitobject::ParseError,
+        source: hitobjects::ParseError,
     },
 }

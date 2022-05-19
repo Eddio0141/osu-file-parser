@@ -149,6 +149,7 @@ impl Version for General {
         let mut line_count = 0;
 
         for (name, value, ws) in fields {
+            // TODO multiple same fields error
             match name {
                 "AudioFilename" => general.audio_filename = Some(value.to_owned()),
                 "AudioHash" => general.audio_hash = Some(value.to_owned()),
@@ -182,6 +183,7 @@ impl Version for General {
             // line count from fields
             let line_count = { fields.iter().map(|(_, _, ws)| ws.lines().count()).sum() };
 
+            // TODO test this
             return Err(Error::new(ParseError::InvalidColonSet, line_count));
         }
 
