@@ -40,6 +40,7 @@ pub struct Metadata {
 impl Version for Metadata {
     type ParseError = Error<ParseError>;
 
+    // TODO versions
     fn from_str_v3(s: &str) -> std::result::Result<Option<Self>, Self::ParseError>
     where
         Self: Sized,
