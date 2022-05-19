@@ -1,37 +1,26 @@
-mod hitobject;
+mod error_line_index;
+mod hitobjects;
 mod osu_files;
 mod storyboard;
 
-use nom::{
-    bytes::complete::{tag, take_till},
-    combinator::map_res,
-    multi::separated_list0,
-};
 #[cfg(test)]
 use pretty_assertions::assert_eq;
 use rust_decimal::Decimal;
-use std::{
-    num::NonZeroUsize,
-    path::{Path, PathBuf},
-};
+use std::path::Path;
 
 use rust_decimal_macros::dec;
 
 use crate::osu_file::{
-    self,
     colours::{Colour, Colours, Rgb},
     difficulty::Difficulty,
     editor::Editor,
     events::{Background, Break, Event, EventParams, Events},
     general::{CountdownSpeed, GameMode, General, OverlayPosition, SampleSet},
-    hitobject::{
-        types::{ComboSkipCount, HitSample, HitSound},
-        HitObject, HitObjectParams, HitObjects,
-    },
     metadata::Metadata,
-    timingpoint::{self, Effects, SampleIndex, TimingPoint, TimingPoints, Volume},
+    timingpoints,
+    timingpoints::{Effects, SampleIndex, TimingPoint, TimingPoints, Volume},
     types::Position,
-    OsuFile, Version,
+    Version,
 };
 
 #[test]
@@ -212,7 +201,7 @@ fn timing_points_parse_v14() {
             10000,
             dec!(333.33),
             4,
-            timingpoint::SampleSet::BeatmapDefault,
+            timingpoints::SampleSet::BeatmapDefault,
             SampleIndex::OsuDefaultHitsounds,
             Volume::new(100).unwrap(),
             Effects {
@@ -224,7 +213,7 @@ fn timing_points_parse_v14() {
             12000,
             dec!(4),
             4,
-            timingpoint::SampleSet::Drum,
+            timingpoints::SampleSet::Drum,
             SampleIndex::OsuDefaultHitsounds,
             Volume::new(100).unwrap(),
             Effects {
@@ -239,7 +228,7 @@ fn timing_points_parse_v14() {
 }
 
 #[test]
-fn events_parse() {
+fn events_parse_v14() {
     let i_str = "0,0,\"bg2.jpg\",0,0
 0,0,bg2.jpg,0,1
 //Break Periods
@@ -270,272 +259,4 @@ fn events_parse() {
 
     assert_eq!(i, e);
     assert_eq!(i_str, i.to_string_v14());
-}
-
-#[test]
-fn osu_file_parse() {
-    let i = "osu file format v14
-
-[General]
-AudioFilename: audio.mp3
-AudioLeadIn: 0
-PreviewTime: 48349
-Countdown: 0
-SampleSet: Soft
-StackLeniency: 0.2
-Mode: 3
-LetterboxInBreaks: 0
-SpecialStyle: 0
-WidescreenStoryboard: 0
-
-[Editor]
-Bookmarks: 11018,21683,32349,37683,48349,59016,69683,80349,91016
-DistanceSpacing: 0.8
-BeatDivisor: 12
-GridSize: 8
-TimelineZoom: 2
-
-[Metadata]
-Title:LOVE IS ORANGE
-TitleUnicode:LOVE IS ORANGE
-Artist:Orange Lounge
-ArtistUnicode:Orange Lounge
-Creator:Xnery
-Version:Bittersweet Love
-Source:beatmania IIDX 8th style
-Tags:famoss 舟木智介 tomosuke funaki 徳井志津江 shizue tokui ddr dancedancerevolution
-BeatmapID:3072232
-BeatmapSetID:1499093
-
-[Difficulty]
-HPDrainRate:8
-CircleSize:5
-OverallDifficulty:8
-ApproachRate:5
-SliderMultiplier:1.4
-SliderTickRate:1
-
-[Events]
-//Background and Video events
-0,0,\"bg.jpg\",0,0
-
-[TimingPoints]
-350,333.333333333333,4,2,1,60,1,0
-
-
-[HitObjects]
-256,192,8016,1,0,0:0:0:0:
-153,192,8183,1,2,0:0:0:0:";
-
-    let i: OsuFile = i.parse().unwrap();
-
-    let osu_file = OsuFile {
-        version: 14,
-        general: Some(General {
-            audio_filename: Some("audio.mp3".to_string()),
-            audio_lead_in: Some(0),
-            preview_time: Some(48349),
-            countdown: Some(CountdownSpeed::from_repr(0).unwrap()),
-            sample_set: Some(SampleSet::Soft),
-            stack_leniency: Some(dec!(0.2)),
-            mode: Some(GameMode::Mania),
-            letterbox_in_breaks: Some(false),
-            special_style: Some(false),
-            widescreen_storyboard: Some(false),
-            ..General::new()
-        }),
-        editor: Some(Editor {
-            bookmarks: Some(vec![
-                11018, 21683, 32349, 37683, 48349, 59016, 69683, 80349, 91016,
-            ]),
-            distance_spacing: Some(dec!(0.8)),
-            beat_divisor: Some(dec!(12)),
-            grid_size: Some(8),
-            timeline_zoom: Some(dec!(2)),
-        }),
-        metadata: Some(Metadata {
-            title: Some("LOVE IS ORANGE".to_string()),
-            title_unicode: Some("LOVE IS ORANGE".to_string()),
-            artist: Some("Orange Lounge".to_string()),
-            artist_unicode: Some("Orange Lounge".to_string()),
-            creator: Some("Xnery".to_string()),
-            version: Some("Bittersweet Love".to_string()),
-            source: Some("beatmania IIDX 8th style".to_string()),
-            tags: Some(vec![
-                "famoss".to_string(),
-                "舟木智介".to_string(),
-                "tomosuke".to_string(),
-                "funaki".to_string(),
-                "徳井志津江".to_string(),
-                "shizue".to_string(),
-                "tokui".to_string(),
-                "ddr".to_string(),
-                "dancedancerevolution".to_string(),
-            ]),
-            beatmap_id: Some(3072232),
-            beatmap_set_id: Some(1499093),
-        }),
-        difficulty: Some(Difficulty {
-            hp_drain_rate: Some(dec!(8)),
-            circle_size: Some(dec!(5)),
-            overall_difficulty: Some(dec!(8)),
-            approach_rate: Some(dec!(5)),
-            slider_multiplier: Some(dec!(1.4)),
-            slider_tickrate: Some(Decimal::ONE),
-        }),
-        events: Some(Events(vec![
-            Event::Comment("Background and Video events".to_string()),
-            Event::NormalEvent {
-                start_time: 0,
-                event_params: EventParams::Background(Background {
-                    filename: PathBuf::from("\"bg.jpg\""),
-                    position: Position { x: 0, y: 0 },
-                }),
-            },
-        ])),
-        timing_points: Some(TimingPoints(vec![TimingPoint::new_uninherited(
-            350,
-            dec!(333.333333333333),
-            4,
-            timingpoint::SampleSet::Soft,
-            SampleIndex::Index(NonZeroUsize::new(1).unwrap()),
-            Volume::new(60).unwrap(),
-            Effects {
-                kiai_time_enabled: false,
-                no_first_barline_in_taiko_mania: false,
-            },
-        )])),
-        colours: None,
-        hitobjects: Some(HitObjects(vec![
-            HitObject {
-                position: Position { x: 256, y: 192 },
-                time: 8016,
-                obj_params: HitObjectParams::HitCircle,
-                new_combo: false,
-                combo_skip_count: ComboSkipCount::try_from(0).unwrap(),
-                hitsound: HitSound::new(false, false, false, false),
-                hitsample: HitSample::new(
-                    osu_file::hitobject::types::SampleSet::NoCustomSampleSet,
-                    osu_file::hitobject::types::SampleSet::NoCustomSampleSet,
-                    None,
-                    osu_file::hitobject::types::Volume::new(None).unwrap(),
-                    "".to_string(),
-                ),
-            },
-            HitObject {
-                position: Position { x: 153, y: 192 },
-                time: 8183,
-                obj_params: HitObjectParams::HitCircle,
-                new_combo: false,
-                combo_skip_count: ComboSkipCount::try_from(0).unwrap(),
-                // TODO use of builder pattern
-                hitsound: HitSound::new(false, true, false, false),
-                hitsample: HitSample::new(
-                    osu_file::hitobject::types::SampleSet::NoCustomSampleSet,
-                    osu_file::hitobject::types::SampleSet::NoCustomSampleSet,
-                    None,
-                    osu_file::hitobject::types::Volume::new(None).unwrap(),
-                    "".to_string(),
-                ),
-            },
-        ])),
-    };
-
-    assert_eq!(i, osu_file);
-}
-
-#[test]
-fn osu_file_parse_back() {
-    let i = "osu file format v14
-
-[General]
-AudioFilename: audio.mp3
-AudioLeadIn: 0
-PreviewTime: 48349
-Countdown: 0
-SampleSet: Soft
-StackLeniency: 0.2
-Mode: 3
-LetterboxInBreaks: 0
-SpecialStyle: 0
-WidescreenStoryboard: 0
-
-[Editor]
-Bookmarks: 11018,21683,32349,37683,48349,59016,69683,80349,91016
-DistanceSpacing: 0.8
-BeatDivisor: 12
-GridSize: 8
-TimelineZoom: 2
-
-[Metadata]
-Title:LOVE IS ORANGE
-TitleUnicode:LOVE IS ORANGE
-Artist:Orange Lounge
-ArtistUnicode:Orange Lounge
-Creator:Xnery
-Version:Bittersweet Love
-Source:beatmania IIDX 8th style
-Tags:famoss 舟木智介 tomosuke funaki 徳井志津江 shizue tokui ddr dancedancerevolution
-BeatmapID:3072232
-BeatmapSetID:1499093
-
-[Difficulty]
-HPDrainRate:8
-CircleSize:5
-OverallDifficulty:8
-ApproachRate:5
-SliderMultiplier:1.4
-SliderTickRate:1
-
-[Events]
-//Background and Video events
-0,0,\"bg.jpg\",0,0
-
-[TimingPoints]
-350,333.333333333333,4,2,1,60,1,0
-
-[HitObjects]
-256,192,8016,1,0,0:0:0:0:
-153,192,8183,1,2,0:0:0:0:";
-
-    let o: OsuFile = i.parse().unwrap();
-
-    assert_eq!(i, o.to_string());
-}
-
-#[test]
-fn osu_file_smallest_parse() {
-    let i = "osu file format v14";
-
-    let o: OsuFile = i.parse().unwrap();
-
-    assert_eq!(i, o.to_string());
-}
-
-#[test]
-fn separated_list() {
-    let mut separated_list = separated_list0(
-        tag::<_, _, nom::error::Error<_>>(" "),
-        take_till(|c| c == ' '),
-    );
-
-    let i = "foo bar baz";
-    let (i, o) = separated_list(i).unwrap();
-
-    assert!(i.is_empty());
-    assert_eq!(o, vec!["foo", "bar", "baz"]);
-}
-
-#[test]
-fn separated_list_map() {
-    let mut separated_list = separated_list0(
-        tag::<_, _, nom::error::Error<_>>(","),
-        map_res(take_till(|c| c == ','), |s: &str| s.parse::<i32>()),
-    );
-
-    let i = "1,2,345";
-    let (i, o) = separated_list(i).unwrap();
-
-    assert!(i.is_empty());
-    assert_eq!(o, vec![1, 2, 345]);
 }
