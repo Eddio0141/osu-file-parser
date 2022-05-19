@@ -1,7 +1,6 @@
 pub mod error;
 
 use std::{
-    error::Error,
     fmt::Display,
     num::NonZeroUsize,
     str::{FromStr, Split},
@@ -13,40 +12,38 @@ use strum_macros::FromRepr;
 
 use crate::helper::{nth_bit_state_i64, parse_zero_one_bool};
 
-use super::Integer;
+use super::{Error, Integer, Version};
 
 pub use self::error::*;
 
 #[derive(Clone, Debug, Default, Hash, PartialEq, Eq)]
 pub struct TimingPoints(pub Vec<TimingPoint>);
 
-impl FromStr for TimingPoints {
-    type Err = ParseError;
+impl Version for TimingPoints {
+    type ParseError = Error<ParseError>;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    // TODO versions
+    fn from_str_v3(s: &str) -> std::result::Result<Option<Self>, Self::ParseError>
+    where
+        Self: Sized,
+    {
         let mut timing_points = Vec::new();
 
-        for s in s.lines() {
+        for (line_index, s) in s.lines().enumerate() {
             if !s.is_empty() {
-                timing_points.push(s.parse()?);
+                timing_points.push(Error::new_from_result_into(s.parse(), line_index)?);
             }
         }
 
-        Ok(TimingPoints(timing_points))
+        Ok(Some(TimingPoints(timing_points)))
     }
-}
 
-impl Display for TimingPoints {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            self.0
-                .iter()
-                .map(|p| p.to_string())
-                .collect::<Vec<_>>()
-                .join("\n")
-        )
+    fn to_string_v3(&self) -> String {
+        self.0
+            .iter()
+            .map(|p| p.to_string())
+            .collect::<Vec<_>>()
+            .join("\n")
     }
 }
 
@@ -214,7 +211,7 @@ impl TimingPoint {
     ) -> Result<T, TimingPointParseError>
     where
         T: FromStr,
-        <T as FromStr>::Err: Error + 'static,
+        <T as FromStr>::Err: std::error::Error + 'static,
     {
         let value = s
             .next()
