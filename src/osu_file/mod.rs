@@ -5,7 +5,7 @@ pub mod events;
 pub mod general;
 pub mod hitobjects;
 pub mod metadata;
-pub mod timingpoint;
+pub mod timingpoints;
 pub mod types;
 
 use std::fmt::{Debug, Display};
@@ -28,7 +28,7 @@ pub use self::events::Events;
 pub use self::general::General;
 pub use self::hitobjects::HitObjects;
 pub use self::metadata::Metadata;
-pub use self::timingpoint::TimingPoints;
+pub use self::timingpoints::TimingPoints;
 
 pub use self::types::*;
 
@@ -455,7 +455,7 @@ pub enum ParseError {
     #[error(transparent)]
     TimingPointsParseError {
         #[from]
-        source: timingpoint::ParseError,
+        source: timingpoints::ParseError,
     },
     /// Error parsing the colours section.
     #[error(transparent)]
