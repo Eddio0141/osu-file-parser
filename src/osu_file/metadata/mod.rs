@@ -1,7 +1,7 @@
 pub mod error;
 
 use nom::{
-    bytes::complete::{tag, take_until},
+    bytes::complete::{tag, take_till},
     multi::separated_list0,
     Parser,
 };
@@ -56,8 +56,11 @@ impl Version for Metadata {
             return Err(Error::new(ParseError::InvalidColonSet, line_count));
         }
 
-        let mut tags = separated_list0(tag::<_, _, nom::error::Error<_>>(" "), take_until(" "))
-            .map(|tags: Vec<&str>| tags.iter().map(|tag| tag.to_string()).collect());
+        let mut tags = separated_list0(
+            tag::<_, _, nom::error::Error<_>>(" "),
+            take_till(|c| c == ' '),
+        )
+        .map(|tags: Vec<&str>| tags.iter().map(|tag| tag.to_string()).collect());
 
         let mut line_count = 0;
 
