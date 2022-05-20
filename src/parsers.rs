@@ -4,7 +4,7 @@ use nom::{
     bytes::complete::take_while,
     character::complete::char,
     character::complete::multispace0,
-    combinator::{map, map_res, opt},
+    combinator::{map, map_res, opt, rest},
     error::{FromExternalError, ParseError},
     multi::{many0, many_till},
     sequence::{preceded, terminated, tuple},
@@ -91,20 +91,12 @@ where
     map_res(comma_field(), |s| s.parse::<i32>())
 }
 
-/// Consumes the rest of the input.
-pub fn consume_rest<'a, E>() -> impl FnMut(&'a str) -> IResult<&str, &str, E>
-where
-    E: ParseError<&'a str>,
-{
-    take_while(|_| true)
-}
-
 /// Consumes the rest of the input and parses it as i32.
 pub fn consume_rest_i32<'a, E>() -> impl FnMut(&'a str) -> IResult<&str, i32, E>
 where
     E: ParseError<&'a str> + FromExternalError<&'a str, ParseIntError>,
 {
-    map_res(consume_rest(), |s| s.parse::<i32>())
+    map_res(rest, |s: &str| s.parse::<i32>())
 }
 
 /// Consumes the rest of the input and parses as u8.
@@ -112,5 +104,5 @@ pub fn consume_rest_u8<'a, E>() -> impl FnMut(&'a str) -> IResult<&str, u8, E>
 where
     E: ParseError<&'a str> + FromExternalError<&'a str, ParseIntError>,
 {
-    map_res(consume_rest(), |s| s.parse::<u8>())
+    map_res(rest, |s: &str| s.parse::<u8>())
 }
