@@ -13,25 +13,25 @@ use crate::{helper::nth_bit_state_i64, osu_file::Position, parsers::*};
 
 pub fn hitobject(s: &str) -> IResult<&str, HitObject, VerboseError<&str>> {
     let hitsound = context(
-        Context::InvalidHitsound.into(),
+        HitObjectContext::InvalidHitsound.into(),
         map_res(is_not(","), |f: &str| f.parse::<HitSound>()),
     );
     let mut hitsample = context(
-        Context::InvalidHitsample.into(),
+        HitObjectContext::InvalidHitsample.into(),
         map_res(take_till(|_| false), |f: &str| f.parse::<HitSample>()),
     );
 
     let (s, (x, _, y, _, time, _, obj_type, _, hitsound, _)) = tuple((
-        context(Context::InvalidX.into(), comma_field_i32()),
-        context(Context::MissingY.into(), comma()),
-        context(Context::InvalidY.into(), comma_field_i32()),
-        context(Context::MissingTime.into(), comma()),
-        context(Context::InvalidTime.into(), comma_field_i32()),
-        context(Context::MissingObjType.into(), comma()),
-        context(Context::InvalidObjType.into(), comma_field_i32()),
-        context(Context::MissingHitsound.into(), comma()),
+        context(HitObjectContext::InvalidX.into(), comma_field_i32()),
+        context(HitObjectContext::MissingY.into(), comma()),
+        context(HitObjectContext::InvalidY.into(), comma_field_i32()),
+        context(HitObjectContext::MissingTime.into(), comma()),
+        context(HitObjectContext::InvalidTime.into(), comma_field_i32()),
+        context(HitObjectContext::MissingObjType.into(), comma()),
+        context(HitObjectContext::InvalidObjType.into(), comma_field_i32()),
+        context(HitObjectContext::MissingHitsound.into(), comma()),
         hitsound,
-        context(Context::MissingObjParams.into(), comma()),
+        context(HitObjectContext::MissingObjParams.into(), comma()),
     ))(s)?;
 
     let position = Position { x, y };
@@ -59,20 +59,20 @@ pub fn hitobject(s: &str) -> IResult<&str, HitObject, VerboseError<&str>> {
         // slider
         let pipe = char('|');
         let curve_type = context(
-            Context::InvalidCurveType.into(),
+            HitObjectContext::InvalidCurveType.into(),
             map_res(is_not("|"), |f: &str| f.parse::<CurveType>()),
         );
         let decimal = map_res(is_not(","), |f: &str| f.parse::<Decimal>());
         let curve_points = context(
-            Context::InvalidCurvePoints.into(),
+            HitObjectContext::InvalidCurvePoints.into(),
             pipe_vec(|s: &str| s.parse::<CurvePoint>()),
         );
         let edge_sounds = context(
-            Context::InvalidEdgeSounds.into(),
+            HitObjectContext::InvalidEdgeSounds.into(),
             pipe_vec(|s: &str| s.parse::<HitSound>()),
         );
         let edge_sets = context(
-            Context::InvalidEdgeSets.into(),
+            HitObjectContext::InvalidEdgeSets.into(),
             pipe_vec(|s: &str| s.parse::<EdgeSet>()),
         );
 
@@ -81,12 +81,12 @@ pub fn hitobject(s: &str) -> IResult<&str, HitObject, VerboseError<&str>> {
             (curve_type, _, curve_points, slides, _, length, _, edge_sounds, edge_sets, hitsample),
         ) = tuple((
             curve_type,
-            context(Context::MissingCurvePoints.into(), pipe),
+            context(HitObjectContext::MissingCurvePoints.into(), pipe),
             curve_points,
-            context(Context::InvalidSlides.into(), comma_field_i32()),
-            context(Context::MissingLength.into(), comma()),
-            context(Context::InvalidLength.into(), decimal),
-            context(Context::MissingEdgeSounds.into(), comma()),
+            context(HitObjectContext::InvalidSlides.into(), comma_field_i32()),
+            context(HitObjectContext::MissingLength.into(), comma()),
+            context(HitObjectContext::InvalidLength.into(), decimal),
+            context(HitObjectContext::MissingEdgeSounds.into(), comma()),
             edge_sounds,
             edge_sets,
             hitsample,
@@ -114,8 +114,8 @@ pub fn hitobject(s: &str) -> IResult<&str, HitObject, VerboseError<&str>> {
     } else if nth_bit_state_i64(obj_type as i64, 3) {
         // spinner
         let (s, (end_time, _, hitsample)) = tuple((
-            context(Context::InvalidEndTime.into(), comma_field_i32()),
-            context(Context::MissingHitsample.into(), comma()),
+            context(HitObjectContext::InvalidEndTime.into(), comma_field_i32()),
+            context(HitObjectContext::MissingHitsample.into(), comma()),
             hitsample,
         ))(s)?;
 
@@ -135,12 +135,12 @@ pub fn hitobject(s: &str) -> IResult<&str, HitObject, VerboseError<&str>> {
         // osu!mania hold
         // ppy has done it once again
         let end_time = context(
-            Context::InvalidEndTime.into(),
+            HitObjectContext::InvalidEndTime.into(),
             map_res(take_until(":"), |s: &str| s.parse()),
         );
         let (s, (end_time, _, hitsample)) = tuple((
             end_time,
-            context(Context::MissingHitsample.into(), char(':')),
+            context(HitObjectContext::MissingHitsample.into(), char(':')),
             hitsample,
         ))(s)?;
 
@@ -158,12 +158,12 @@ pub fn hitobject(s: &str) -> IResult<&str, HitObject, VerboseError<&str>> {
         ))
     } else {
         // osu file format didn't specify what to do with no bit flags set
-        context(Context::UnknownObjType.into(), fail)(s)
+        context(HitObjectContext::UnknownObjType.into(), fail)(s)
     }
 }
 
 #[derive(Debug, EnumString, IntoStaticStr)]
-pub enum Context {
+pub enum HitObjectContext {
     InvalidX,
     InvalidY,
     InvalidTime,

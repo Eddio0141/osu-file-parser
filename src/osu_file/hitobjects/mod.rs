@@ -12,7 +12,7 @@ use rust_decimal::Decimal;
 use strum_macros::Display;
 
 use self::parser::hitobject;
-use self::parser::Context;
+use self::parser::HitObjectContext;
 use self::types::*;
 use super::Error;
 use super::Integer;
@@ -178,66 +178,66 @@ impl FromStr for HitObject {
                         .to_string()
                 };
 
-                let err = match Context::from_str(context).unwrap() {
-                    Context::InvalidX
-                    | Context::InvalidY
-                    | Context::InvalidTime
-                    | Context::InvalidObjType
-                    | Context::InvalidEndTime => HitObjectParseError::ParseIntError(input_field()),
-                    Context::InvalidCurveType => {
+                let err = match HitObjectContext::from_str(context).unwrap() {
+                    HitObjectContext::InvalidX
+                    | HitObjectContext::InvalidY
+                    | HitObjectContext::InvalidTime
+                    | HitObjectContext::InvalidObjType
+                    | HitObjectContext::InvalidEndTime => HitObjectParseError::ParseIntError(input_field()),
+                    HitObjectContext::InvalidCurveType => {
                         HitObjectParseError::ParseCurveTypeError(input.to_string())
                     }
-                    Context::InvalidCurvePoints => {
+                    HitObjectContext::InvalidCurvePoints => {
                         HitObjectParseError::ParseCurvePointsError(input.to_string())
                     }
-                    Context::InvalidSlides => {
+                    HitObjectContext::InvalidSlides => {
                         HitObjectParseError::ParseSlidesError(input.to_string())
                     }
-                    Context::InvalidLength => {
+                    HitObjectContext::InvalidLength => {
                         HitObjectParseError::ParseDecimalError(input.to_string())
                     }
-                    Context::InvalidHitsound => {
+                    HitObjectContext::InvalidHitsound => {
                         HitObjectParseError::ParseHitSoundError(input.to_string())
                     }
-                    Context::InvalidHitsample => {
+                    HitObjectContext::InvalidHitsample => {
                         HitObjectParseError::ParseHitsampleError(input.to_string())
                     }
-                    Context::InvalidEdgeSounds => {
+                    HitObjectContext::InvalidEdgeSounds => {
                         HitObjectParseError::ParseEdgeSoundsError(input.to_string())
                     }
-                    Context::InvalidEdgeSets => {
+                    HitObjectContext::InvalidEdgeSets => {
                         HitObjectParseError::ParseEdgeSetsError(input.to_string())
                     }
-                    Context::MissingY => HitObjectParseError::MissingField(FieldName::Y),
-                    Context::MissingTime => HitObjectParseError::MissingField(FieldName::Time),
-                    Context::MissingObjType => {
+                    HitObjectContext::MissingY => HitObjectParseError::MissingField(FieldName::Y),
+                    HitObjectContext::MissingTime => HitObjectParseError::MissingField(FieldName::Time),
+                    HitObjectContext::MissingObjType => {
                         HitObjectParseError::MissingField(FieldName::ObjType)
                     }
-                    Context::MissingCurveType => {
+                    HitObjectContext::MissingCurveType => {
                         HitObjectParseError::MissingField(FieldName::CurveType)
                     }
-                    Context::MissingCurvePoints => {
+                    HitObjectContext::MissingCurvePoints => {
                         HitObjectParseError::MissingField(FieldName::CurvePoints)
                     }
-                    Context::MissingSlides => HitObjectParseError::MissingField(FieldName::Slides),
-                    Context::MissingLength => HitObjectParseError::MissingField(FieldName::Length),
-                    Context::MissingEndTime => {
+                    HitObjectContext::MissingSlides => HitObjectParseError::MissingField(FieldName::Slides),
+                    HitObjectContext::MissingLength => HitObjectParseError::MissingField(FieldName::Length),
+                    HitObjectContext::MissingEndTime => {
                         HitObjectParseError::MissingField(FieldName::EndTime)
                     }
-                    Context::MissingHitsound => {
+                    HitObjectContext::MissingHitsound => {
                         HitObjectParseError::MissingField(FieldName::Hitsound)
                     }
-                    Context::MissingHitsample => {
+                    HitObjectContext::MissingHitsample => {
                         HitObjectParseError::MissingField(FieldName::Hitsample)
                     }
-                    Context::MissingEdgeSounds => {
+                    HitObjectContext::MissingEdgeSounds => {
                         HitObjectParseError::MissingField(FieldName::EdgeSounds)
                     }
-                    Context::MissingEdgeSets => {
+                    HitObjectContext::MissingEdgeSets => {
                         HitObjectParseError::MissingField(FieldName::EdgeSets)
                     }
-                    Context::MissingObjParams => HitObjectParseError::MissingObjParams,
-                    Context::UnknownObjType => HitObjectParseError::UnknownObjType,
+                    HitObjectContext::MissingObjParams => HitObjectParseError::MissingObjParams,
+                    HitObjectContext::UnknownObjType => HitObjectParseError::UnknownObjType,
                 };
 
                 Err(err)
