@@ -1,9 +1,10 @@
 use nom::{
+    branch::alt,
     bytes::complete::tag,
     character::complete::{char, digit1, multispace0},
-    combinator::map_res,
+    combinator::{cut, map_res},
     error::{context, VerboseError},
-    sequence::tuple,
+    sequence::{preceded, tuple},
     IResult, Parser,
 };
 use strum_macros::{EnumString, IntoStaticStr};
@@ -11,35 +12,27 @@ use strum_macros::{EnumString, IntoStaticStr};
 use super::{Colour, Rgb};
 
 pub fn colour(s: &str) -> IResult<&str, Colour, VerboseError<&str>> {
-    let combo = tag::<_, _, nom::error::Error<_>>("Combo");
-    let slide_track_override = tag::<_, _, nom::error::Error<_>>("SliderTrackOverride");
-    let slider_border = tag("SliderBorder");
+    // TODO is this i32?
+    let separator = || tuple((multispace0, tag(":"), multispace0));
+    let combo_type = tag("Combo");
+    let combo_count = map_res(digit1, |s: &str| s.parse::<u32>());
+    let slider_track_override_type = tag("SliderTrackOverride");
+    let slider_border_type = tag("SliderBorder");
 
-    let mut rgb_end = tuple((multispace0, char(':'), rgb)).map(|(_, _, rgb)| rgb);
+    let combo = tuple((
+        preceded(combo_type, cut(combo_count)),
+        cut(preceded(separator(), rgb)),
+    ))
+    .map(|(combo, rgb)| Colour::Combo(combo, rgb));
+    let slide_track_override = preceded(
+        tuple((slider_track_override_type, cut(separator()))),
+        cut(rgb),
+    )
+    .map(|rgb| Colour::SliderTrackOverride(rgb));
+    let slider_border = preceded(tuple((slider_border_type, cut(separator()))), cut(rgb))
+        .map(|rgb| Colour::SliderBorder(rgb));
 
-    // test one by one to see if they match
-    if let Ok((s, _)) = combo(s) {
-        let (s, (count, rgb)) = tuple((
-            context(
-                Context::InvalidAdditiveComboCount.into(),
-                map_res(digit1, |s: &str| s.parse::<u32>()),
-            ),
-            rgb_end,
-        ))(s)?;
-
-        Ok((s, Colour::Combo(count, rgb)))
-    } else if let Ok((s, _)) = slide_track_override(s) {
-        let (s, rgb) = rgb_end.parse(s)?;
-
-        Ok((s, Colour::SliderTrackOverride(rgb)))
-    } else {
-        let (s, (_, rgb)) = tuple((
-            context(Context::UnknownColourOption.into(), slider_border),
-            rgb_end,
-        ))(s)?;
-
-        Ok((s, Colour::SliderBorder(rgb)))
-    }
+    alt((combo, slide_track_override, slider_border))(s)
 }
 
 pub fn rgb(s: &str) -> IResult<&str, Rgb, VerboseError<&str>> {
@@ -63,6 +56,7 @@ pub fn rgb(s: &str) -> IResult<&str, Rgb, VerboseError<&str>> {
 
 #[derive(Debug, EnumString, IntoStaticStr)]
 pub enum Context {
+    InvalidColonSeparator,
     UnknownColourOption,
     InvalidAdditiveComboCount,
     InvalidRed,

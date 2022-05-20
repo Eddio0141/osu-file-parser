@@ -80,13 +80,15 @@ impl FromStr for Colour {
                             colour_parser::Context::NoCommaAfterGreen => {
                                 ColourParseError::MissingBlueValue
                             }
+                            // TODO merge the parser later
+                            colour_parser::Context::InvalidColonSeparator => todo!(),
                         };
 
                         return Err(err);
                     }
                 }
 
-                unimplemented!("unimplemented colour nom parser error, {}", err)
+                unimplemented!("unimplemented colour nom parser error, {:?}", err)
             }
         }
     }
