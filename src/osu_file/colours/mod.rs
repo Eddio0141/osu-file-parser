@@ -3,7 +3,7 @@ pub mod error;
 
 use std::{fmt::Display, str::FromStr};
 
-use nom::{bytes::complete::take_till, error::VerboseErrorKind, Finish};
+use nom::{error::VerboseErrorKind, Finish};
 
 pub use self::error::*;
 
@@ -64,35 +64,15 @@ impl FromStr for Colour {
                     if let VerboseErrorKind::Context(context) = err.1 {
                         let err = match colour_parser::Context::from_str(context).unwrap() {
                             colour_parser::Context::UnknownColourOption => {
-                                ColourParseError::UnknownColourOption(
-                                    take_till::<_, _, nom::error::Error<_>>(|c| c == ':')(err.0)
-                                        .unwrap()
-                                        .1
-                                        .trim()
-                                        .to_string(),
-                                )
+                                ColourParseError::UnknownColourOption
                             }
                             colour_parser::Context::InvalidAdditiveComboCount => {
-                                ColourParseError::InvalidComboCount(
-                                    take_till::<_, _, nom::error::Error<_>>(|c| c == ' ')(err.0)
-                                        .unwrap()
-                                        .1
-                                        .trim()
-                                        .to_string(),
-                                )
+                                ColourParseError::InvalidComboCount
                             }
                             colour_parser::Context::InvalidRed
                             | colour_parser::Context::InvalidBlue
                             | colour_parser::Context::InvalidGreen => {
-                                ColourParseError::InvalidColourValue(
-                                    take_till::<_, _, nom::error::Error<_>>(|c| {
-                                        c == ',' || c == ' '
-                                    })(err.0)
-                                    .unwrap()
-                                    .1
-                                    .trim()
-                                    .to_string(),
-                                )
+                                ColourParseError::InvalidColourValue
                             }
                             colour_parser::Context::NoCommaAfterRed => {
                                 ColourParseError::MissingGreenValue

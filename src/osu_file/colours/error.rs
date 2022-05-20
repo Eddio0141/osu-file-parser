@@ -8,14 +8,14 @@ pub struct ParseError(#[from] ColourParseError);
 #[derive(Debug, Error)]
 pub enum ColourParseError {
     /// The colour key was invalid.
-    #[error("The colour option `{0}` is unknown")]
-    UnknownColourOption(String),
+    #[error("Unknown colour option")]
+    UnknownColourOption,
     /// The colour value was invalid.
-    #[error("The colour value `{0}` is invalid")]
-    InvalidColourValue(String),
+    #[error("Invalid colour value")]
+    InvalidColourValue,
     /// Invalid additive combo count.
-    #[error("The additive combo count `{0}` is invalid")]
-    InvalidComboCount(String),
+    #[error("Invalid additive combo count")]
+    InvalidComboCount,
     /// Missing green value.
     #[error("The rgb section is missing a green value")]
     MissingGreenValue,
