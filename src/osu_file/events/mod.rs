@@ -10,7 +10,7 @@ use std::{
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_while},
-    combinator::{eof, rest},
+    combinator::{cut, eof, fail, rest},
     error::context,
     sequence::{preceded, tuple},
     Finish, Parser,
@@ -296,75 +296,105 @@ impl FromStr for EventParams {
     type Err = EventParamsParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        // getting an event type won't fail, so we can unwrap
-        let (s, event_type) = comma_field::<nom::error::Error<_>>()(s).unwrap();
-        let (s, _) = tuple((
-            context(EventParamsParseError::MissingStartTime.into(), comma()),
-            // the start time parsing is handled by the event parsing, so we ignore it
-            comma_field(),
-        ))(s)?;
-
-        match event_type {
-            // TODO do this kind of "direct" nom parsing for others
-            "0" | "1" | "Video" => {
-                let (_, (_, filename, (_, x, _, y))) = tuple((
-                    context(EventParamsParseError::MissingFileName.into(), comma()),
-                    // this shouldn't fail as its just a filename
-                    comma_field().map(|f| PathBuf::from(f)),
-                    alt((
-                        eof.map(|_| (',', 0, ',', 0)),
-                        tuple((
-                            context(EventParamsParseError::MissingXOffset.into(), comma()),
-                            context(
-                                EventParamsParseError::InvalidXOffset.into(),
-                                comma_field_i32(),
-                            ),
-                            context(EventParamsParseError::MissingYOffset.into(), comma()),
-                            // TODO check all other parsers to make sure they consume all input
-                            context(
-                                EventParamsParseError::InvalidYOffset.into(),
-                                consume_rest_i32(),
-                            ),
-                        )),
-                    )),
-                ))(s)?;
-
-                let position = Position { x, y };
-
-                match event_type {
-                    "0" => Ok(EventParams::Background(Background { filename, position })),
-                    "1" | "Video" => Ok(EventParams::Video(Video { filename, position })),
-                    _ => unreachable!(),
-                }
-            }
-            "2" | "Break" => {
-                let (_, (_, end_time)) = tuple((
-                    context(EventParamsParseError::MissingEndTime.into(), comma()),
-                    context(
-                        EventParamsParseError::InvalidEndTime.into(),
-                        consume_rest_i32(),
+        let start_time = || comma_field();
+        let file_name = || comma_field().map(|f| PathBuf::from(f));
+        let coordinates = || {
+            alt((
+                eof.map(|_| (0, 0)),
+                tuple((
+                    preceded(
+                        context(EventParamsParseError::MissingXOffset.into(), comma()),
+                        context(
+                            EventParamsParseError::InvalidXOffset.into(),
+                            comma_field_i32(),
+                        ),
                     ),
-                ))(s)?;
+                    preceded(
+                        context(EventParamsParseError::MissingYOffset.into(), comma()),
+                        context(
+                            EventParamsParseError::InvalidYOffset.into(),
+                            consume_rest_i32(),
+                        ),
+                    ),
+                )),
+            ))
+            .map(|(x, y)| Position { x, y })
+        };
+        let file_name_and_coordinates = || tuple((file_name(), coordinates()));
+        let end_time = consume_rest_i32();
 
-                Ok(EventParams::Break(Break { end_time }))
-            }
-            "3" => {
-                let (_, (_, red, _, green, _, blue)) = tuple((
+        let background = preceded(
+            tuple((
+                tag("0"),
+                cut(tuple((
+                    context(EventParamsParseError::MissingStartTime.into(), comma()),
+                    start_time(),
+                    context(EventParamsParseError::MissingFileName.into(), comma()),
+                ))),
+            )),
+            cut(file_name_and_coordinates()),
+        )
+        .map(|(filename, position)| EventParams::Background(Background { filename, position }));
+        let video = preceded(
+            tuple((
+                alt((tag("1"), tag("Video"))),
+                cut(tuple((
+                    context(EventParamsParseError::MissingStartTime.into(), comma()),
+                    start_time(),
+                    context(EventParamsParseError::MissingFileName.into(), comma()),
+                ))),
+            )),
+            cut(file_name_and_coordinates()),
+        )
+        .map(|(filename, position)| EventParams::Video(Video { filename, position }));
+        let break_ = preceded(
+            tuple((
+                alt((tag("2"), tag("Break"))),
+                cut(tuple((
+                    context(EventParamsParseError::MissingStartTime.into(), comma()),
+                    start_time(),
+                    context(EventParamsParseError::MissingEndTime.into(), comma()),
+                ))),
+            )),
+            cut(context(
+                EventParamsParseError::InvalidEndTime.into(),
+                end_time,
+            )),
+        )
+        .map(|end_time| EventParams::Break(Break { end_time }));
+        let colour_transformation = preceded(
+            tuple((
+                tag("3"),
+                cut(tuple((
+                    context(EventParamsParseError::MissingStartTime.into(), comma()),
+                    start_time(),
                     context(EventParamsParseError::MissingRed.into(), comma()),
-                    context(EventParamsParseError::InvalidRed.into(), comma_field_u8()),
+                ))),
+            )),
+            cut(tuple((
+                context(EventParamsParseError::InvalidRed.into(), comma_field_u8()),
+                preceded(
                     context(EventParamsParseError::MissingGreen.into(), comma()),
                     context(EventParamsParseError::InvalidGreen.into(), comma_field_u8()),
+                ),
+                preceded(
                     context(EventParamsParseError::MissingBlue.into(), comma()),
                     context(EventParamsParseError::InvalidBlue.into(), consume_rest_u8()),
-                ))(s)?;
+                ),
+            ))),
+        )
+        .map(|(red, green, blue)| {
+            EventParams::ColourTransformation(ColourTransformation { red, green, blue })
+        });
 
-                Ok(EventParams::ColourTransformation(ColourTransformation {
-                    red,
-                    green,
-                    blue,
-                }))
-            }
-            _ => Err(EventParamsParseError::UnknownEventType),
-        }
+        let result = alt((
+            background,
+            video,
+            break_,
+            colour_transformation,
+            context(EventParamsParseError::UnknownEventType.into(), fail),
+        ))(s)?;
+
+        Ok(result.1)
     }
 }
