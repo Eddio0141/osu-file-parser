@@ -297,13 +297,15 @@ impl FromStr for EventParams {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         // getting an event type won't fail, so we can unwrap
         let (s, event_type) = comma_field::<nom::error::Error<_>>()(s).unwrap();
-        let (s, _) = context(
-            EventParamsParseError::MissingStartTime.into(),
+        let (s, _) = tuple((
+            context(EventParamsParseError::MissingStartTime.into(), comma()),
+            // the start time parsing is handled by the event parsing, so we ignore it
             comma_field(),
-        )(s)?;
+        ))(s)?;
 
         match event_type {
             // TODO do this kind of "direct" nom parsing for others
+            // TODO shorthand
             "0" | "1" | "Video" => {
                 let (_, (_, filename, _, x, _, y)) = tuple((
                     context(EventParamsParseError::MissingFileName.into(), comma()),
