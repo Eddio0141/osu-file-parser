@@ -260,3 +260,11 @@ fn events_parse_v14() {
     assert_eq!(i, e);
     assert_eq!(i_str, i.to_string_v14());
 }
+
+#[test]
+fn colour_parse_error() {
+    let i = "Combo1: foo";
+    let err = i.parse::<Colour>().unwrap_err();
+
+    assert_eq!(err.to_string(), "Invalid colour value");
+}
