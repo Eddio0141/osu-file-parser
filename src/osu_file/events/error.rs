@@ -1,6 +1,8 @@
-use thiserror::Error;
+use std::str::FromStr;
 
-use std::error::Error;
+use nom::error::VerboseErrorKind;
+use strum_macros::{EnumString, IntoStaticStr};
+use thiserror::Error;
 
 use super::storyboard::error::*;
 
@@ -33,17 +35,54 @@ pub enum ParseError {
     StoryboardObjectParseError(#[from] ObjectParseError),
 }
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, EnumString, IntoStaticStr)]
 pub enum EventParamsParseError {
-    #[error("The field {0} is missing from the event parameter")]
-    MissingField(&'static str),
-    #[error("The field {field_name} failed to parse from a `str`")]
-    ParseFieldError {
-        #[source]
-        source: Box<dyn Error>,
-        value: String,
-        field_name: &'static str,
-    },
-    #[error("Unknown field `{0}`")]
-    UnknownParamType(String),
+    #[error("Missing the `start_time` field")]
+    MissingStartTime,
+    #[error("Unknown event type")]
+    UnknownEventType,
+    #[error("Missing the `file_name` field")]
+    MissingFileName,
+    #[error("Missing the `x_offset` field")]
+    MissingXOffset,
+    #[error("Invalid `x_offset` field")]
+    InvalidXOffset,
+    #[error("Missing the `y_offset` field")]
+    MissingYOffset,
+    #[error("Invalid `y_offset` field")]
+    InvalidYOffset,
+    #[error("Missing the `end_time` field")]
+    MissingEndTime,
+    #[error("Invalid `end_time` field")]
+    InvalidEndTime,
+    #[error("Missing the `red` field")]
+    MissingRed,
+    #[error("Invalid `red` field")]
+    InvalidRed,
+    #[error("Missing the `green` field")]
+    MissingGreen,
+    #[error("Invalid `green` field")]
+    InvalidGreen,
+    #[error("Missing the `blue` field")]
+    MissingBlue,
+    #[error("Invalid `blue` field")]
+    InvalidBlue,
+}
+
+impl From<nom::Err<nom::error::VerboseError<&str>>> for EventParamsParseError {
+    fn from(err: nom::Err<nom::error::VerboseError<&str>>) -> Self {
+        match err {
+            nom::Err::Error(err) | nom::Err::Failure(err) => {
+                for (_, err) in err.errors {
+                    if let VerboseErrorKind::Context(context) = err {
+                        return EventParamsParseError::from_str(context).unwrap();
+                    }
+                }
+
+                unreachable!()
+            }
+            // should never happen
+            nom::Err::Incomplete(_) => unreachable!(),
+        }
+    }
 }
