@@ -1,3 +1,7 @@
+use std::str::FromStr;
+
+use nom::error::VerboseErrorKind;
+use strum_macros::{EnumString, IntoStaticStr};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -5,21 +9,29 @@ use thiserror::Error;
 pub struct ParseError(#[from] ColourParseError);
 
 /// Error used when there was a problem parsing a `str` as a `Colour`.
-#[derive(Debug, Error)]
+#[derive(Debug, Error, EnumString, IntoStaticStr)]
 pub enum ColourParseError {
-    /// The colour key was invalid.
-    #[error("Unknown colour option")]
-    UnknownColourOption,
-    /// The colour value was invalid.
-    #[error("Invalid colour value")]
-    InvalidColourValue,
     /// Invalid additive combo count.
     #[error("Invalid additive combo count")]
     InvalidComboCount,
-    /// Missing green value.
-    #[error("The rgb section is missing a green value")]
-    MissingGreenValue,
-    /// Missing blue value.
-    #[error("The rgb section is missing a blue value")]
-    MissingBlueValue,
+    /// Invalid colon separator.
+    #[error("Invalid colon separator")]
+    InvalidColonSeparator,
+}
+
+impl From<nom::Err<nom::error::VerboseError<&str>>> for ColourParseError {
+    fn from(err: nom::Err<nom::error::VerboseError<&str>>) -> Self {
+        match err {
+            nom::Err::Error(err) | nom::Err::Failure(err) => {
+                for (_, err) in err.errors {
+                    if let VerboseErrorKind::Context(context) = err {
+                        return ColourParseError::from_str(context).unwrap();
+                    }
+                }
+
+                unreachable!()
+            }
+            nom::Err::Incomplete(_) => unreachable!(),
+        }
+    }
 }

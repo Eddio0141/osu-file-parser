@@ -3,8 +3,17 @@ pub mod error;
 
 use std::{fmt::Display, str::FromStr};
 
-use nom::{error::VerboseErrorKind, Finish};
+use nom::{
+    branch::alt,
+    bytes::complete::tag,
+    character::complete::{digit1, multispace0},
+    combinator::{cut, map_res},
+    error::context,
+    sequence::{preceded, tuple},
+    Parser,
+};
 
+use self::colour_parser::rgb;
 pub use self::error::*;
 
 use super::{Error, Version};
@@ -57,40 +66,54 @@ impl FromStr for Colour {
     type Err = ColourParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match colour_parser::colour(s).finish() {
-            Ok((_, colour)) => Ok(colour),
-            Err(err) => {
-                for err in &err.errors {
-                    if let VerboseErrorKind::Context(context) = err.1 {
-                        let err = match colour_parser::Context::from_str(context).unwrap() {
-                            colour_parser::Context::UnknownColourOption => {
-                                ColourParseError::UnknownColourOption
-                            }
-                            colour_parser::Context::InvalidAdditiveComboCount => {
-                                ColourParseError::InvalidComboCount
-                            }
-                            colour_parser::Context::InvalidRed
-                            | colour_parser::Context::InvalidBlue
-                            | colour_parser::Context::InvalidGreen => {
-                                ColourParseError::InvalidColourValue
-                            }
-                            colour_parser::Context::NoCommaAfterRed => {
-                                ColourParseError::MissingGreenValue
-                            }
-                            colour_parser::Context::NoCommaAfterGreen => {
-                                ColourParseError::MissingBlueValue
-                            }
-                            // TODO merge the parser later
-                            colour_parser::Context::InvalidColonSeparator => todo!(),
-                        };
+        let separator = || tuple((multispace0, tag(":"), multispace0));
+        let combo_type = tag("Combo");
+        let combo_count = map_res(digit1, |s: &str| s.parse::<u32>());
+        let slider_track_override_type = tag("SliderTrackOverride");
+        let slider_border_type = tag("SliderBorder");
 
-                        return Err(err);
-                    }
-                }
+        let combo = tuple((
+            preceded(
+                combo_type,
+                context(ColourParseError::InvalidComboCount.into(), cut(combo_count)),
+            ),
+            // TODO rgb context
+            cut(preceded(
+                context(ColourParseError::InvalidColonSeparator.into(), separator()),
+                rgb,
+            )),
+        ))
+        .map(|(combo, rgb)| Colour::Combo(combo, rgb));
 
-                unimplemented!("unimplemented colour nom parser error, {:?}", err)
-            }
-        }
+        let slide_track_override = preceded(
+            tuple((
+                slider_track_override_type,
+                context(
+                    ColourParseError::InvalidColonSeparator.into(),
+                    cut(separator()),
+                ),
+            )),
+            // TODO rgb context
+            cut(rgb),
+        )
+        .map(|rgb| Colour::SliderTrackOverride(rgb));
+
+        let slider_border = preceded(
+            tuple((
+                slider_border_type,
+                context(
+                    ColourParseError::InvalidColonSeparator.into(),
+                    cut(separator()),
+                ),
+            )),
+            // TODO rgb context
+            cut(rgb),
+        )
+        .map(|rgb| Colour::SliderBorder(rgb));
+
+        let (_, colour) = alt((combo, slide_track_override, slider_border))(s)?;
+
+        Ok(colour)
     }
 }
 
