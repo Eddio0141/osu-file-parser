@@ -8,8 +8,9 @@ use std::{
 };
 
 use nom::{
+    branch::alt,
     bytes::complete::{tag, take_while},
-    combinator::rest,
+    combinator::{eof, rest},
     error::context,
     sequence::{preceded, tuple},
     Finish, Parser,
@@ -305,23 +306,27 @@ impl FromStr for EventParams {
 
         match event_type {
             // TODO do this kind of "direct" nom parsing for others
-            // TODO shorthand
             "0" | "1" | "Video" => {
-                let (_, (_, filename, _, x, _, y)) = tuple((
+                let (_, (_, filename, (_, x, _, y))) = tuple((
                     context(EventParamsParseError::MissingFileName.into(), comma()),
                     // this shouldn't fail as its just a filename
                     comma_field().map(|f| PathBuf::from(f)),
-                    context(EventParamsParseError::MissingXOffset.into(), comma()),
-                    context(
-                        EventParamsParseError::InvalidXOffset.into(),
-                        comma_field_i32(),
-                    ),
-                    context(EventParamsParseError::MissingYOffset.into(), comma()),
-                    // TODO check all other parsers to make sure they consume all input
-                    context(
-                        EventParamsParseError::InvalidYOffset.into(),
-                        consume_rest_i32(),
-                    ),
+                    alt((
+                        eof.map(|_| (',', 0, ',', 0)),
+                        tuple((
+                            context(EventParamsParseError::MissingXOffset.into(), comma()),
+                            context(
+                                EventParamsParseError::InvalidXOffset.into(),
+                                comma_field_i32(),
+                            ),
+                            context(EventParamsParseError::MissingYOffset.into(), comma()),
+                            // TODO check all other parsers to make sure they consume all input
+                            context(
+                                EventParamsParseError::InvalidYOffset.into(),
+                                consume_rest_i32(),
+                            ),
+                        )),
+                    )),
                 ))(s)?;
 
                 let position = Position { x, y };
