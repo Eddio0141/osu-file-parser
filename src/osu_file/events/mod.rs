@@ -12,13 +12,10 @@ use nom::{
     combinator::rest,
     error::context,
     sequence::{preceded, tuple},
-    Finish,
+    Finish, Parser,
 };
 
-use crate::{
-    osu_file::events::storyboard::sprites,
-    parsers::{comma, comma_field, comma_field_i32},
-};
+use crate::{osu_file::events::storyboard::sprites, parsers::*};
 
 use self::storyboard::{
     cmds::{Command, CommandProperties},
@@ -298,130 +295,61 @@ impl FromStr for EventParams {
     type Err = EventParamsParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        // TODO fix this
-        let mut event_params = s.split(',');
-
-        let event_type = event_params
-            .next()
-            .ok_or(EventParamsParseError::MissingField("event_type"))?
-            .trim();
-        event_params
-            .next()
-            .ok_or(EventParamsParseError::MissingField("start_time"))?;
+        // getting an event type won't fail, so we can unwrap
+        let (s, event_type) = comma_field::<nom::error::Error<_>>()(s).unwrap();
+        let (s, _) = context(
+            EventParamsParseError::MissingStartTime.into(),
+            comma_field(),
+        )(s)?;
 
         match event_type {
+            // TODO do this kind of "direct" nom parsing for others
             "0" | "1" | "Video" => {
-                let filename = event_params
-                    .next()
-                    .ok_or(EventParamsParseError::MissingField("filename"))?;
-                let position = {
-                    let mut has_position = false;
+                let (_, (_, filename, _, x, _, y)) = tuple((
+                    context(EventParamsParseError::MissingFileName.into(), comma()),
+                    // this shouldn't fail as its just a filename
+                    comma_field().map(|f| PathBuf::from(f)),
+                    context(EventParamsParseError::MissingXOffset.into(), comma()),
+                    context(
+                        EventParamsParseError::InvalidXOffset.into(),
+                        comma_field_i32(),
+                    ),
+                    context(EventParamsParseError::MissingYOffset.into(), comma()),
+                    // TODO check all other parsers to make sure they consume all input
+                    context(
+                        EventParamsParseError::InvalidYOffset.into(),
+                        consume_rest_i32(),
+                    ),
+                ))(s)?;
 
-                    let x = match event_params.next() {
-                        Some(x) => {
-                            has_position = true;
-                            x
-                        }
-                        None => "0",
-                    };
-                    let x = x
-                        .parse()
-                        .map_err(|err| EventParamsParseError::ParseFieldError {
-                            source: Box::new(err),
-                            value: x.to_string(),
-                            field_name: "xOffset",
-                        })?;
+                let position = Position { x, y };
 
-                    let y = match event_params.next() {
-                        Some(y) => {
-                            if has_position {
-                                y
-                            } else {
-                                return Err(EventParamsParseError::MissingField("xOffset"));
-                            }
-                        }
-                        None => {
-                            if has_position {
-                                return Err(EventParamsParseError::MissingField("yOffset"));
-                            } else {
-                                "0"
-                            }
-                        }
-                    };
-                    let y = y
-                        .parse()
-                        .map_err(|err| EventParamsParseError::ParseFieldError {
-                            source: Box::new(err),
-                            value: y.to_string(),
-                            field_name: "yOffset",
-                        })?;
-
-                    Position { x, y }
-                };
-
-                let filename = Path::new(filename);
-
-                if event_type == "0" {
-                    Ok(EventParams::Background(Background {
-                        filename: filename.to_path_buf(),
-                        position,
-                    }))
-                } else {
-                    Ok(EventParams::Video(Video {
-                        filename: filename.to_path_buf(),
-                        position,
-                    }))
+                match event_type {
+                    "0" => Ok(EventParams::Background(Background { filename, position })),
+                    "1" | "Video" => Ok(EventParams::Video(Video { filename, position })),
+                    _ => unreachable!(),
                 }
             }
             "2" | "Break" => {
-                let end_time = event_params
-                    .next()
-                    .ok_or(EventParamsParseError::MissingField("endTime"))?;
-                let end_time =
-                    end_time
-                        .parse()
-                        .map_err(|err| EventParamsParseError::ParseFieldError {
-                            source: Box::new(err),
-                            value: end_time.to_string(),
-                            field_name: "endTime",
-                        })?;
+                let (_, (_, end_time)) = tuple((
+                    context(EventParamsParseError::MissingEndTime.into(), comma()),
+                    context(
+                        EventParamsParseError::InvalidEndTime.into(),
+                        consume_rest_i32(),
+                    ),
+                ))(s)?;
 
                 Ok(EventParams::Break(Break { end_time }))
             }
             "3" => {
-                let red = event_params
-                    .next()
-                    .ok_or(EventParamsParseError::MissingField("red"))?;
-                let red = red
-                    .parse()
-                    .map_err(|err| EventParamsParseError::ParseFieldError {
-                        source: Box::new(err),
-                        value: red.to_string(),
-                        field_name: "red",
-                    })?;
-
-                let green = event_params
-                    .next()
-                    .ok_or(EventParamsParseError::MissingField("green"))?;
-                let green =
-                    green
-                        .parse()
-                        .map_err(|err| EventParamsParseError::ParseFieldError {
-                            source: Box::new(err),
-                            value: green.to_string(),
-                            field_name: "green",
-                        })?;
-
-                let blue = event_params
-                    .next()
-                    .ok_or(EventParamsParseError::MissingField("blue"))?;
-                let blue = blue
-                    .parse()
-                    .map_err(|err| EventParamsParseError::ParseFieldError {
-                        source: Box::new(err),
-                        value: blue.to_string(),
-                        field_name: "blue",
-                    })?;
+                let (_, (_, red, _, green, _, blue)) = tuple((
+                    context(EventParamsParseError::MissingRed.into(), comma()),
+                    context(EventParamsParseError::InvalidRed.into(), comma_field_u8()),
+                    context(EventParamsParseError::MissingGreen.into(), comma()),
+                    context(EventParamsParseError::InvalidGreen.into(), comma_field_u8()),
+                    context(EventParamsParseError::MissingBlue.into(), comma()),
+                    context(EventParamsParseError::InvalidBlue.into(), consume_rest_u8()),
+                ))(s)?;
 
                 Ok(EventParams::ColourTransformation(ColourTransformation {
                     red,
@@ -429,9 +357,7 @@ impl FromStr for EventParams {
                     blue,
                 }))
             }
-            _ => Err(EventParamsParseError::UnknownParamType(
-                event_type.to_string(),
-            )),
+            _ => Err(EventParamsParseError::UnknownEventType),
         }
     }
 }
