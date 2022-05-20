@@ -77,9 +77,40 @@ where
     take_while(|c: char| c != ',')
 }
 
+pub fn comma_field_u8<'a, E>() -> impl FnMut(&'a str) -> IResult<&str, u8, E>
+where
+    E: ParseError<&'a str> + FromExternalError<&'a str, ParseIntError>,
+{
+    map_res(comma_field(), |s| s.parse::<u8>())
+}
+
 pub fn comma_field_i32<'a, E>() -> impl FnMut(&'a str) -> IResult<&str, i32, E>
 where
     E: ParseError<&'a str> + FromExternalError<&'a str, ParseIntError>,
 {
     map_res(comma_field(), |s| s.parse::<i32>())
+}
+
+/// Consumes the rest of the input.
+pub fn consume_rest<'a, E>() -> impl FnMut(&'a str) -> IResult<&str, &str, E>
+where
+    E: ParseError<&'a str>,
+{
+    take_while(|_| true)
+}
+
+/// Consumes the rest of the input and parses it as i32.
+pub fn consume_rest_i32<'a, E>() -> impl FnMut(&'a str) -> IResult<&str, i32, E>
+where
+    E: ParseError<&'a str> + FromExternalError<&'a str, ParseIntError>,
+{
+    map_res(consume_rest(), |s| s.parse::<i32>())
+}
+
+/// Consumes the rest of the input and parses as u8.
+pub fn consume_rest_u8<'a, E>() -> impl FnMut(&'a str) -> IResult<&str, u8, E>
+where
+    E: ParseError<&'a str> + FromExternalError<&'a str, ParseIntError>,
+{
+    map_res(consume_rest(), |s| s.parse::<u8>())
 }
