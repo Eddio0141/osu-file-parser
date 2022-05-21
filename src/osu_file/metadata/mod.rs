@@ -63,9 +63,14 @@ impl Version for Metadata {
         .map(|tags: Vec<&str>| tags.iter().map(|tag| tag.to_string()).collect());
 
         let mut line_count = 0;
+        let mut parsed_fields = Vec::new();
 
         for (name, value, ws) in fields {
             let new_into_int = move |err| Error::new_into(err, line_count);
+
+            if parsed_fields.contains(&name) {
+                return Err(Error::new(ParseError::DuplicateField, line_count));
+            }
 
             match name {
                 "Title" => metadata.title = Some(value.to_owned()),
@@ -84,6 +89,7 @@ impl Version for Metadata {
             }
 
             line_count += ws.lines().count();
+            parsed_fields.push(name);
         }
 
         Ok(Some(metadata))

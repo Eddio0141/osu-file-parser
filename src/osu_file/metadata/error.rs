@@ -5,6 +5,9 @@ use std::num::ParseIntError;
 #[derive(Debug, Error)]
 /// Error used when there was a problem parsing the `Metadata` section.
 pub enum ParseError {
+    /// There is a duplicate field in the `Metadata` section.
+    #[error("There is a duplicate field in the `Metadata` section")]
+    DuplicateField,
     /// A Field in `Metadata` failed to parse as a `Integer`.
     #[error(transparent)]
     ParseIntError(#[from] ParseIntError),
