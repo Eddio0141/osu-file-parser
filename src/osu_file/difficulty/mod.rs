@@ -2,7 +2,7 @@ pub mod error;
 
 use rust_decimal::Decimal;
 
-use crate::parsers::get_colon_field_value_lines;
+use crate::{helper::display_colon_fields, parsers::get_colon_field_value_lines};
 
 use super::{Error, Version};
 
@@ -46,9 +46,14 @@ impl Version for Difficulty {
         }
 
         let mut line_count = 0;
+        let mut parsed_fields = Vec::new();
 
         for (name, value, ws) in fields {
             let new_into_decimal = move |err| Error::new_into(err, line_count);
+
+            if parsed_fields.contains(&name) {
+                return Err(Error::new(ParseError::DuplicateField, line_count));
+            }
 
             match name {
                 "HPDrainRate" => {
@@ -73,25 +78,29 @@ impl Version for Difficulty {
             }
 
             line_count += ws.lines().count();
+            parsed_fields.push(name);
         }
 
         Ok(Some(difficulty))
     }
 
     fn to_string_v3(&self) -> String {
-        let key_value = vec![
-            ("HPDrainRate", &self.hp_drain_rate),
-            ("CircleSize", &self.circle_size),
-            ("OverallDifficulty", &self.overall_difficulty),
-            ("ApproachRate", &self.approach_rate),
-            ("SliderMultiplier", &self.slider_multiplier),
-            ("SliderTickRate", &self.slider_tickrate),
+        let hp_drain_rate = self.hp_drain_rate.as_ref().map(|v| v.to_string());
+        let circle_size = self.circle_size.as_ref().map(|v| v.to_string());
+        let overall_difficulty = self.overall_difficulty.as_ref().map(|v| v.to_string());
+        let approach_rate = self.approach_rate.as_ref().map(|v| v.to_string());
+        let slider_multiplier = self.slider_multiplier.as_ref().map(|v| v.to_string());
+        let slider_tickrate = self.slider_tickrate.as_ref().map(|v| v.to_string());
+
+        let fields = vec![
+            ("HPDrainRate", &hp_drain_rate),
+            ("CircleSize", &circle_size),
+            ("OverallDifficulty", &overall_difficulty),
+            ("ApproachRate", &approach_rate),
+            ("SliderMultiplier", &slider_multiplier),
+            ("SliderTickRate", &slider_tickrate),
         ];
 
-        key_value
-            .iter()
-            .filter_map(|(k, v)| v.as_ref().map(|v| format!("{k}:{v}")))
-            .collect::<Vec<_>>()
-            .join("\n")
+        display_colon_fields(&fields, false)
     }
 }

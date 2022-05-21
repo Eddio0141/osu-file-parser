@@ -17,4 +17,7 @@ pub enum ParseError {
     /// Invalid key name was used.
     #[error("The key doesn't exist in `Difficulty`")]
     InvalidKey,
+    /// There is a duplicate field in `Difficulty`.
+    #[error("Duplicate field in `Difficulty`")]
+    DuplicateField,
 }
