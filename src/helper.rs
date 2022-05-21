@@ -1,4 +1,4 @@
-use std::{fmt::Display, num::ParseIntError};
+use std::num::ParseIntError;
 
 use thiserror::Error;
 
@@ -48,15 +48,4 @@ pub fn display_colon_fields(fields: &[(&str, &Option<String>)], space_after_colo
     }
 
     fields_str_builder.join("\n")
-}
-
-pub fn display_colon_field<T: Display>(
-    field_name: &str,
-    field: &Option<T>,
-    spaces_after_colon: usize,
-) -> String {
-    match field {
-        Some(field) => format!("{field_name}:{}{field}", " ".repeat(spaces_after_colon)),
-        None => String::new(),
-    }
 }
