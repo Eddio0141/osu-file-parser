@@ -5,7 +5,7 @@ use std::{fmt::Display, str::FromStr};
 use nom::{
     branch::alt,
     bytes::complete::tag,
-    character::complete::{digit1, multispace0},
+    character::complete::{digit1, space0},
     combinator::{cut, fail, map_res},
     error::context,
     sequence::{preceded, tuple},
@@ -66,7 +66,7 @@ impl FromStr for Colour {
     type Err = ColourParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let separator = || tuple((multispace0, tag(":"), multispace0));
+        let separator = || tuple((space0, tag(":"), space0));
         let combo_type = tag("Combo");
         let combo_count = map_res(digit1, |s: &str| s.parse::<u32>());
         let slider_track_override_type = tag("SliderTrackOverride");
@@ -74,23 +74,20 @@ impl FromStr for Colour {
         let byte = || map_res(digit1, |s: &str| s.parse::<u8>());
         let rgb = || {
             tuple((
-                preceded(
-                    multispace0,
-                    context(ColourParseError::InvalidRed.into(), byte()),
-                ),
+                preceded(space0, context(ColourParseError::InvalidRed.into(), byte())),
                 preceded(
                     tuple((
-                        multispace0,
+                        space0,
                         context(ColourParseError::MissingGreen.into(), comma()),
-                        multispace0,
+                        space0,
                     )),
                     context(ColourParseError::InvalidGreen.into(), byte()),
                 ),
                 preceded(
                     tuple((
-                        multispace0,
+                        space0,
                         context(ColourParseError::MissingBlue.into(), comma()),
-                        multispace0,
+                        space0,
                     )),
                     context(ColourParseError::InvalidBlue.into(), byte()),
                 ),
