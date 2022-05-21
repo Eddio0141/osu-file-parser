@@ -266,5 +266,5 @@ fn colour_parse_error() {
     let i = "Combo1: foo";
     let err = i.parse::<Colour>().unwrap_err();
 
-    assert_eq!(err.to_string(), "Invalid colour value");
+    assert_eq!(err.to_string(), "Invalid red value");
 }

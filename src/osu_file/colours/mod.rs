@@ -1,4 +1,3 @@
-mod colour_parser;
 pub mod error;
 
 use std::{fmt::Display, str::FromStr};
@@ -7,13 +6,14 @@ use nom::{
     branch::alt,
     bytes::complete::tag,
     character::complete::{digit1, multispace0},
-    combinator::{cut, map_res},
+    combinator::{cut, fail, map_res},
     error::context,
     sequence::{preceded, tuple},
     Parser,
 };
 
-use self::colour_parser::rgb;
+use crate::parsers::comma;
+
 pub use self::error::*;
 
 use super::{Error, Version};
@@ -71,16 +71,41 @@ impl FromStr for Colour {
         let combo_count = map_res(digit1, |s: &str| s.parse::<u32>());
         let slider_track_override_type = tag("SliderTrackOverride");
         let slider_border_type = tag("SliderBorder");
+        let byte = || map_res(digit1, |s: &str| s.parse::<u8>());
+        let rgb = || {
+            tuple((
+                preceded(
+                    multispace0,
+                    context(ColourParseError::InvalidRed.into(), byte()),
+                ),
+                preceded(
+                    tuple((
+                        multispace0,
+                        context(ColourParseError::MissingGreen.into(), comma()),
+                        multispace0,
+                    )),
+                    context(ColourParseError::InvalidGreen.into(), byte()),
+                ),
+                preceded(
+                    tuple((
+                        multispace0,
+                        context(ColourParseError::MissingBlue.into(), comma()),
+                        multispace0,
+                    )),
+                    context(ColourParseError::InvalidBlue.into(), byte()),
+                ),
+            ))
+            .map(|(red, green, blue)| Rgb { red, green, blue })
+        };
 
         let combo = tuple((
             preceded(
                 combo_type,
                 context(ColourParseError::InvalidComboCount.into(), cut(combo_count)),
             ),
-            // TODO rgb context
             cut(preceded(
                 context(ColourParseError::InvalidColonSeparator.into(), separator()),
-                rgb,
+                rgb(),
             )),
         ))
         .map(|(combo, rgb)| Colour::Combo(combo, rgb));
@@ -93,8 +118,7 @@ impl FromStr for Colour {
                     cut(separator()),
                 ),
             )),
-            // TODO rgb context
-            cut(rgb),
+            cut(rgb()),
         )
         .map(|rgb| Colour::SliderTrackOverride(rgb));
 
@@ -106,12 +130,16 @@ impl FromStr for Colour {
                     cut(separator()),
                 ),
             )),
-            // TODO rgb context
-            cut(rgb),
+            cut(rgb()),
         )
         .map(|rgb| Colour::SliderBorder(rgb));
 
-        let (_, colour) = alt((combo, slide_track_override, slider_border))(s)?;
+        let (_, colour) = alt((
+            combo,
+            slide_track_override,
+            slider_border,
+            context(ColourParseError::UnknownColourType.into(), fail),
+        ))(s)?;
 
         Ok(colour)
     }

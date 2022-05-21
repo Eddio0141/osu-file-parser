@@ -17,6 +17,24 @@ pub enum ColourParseError {
     /// Invalid colon separator.
     #[error("Invalid colon separator")]
     InvalidColonSeparator,
+    /// Invalid red value.
+    #[error("Invalid red value")]
+    InvalidRed,
+    /// Invalid green value.
+    #[error("Invalid green value")]
+    InvalidGreen,
+    /// Invalid blue value.
+    #[error("Invalid blue value")]
+    InvalidBlue,
+    /// Missing green value.
+    #[error("Missing green value")]
+    MissingGreen,
+    /// Missing blue value.
+    #[error("Missing blue value")]
+    MissingBlue,
+    /// Unknown colour type.
+    #[error("Unknown colour type")]
+    UnknownColourType,
 }
 
 impl From<nom::Err<nom::error::VerboseError<&str>>> for ColourParseError {
