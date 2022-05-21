@@ -20,4 +20,7 @@ pub enum ParseError {
     /// Invalid comma list, expected format of `key: value, value, value, ...`
     #[error("Invalid comma list, expected format of `key: value, value, value, ...`")]
     InvalidCommaList,
+    /// Duplicate field in `Editor`.
+    #[error("Duplicate field in `Editor`")]
+    DuplicateField,
 }

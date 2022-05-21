@@ -1,14 +1,12 @@
 pub mod error;
 
-use nom::{
-    bytes::complete::{tag, take_till},
-    combinator::map_res,
-    multi::separated_list0,
-    Finish,
-};
+use nom::{bytes::complete::take_till, combinator::map_res, multi::separated_list0, Finish};
 use rust_decimal::Decimal;
 
-use crate::parsers::get_colon_field_value_lines;
+use crate::{
+    helper::display_colon_fields,
+    parsers::{comma, get_colon_field_value_lines},
+};
 
 use super::{Error, Integer, Version};
 
@@ -49,16 +47,20 @@ impl Version for Editor {
         }
 
         let mut line_count = 0;
+        let mut parsed_fields = Vec::new();
 
         for (name, value, ws) in fields {
             let new_into_int = move |err| Error::new_into(err, line_count);
             let new_into_decimal = move |err| Error::new_into(err, line_count);
 
+            if parsed_fields.contains(&name) {
+                return Err(Error::new(ParseError::DuplicateField, line_count));
+            }
+
             match name {
                 "Bookmarks" => {
-                    let comma = tag::<_, _, nom::error::Error<_>>(",");
                     let bookmark = map_res(take_till(|c| c == ','), |s: &str| s.parse::<Integer>());
-                    let mut bookmarks = separated_list0(comma, bookmark);
+                    let mut bookmarks = separated_list0(comma::<nom::error::Error<_>>(), bookmark);
 
                     let (_, bookmarks) = match bookmarks(value).finish() {
                         Ok(ok) => ok,
@@ -97,37 +99,32 @@ impl Version for Editor {
             }
 
             line_count += ws.lines().count();
+            parsed_fields.push(name);
         }
 
         Ok(Some(editor))
     }
 
     fn to_string_v3(&self) -> String {
-        let mut key_value = Vec::new();
+        let bookmarks = self.bookmarks.as_ref().map(|b| {
+            b.iter()
+                .map(|b| b.to_string())
+                .collect::<Vec<_>>()
+                .join(",")
+        });
+        let distance_spacing = self.distance_spacing.as_ref().map(|d| d.to_string());
+        let beat_divisor = self.beat_divisor.as_ref().map(|d| d.to_string());
+        let grid_size = self.grid_size.as_ref().map(|g| g.to_string());
+        let timeline_zoom = self.timeline_zoom.as_ref().map(|t| t.to_string());
 
-        if let Some(bookmarks) = &self.bookmarks {
-            key_value.push(format!(
-                "Bookmarks: {}",
-                bookmarks
-                    .iter()
-                    .map(|b| b.to_string())
-                    .collect::<Vec<_>>()
-                    .join(","),
-            ));
-        }
-        if let Some(spacing) = &self.distance_spacing {
-            key_value.push(format!("DistanceSpacing: {spacing}"));
-        }
-        if let Some(divisor) = &self.beat_divisor {
-            key_value.push(format!("BeatDivisor: {divisor}"));
-        }
-        if let Some(grid_size) = &self.grid_size {
-            key_value.push(format!("GridSize: {grid_size}"));
-        }
-        if let Some(zoom) = &self.timeline_zoom {
-            key_value.push(format!("TimelineZoom: {zoom}"));
-        }
+        let fields = vec![
+            ("Bookmarks", &bookmarks),
+            ("DistanceSpacing", &distance_spacing),
+            ("BeatDivisor", &beat_divisor),
+            ("GridSize", &grid_size),
+            ("TimelineZoom", &timeline_zoom),
+        ];
 
-        key_value.join("\n")
+        display_colon_fields(&fields, true)
     }
 }
