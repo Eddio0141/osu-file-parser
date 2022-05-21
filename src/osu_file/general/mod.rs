@@ -1,5 +1,6 @@
 pub mod error;
 
+use std::path::PathBuf;
 use std::{fmt::Debug, str::FromStr};
 
 use rust_decimal::Decimal;
@@ -20,7 +21,7 @@ use super::{types::Error, Version};
 #[non_exhaustive]
 pub struct General {
     /// Location of the audio file relative to the current folder.
-    pub audio_filename: Option<String>,
+    pub audio_filename: Option<PathBuf>,
     /// Milliseconds of silence before the audio starts playing.
     pub audio_lead_in: Option<Integer>,
     /// Deprecated.
@@ -147,24 +148,34 @@ impl Version for General {
         }
 
         let mut line_count = 0;
+        let mut parsed_fields = Vec::new();
 
         for (name, value, ws) in fields {
+            if parsed_fields.contains(&name) {
+                return Err(Error::new(ParseError::DuplicateField, line_count));
+            }
+
             // TODO multiple same fields error
             match name {
-                "AudioFilename" => general.audio_filename = Some(value.to_owned()),
+                "AudioFilename" => general.audio_filename = Some(PathBuf::from(value)),
                 "AudioHash" => general.audio_hash = Some(value.to_owned()),
                 _ => return Err(Error::new(ParseError::InvalidKey, line_count)),
             }
 
             line_count += ws.lines().count();
+            parsed_fields.push(name);
         }
 
         Ok(Some(general))
     }
 
     fn to_string_v3(&self) -> String {
-        let fields = [
-            ("AudioFilename", &self.audio_filename),
+        let audio_file_name = self
+            .audio_filename
+            .as_ref()
+            .map(|p| p.display().to_string());
+        let fields = vec![
+            ("AudioFilename", &audio_file_name),
             ("AudioHash", &self.audio_hash),
         ];
 
@@ -188,6 +199,7 @@ impl Version for General {
         }
 
         let mut line_count = 0;
+        let mut parsed_fields = Vec::new();
 
         for (name, value, ws) in fields {
             let new_into_int = move |err| Error::new_into(err, line_count);
@@ -197,8 +209,12 @@ impl Version for General {
             let new_into_strum_parse_error = move |err| Error::new_into(err, line_count);
             let new_into_combine_game_mode = move |err| Error::new_into(err, line_count);
 
+            if parsed_fields.contains(&name) {
+                return Err(Error::new(ParseError::DuplicateField, line_count));
+            }
+
             match name {
-                "AudioFilename" => general.audio_filename = Some(value.to_owned()),
+                "AudioFilename" => general.audio_filename = Some(PathBuf::from(value)),
                 "AudioLeadIn" => general.audio_lead_in = Some(value.parse().map_err(new_into_int)?),
                 "AudioHash" => general.audio_hash = Some(value.to_owned()),
                 "PreviewTime" => general.preview_time = Some(value.parse().map_err(new_into_int)?),
@@ -260,14 +276,19 @@ impl Version for General {
             }
 
             line_count += ws.lines().count();
+            parsed_fields.push(name);
         }
 
         Ok(Some(general))
     }
 
     fn to_string_v13(&self) -> String {
+        let audio_file_name = self
+            .audio_filename
+            .as_ref()
+            .map(|p| p.display().to_string());
         let fields = [
-            ("AudioFilename", &self.audio_filename),
+            ("AudioFilename", &audio_file_name),
             ("AudioLeadIn", &self.audio_lead_in.map(|v| v.to_string())),
             ("AudioHash", &self.audio_hash),
             ("PreviewTime", &self.preview_time.map(|v| v.to_string())),
@@ -350,6 +371,7 @@ impl Version for General {
         }
 
         let mut line_count = 0;
+        let mut parsed_fields = Vec::new();
 
         for (name, value, ws) in fields {
             let new_into_int = move |err| Error::new_into(err, line_count);
@@ -359,8 +381,12 @@ impl Version for General {
             let new_into_strum_parse_error = move |err| Error::new_into(err, line_count);
             let new_into_combine_game_mode = move |err| Error::new_into(err, line_count);
 
+            if parsed_fields.contains(&name) {
+                return Err(Error::new(ParseError::DuplicateField, line_count));
+            }
+
             match name {
-                "AudioFilename" => general.audio_filename = Some(value.to_owned()),
+                "AudioFilename" => general.audio_filename = Some(PathBuf::from(value)),
                 "AudioLeadIn" => general.audio_lead_in = Some(value.parse().map_err(new_into_int)?),
                 "AudioHash" => general.audio_hash = Some(value.to_owned()),
                 "PreviewTime" => general.preview_time = Some(value.parse().map_err(new_into_int)?),
@@ -422,14 +448,19 @@ impl Version for General {
             }
 
             line_count += ws.lines().count();
+            parsed_fields.push(name);
         }
 
         Ok(Some(general))
     }
 
     fn to_string_v14(&self) -> String {
+        let audio_file_name = self
+            .audio_filename
+            .as_ref()
+            .map(|p| p.display().to_string());
         let fields = [
-            ("AudioFilename", &self.audio_filename),
+            ("AudioFilename", &audio_file_name),
             ("AudioLeadIn", &self.audio_lead_in.map(|v| v.to_string())),
             ("AudioHash", &self.audio_hash),
             ("PreviewTime", &self.preview_time.map(|v| v.to_string())),
@@ -583,7 +614,6 @@ impl Version for SampleSet {
     where
         Self: Sized,
     {
-        // TODO test this
         if s == "None" {
             Ok(Some(Self::Soft))
         } else {
@@ -687,3 +717,5 @@ impl Version for OverlayPosition {
         self.to_string()
     }
 }
+
+// TODO separate types in types.rs

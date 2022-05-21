@@ -31,6 +31,9 @@ pub enum ParseError {
     /// Invalid key name was used.
     #[error("The key doesn't exist in `General`")]
     InvalidKey,
+    /// Duplicate field in `General` were found.
+    #[error("Duplicate field were found in `General`")]
+    DuplicateField,
 }
 
 /// Error used when there's an error parsing the string as enum.
