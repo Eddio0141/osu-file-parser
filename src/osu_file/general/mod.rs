@@ -520,8 +520,7 @@ impl FromStr for CountdownSpeed {
     type Err = CountdownSpeedParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let s = s.parse()?;
-        CountdownSpeed::from_repr(s).ok_or(CountdownSpeedParseError::UnknownType(s))
+        CountdownSpeed::from_repr(s.parse()?).ok_or(CountdownSpeedParseError::UnknownType)
     }
 }
 
@@ -629,8 +628,7 @@ impl FromStr for GameMode {
     type Err = GameModeParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let s = s.parse()?;
-        GameMode::from_repr(s).ok_or(GameModeParseError::UnknownType(s))
+        GameMode::from_repr(s.parse()?).ok_or(GameModeParseError::UnknownType)
     }
 }
 

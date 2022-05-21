@@ -37,8 +37,8 @@ pub enum ParseError {
 #[derive(Debug, Error)]
 pub enum GameModeParseError {
     /// Error when the `GameMode` is not a valid enum.
-    #[error("Unknown `GameMode` type")]
-    UnknownType(usize),
+    #[error("Unknown `GameMode`")]
+    UnknownType,
     /// Error trying to parse the `str` into an `Integer`.
     #[error(transparent)]
     ParseError(#[from] ParseIntError),
@@ -47,10 +47,10 @@ pub enum GameModeParseError {
 /// Error used when there's an error parsing the string as enum
 #[derive(Debug, Error)]
 pub enum CountdownSpeedParseError {
-    #[error("Expected `CountdownSpeed` to be value from 0 ~ 3, got value {0}")]
     /// The integer value is an unknown `CountdownSpeed` type.
-    UnknownType(usize),
-    #[error("There was a problem parsing the `str` as an `Integer`")]
+    #[error("The integer value is an unknown `CountdownSpeed` type")]
+    UnknownType,
     /// There was a problem converting from `str` to an `Integer`.
+    #[error("There was a problem parsing the `str` as an `Integer`")]
     ParseError(#[from] ParseIntError),
 }
