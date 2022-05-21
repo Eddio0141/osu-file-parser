@@ -82,7 +82,7 @@ impl Version for Events {
                                         comma_field(),
                                         context("missing_start_time", comma()),
                                         context("invalid_end_time", comma_field_i32()),
-                                        take_while(|_| true),
+                                        rest,
                                     ))(
                                         line
                                     )
