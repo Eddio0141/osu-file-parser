@@ -39,6 +39,9 @@ pub enum EasingParseError {
 
 #[derive(Debug, Error, EnumString, IntoStaticStr)]
 pub enum CommandParseError {
+    /// Unknown command type
+    #[error("Unknown command type")]
+    UnknownCommandType,
     /// Missing the `start_time` field.
     #[error("Missing the `start_time` field")]
     MissingStartTime,
@@ -96,6 +99,63 @@ pub enum CommandParseError {
     /// Invalid continuing parameters, expected format of `,param_type,param_type,param_type...`
     #[error("Invalid continuing parameters, expected format of `,param_type,param_type...`")]
     InvalidContinuingParameters,
+    /// Missing `move_x` field.
+    #[error("Missing `move_x` field")]
+    MissingMoveX,
+    /// Invalid `move_x` field.
+    #[error("Invalid `move_x` field")]
+    InvalidMoveX,
+    /// Missing `move_y` field.
+    #[error("Missing `move_y` field")]
+    MissingMoveY,
+    /// Invalid `move_y` field.
+    #[error("Invalid `move_y` field")]
+    InvalidMoveY,
+    /// Invalid continuing move values, expected format of `,x,y,x...`
+    #[error("Invalid continuing move values, expected format of `,x,y,x...`")]
+    InvalidContinuingMove,
+    /// Missing `scale_x` field.
+    #[error("Missing `scale_x` field")]
+    MissingScaleX,
+    /// Invalid `scale_x` field.
+    #[error("Invalid `scale_x` field")]
+    InvalidScaleX,
+    /// Missing `scale_y` field.
+    #[error("Missing `scale_y` field")]
+    MissingScaleY,
+    /// Invalid `scale_y` field.
+    #[error("Invalid `scale_y` field")]
+    InvalidScaleY,
+    /// Invalid continuing scale values, expected format of `,x,y,x...`
+    #[error("Invalid continuing scale values, expected format of `,x,y,x...`")]
+    InvalidContinuingScales,
+    /// Missing `start_opacity` field.
+    #[error("Missing `start_opacity` field")]
+    MissingStartOpacity,
+    /// Invalid `start_opacity` field.
+    #[error("Invalid `start_opacity` field")]
+    InvalidStartOpacity,
+    /// Invalid continuing opacity values, expected format of `,opacity,opacity...`
+    #[error("Invalid continuing opacity values, expected format of `,opacity,opacity...`")]
+    InvalidContinuingOpacities,
+    /// Missing `start_scale` field.
+    #[error("Missing `start_scale` field")]
+    MissingStartScale,
+    /// Invalid `start_scale` field.
+    #[error("Invalid `start_scale` field")]
+    InvalidStartScale,
+    /// Invalid continuing scale values, expected format of `,scale,scale...`
+    #[error("Invalid continuing scale values, expected format of `,scale,scale...`")]
+    InvalidContinuingScale,
+    /// Missing `start_rotation` field.
+    #[error("Missing `start_rotation` field")]
+    MissingStartRotation,
+    /// Invalid `start_rotation` field.
+    #[error("Invalid `start_rotation` field")]
+    InvalidStartRotation,
+    /// Invalid continuing rotation values, expected format of `,rotation,rotation...`
+    #[error("Invalid continuing rotation values, expected format of `,rotation,rotation...`")]
+    InvalidContinuingRotation,
 }
 
 impl From<nom::Err<nom::error::VerboseError<&str>>> for CommandParseError {

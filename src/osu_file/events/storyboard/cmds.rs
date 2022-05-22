@@ -486,13 +486,58 @@ impl FromStr for Command {
         let easing = || {
             cut(preceded(
                 context(CommandParseError::MissingEasing.into(), comma()),
-                map_opt(
-                    context(CommandParseError::InvalidEasing.into(), comma_field_type()),
-                    |s| Easing::from_repr(s),
+                context(
+                    CommandParseError::InvalidEasing.into(),
+                    map_opt(comma_field_type(), |s| Easing::from_repr(s)),
                 ),
             ))
         };
         let start_time_end_time_easing = || tuple((start_time(), end_time(), easing()));
+        let continuing_decimal_two_fields =
+            |command_type: &'static str,
+             missing_starting_first,
+             invalid_start_first,
+             missing_starting_second,
+             invalid_starting_second,
+             invalid_continuing| {
+                let continuing = alt((
+                    eof.map(|_| None),
+                    cut(preceded(comma(), comma_field_type()).map(Some)),
+                ));
+                let continuing = many0(preceded(comma(), tuple((comma_field_type(), continuing))));
+
+                preceded(
+                    tag(command_type),
+                    tuple((
+                        start_time_end_time_easing(),
+                        cut(preceded(
+                            context(missing_starting_first, comma()),
+                            context(invalid_start_first, comma_field_type()),
+                        )),
+                        cut(preceded(
+                            context(missing_starting_second, comma()),
+                            context(invalid_starting_second, comma_field_type()),
+                        )),
+                        terminated(continuing, context(invalid_continuing, cut(eof))),
+                    )),
+                )
+            };
+        let continuing_decimal_fields =
+            |command_type: &'static str, missing_start, invalid_start, invalid_continuing| {
+                let continuing = many0(preceded(comma(), comma_field_type()));
+
+                preceded(
+                    tag(command_type),
+                    tuple((
+                        start_time_end_time_easing(),
+                        cut(preceded(
+                            context(missing_start, comma()),
+                            context(invalid_start, comma_field_type()),
+                        )),
+                        terminated(continuing, context(invalid_continuing, cut(eof))),
+                    )),
+                )
+            };
 
         let loop_ = preceded(
             tuple((
@@ -533,7 +578,10 @@ impl FromStr for Command {
             )
             .map(|end_time| (Some(end_time), None));
             let trigger_everything = tuple((
-                preceded(comma(), start_time()),
+                preceded(
+                    comma(),
+                    context(CommandParseError::InvalidEndTime.into(), consume_rest_i32()),
+                ),
                 preceded(
                     comma(),
                     context(
@@ -672,164 +720,153 @@ impl FromStr for Command {
                 },
             )
         };
+        let move_ = continuing_decimal_two_fields(
+            "M",
+            CommandParseError::MissingMoveX.into(),
+            CommandParseError::InvalidMoveX.into(),
+            CommandParseError::MissingMoveY.into(),
+            CommandParseError::InvalidMoveY.into(),
+            CommandParseError::InvalidContinuingMove.into(),
+        )
+        .map(
+            |((start_time, end_time, easing), start_x, start_y, continuing)| Command {
+                start_time,
+                properties: CommandProperties::Move {
+                    easing,
+                    end_time,
+                    positions_xy: ContinuingFields {
+                        start: (start_x, start_y),
+                        continuing,
+                    },
+                },
+            },
+        );
+        let vector_scale = continuing_decimal_two_fields(
+            "V",
+            CommandParseError::MissingScaleX.into(),
+            CommandParseError::InvalidScaleX.into(),
+            CommandParseError::MissingScaleY.into(),
+            CommandParseError::InvalidScaleY.into(),
+            CommandParseError::InvalidContinuingScales.into(),
+        )
+        .map(
+            |((start_time, end_time, easing), start_x, start_y, continuing)| Command {
+                start_time,
+                properties: CommandProperties::VectorScale {
+                    easing,
+                    end_time,
+                    scales_xy: ContinuingFields {
+                        start: (start_x, start_y),
+                        continuing,
+                    },
+                },
+            },
+        );
+        let fade = continuing_decimal_fields(
+            "F",
+            CommandParseError::MissingStartOpacity.into(),
+            CommandParseError::InvalidStartOpacity.into(),
+            CommandParseError::InvalidContinuingOpacities.into(),
+        )
+        .map(
+            |((start_time, end_time, easing), start_opacity, continuing_opacities)| Command {
+                start_time,
+                properties: CommandProperties::Fade {
+                    easing,
+                    end_time,
+                    start_opacity,
+                    continuing_opacities,
+                },
+            },
+        );
+        let move_x = continuing_decimal_fields(
+            "MX",
+            CommandParseError::MissingMoveX.into(),
+            CommandParseError::InvalidMoveX.into(),
+            CommandParseError::InvalidContinuingMove.into(),
+        )
+        .map(
+            |((start_time, end_time, easing), start_x, continuing_x)| Command {
+                start_time,
+                properties: CommandProperties::MoveX {
+                    easing,
+                    end_time,
+                    start_x,
+                    continuing_x,
+                },
+            },
+        );
+        let move_y = continuing_decimal_fields(
+            "MY",
+            CommandParseError::MissingMoveY.into(),
+            CommandParseError::InvalidMoveY.into(),
+            CommandParseError::InvalidContinuingMove.into(),
+        )
+        .map(
+            |((start_time, end_time, easing), start_y, continuing_y)| Command {
+                start_time,
+                properties: CommandProperties::MoveY {
+                    easing,
+                    end_time,
+                    start_y,
+                    continuing_y,
+                },
+            },
+        );
+        let scale = continuing_decimal_fields(
+            "S",
+            CommandParseError::MissingStartScale.into(),
+            CommandParseError::InvalidStartScale.into(),
+            CommandParseError::InvalidContinuingScales.into(),
+        )
+        .map(
+            |((start_time, end_time, easing), start_scale, continuing_scales)| Command {
+                start_time,
+                properties: CommandProperties::Scale {
+                    easing,
+                    end_time,
+                    start_scale,
+                    continuing_scales,
+                },
+            },
+        );
+        let rotate = continuing_decimal_fields(
+            "R",
+            CommandParseError::MissingStartRotation.into(),
+            CommandParseError::InvalidStartRotation.into(),
+            CommandParseError::InvalidContinuingRotation.into(),
+        )
+        .map(
+            |((start_time, end_time, easing), start_rotation, continuing_rotations)| Command {
+                start_time,
+                properties: CommandProperties::Rotate {
+                    easing,
+                    end_time,
+                    start_rotation,
+                    continuing_rotations,
+                },
+            },
+        );
 
         // we order by the most common to the least common
-        let parse = preceded(indentation, alt((loop_, trigger, colour, parameter)))(s)?;
+        let parse = preceded(
+            indentation,
+            alt((
+                fade,
+                move_x,
+                move_y,
+                scale,
+                rotate,
+                loop_,
+                trigger,
+                colour,
+                parameter,
+                move_,
+                vector_scale,
+                context(CommandParseError::UnknownCommandType.into(), fail),
+            )),
+        )(s)?;
 
         Ok(parse.1)
-
-        // handle generic commands
-        // match command_type {
-        //     _ => {
-        //         let (s, (_, easing, _, start_time, _, end_time, _)) = tuple((
-        //             context(MISSING_EASING, comma()),
-        //             context(
-        //                 INVALID_EASING,
-        //                 map_opt(comma_field_i32(), |s| Easing::from_repr(s as usize)),
-        //             ),
-        //             context(MISSING_START_TIME, comma()),
-        //             context(INVALID_START_TIME, comma_field_i32()),
-        //             context(MISSING_END_TIME, comma()),
-        //             context(
-        //                 INVALID_END_TIME,
-        //                 alt((
-        //                     comma_field_i32().map(Some),
-        //                     verify(comma_field(), |t: &str| t.is_empty()).map(|_| None),
-        //                 )),
-        //             ),
-        //             context(MISSING_ADDITIONAL_FIELDS, comma()),
-        //         ))(s)?;
-
-        //         match command_type {
-        //             _ => {
-        //                 let decimal = || map_res(comma_field(), |s: &str| s.parse());
-
-        //                 // divided into types with 1 continuous field and 2 fields thats continuous
-        //                 match command_type {
-        //                     "M" | "V" => {
-        //                         let continuing = || {
-        //                             alt((eof.map(|_| None), preceded(comma(), decimal()).map(Some)))
-        //                         };
-        //                         let continuing_fields =
-        //                             many0(preceded(comma(), tuple((decimal(), continuing()))));
-
-        //                         let (s, (start_1, _, start_2, continuing, _)) =
-        //                             tuple((
-        //                                 context(INVALID_DECIMAL, decimal()),
-        //                                 context(MISSING_SECOND_FIELD, comma()),
-        //                                 context(INVALID_DECIMAL, decimal()),
-        //                                 continuing_fields,
-        //                                 context(INVALID_CONTINUING_DECIMAL, eof),
-        //                             ))(s)?;
-
-        //                         let continuing_fields =
-        //                             ContinuingFields::new((start_1, start_2), continuing).unwrap();
-
-        //                         match command_type {
-        //                             "M" => Ok((
-        //                                 s,
-        //                                 Command {
-        //                                     start_time,
-        //                                     properties: CommandProperties::Move {
-        //                                         easing,
-        //                                         end_time,
-        //                                         positions_xy: continuing_fields,
-        //                                     },
-        //                                 },
-        //                             )),
-        //                             "V" => Ok((
-        //                                 s,
-        //                                 Command {
-        //                                     start_time,
-        //                                     properties: CommandProperties::VectorScale {
-        //                                         easing,
-        //                                         end_time,
-        //                                         scales_xy: continuing_fields,
-        //                                     },
-        //                                 },
-        //                             )),
-        //                             _ => unreachable!(),
-        //                         }
-        //                     }
-        //                     // this is where the unreachable event type gets handled too
-        //                     _ => {
-        //                         let continuing = many0(preceded(comma(), decimal()));
-
-        //                         let (_, (start, continuing, _)) =
-        //                             tuple((
-        //                                 context(INVALID_DECIMAL, decimal()),
-        //                                 continuing,
-        //                                 context(INVALID_CONTINUING_DECIMAL, eof),
-        //                             ))(s)?;
-
-        //                         match command_type {
-        //                             "F" => Ok((
-        //                                 s,
-        //                                 Command {
-        //                                     start_time,
-        //                                     properties: CommandProperties::Fade {
-        //                                         easing,
-        //                                         end_time,
-        //                                         start_opacity: start,
-        //                                         continuing_opacities: continuing,
-        //                                     },
-        //                                 },
-        //                             )),
-        //                             "MX" => Ok((
-        //                                 s,
-        //                                 Command {
-        //                                     start_time,
-        //                                     properties: CommandProperties::MoveX {
-        //                                         easing,
-        //                                         end_time,
-        //                                         start_x: start,
-        //                                         continuing_x: continuing,
-        //                                     },
-        //                                 },
-        //                             )),
-        //                             "MY" => Ok((
-        //                                 s,
-        //                                 Command {
-        //                                     start_time,
-        //                                     properties: CommandProperties::MoveY {
-        //                                         easing,
-        //                                         end_time,
-        //                                         start_y: start,
-        //                                         continuing_y: continuing,
-        //                                     },
-        //                                 },
-        //                             )),
-        //                             "S" => Ok((
-        //                                 s,
-        //                                 Command {
-        //                                     start_time,
-        //                                     properties: CommandProperties::Scale {
-        //                                         easing,
-        //                                         end_time,
-        //                                         start_scale: start,
-        //                                         continuing_scales: continuing,
-        //                                     },
-        //                                 },
-        //                             )),
-        //                             "R" => Ok((
-        //                                 s,
-        //                                 Command {
-        //                                     start_time,
-        //                                     properties: CommandProperties::Rotate {
-        //                                         easing,
-        //                                         end_time,
-        //                                         start_rotation: start,
-        //                                         continuing_rotations: continuing,
-        //                                     },
-        //                                 },
-        //                             )),
-        //                             _ => context(UNKNOWN_EVENT, fail)(s_input),
-        //                         }
-        //                     }
-        //                 }
-        //             }
-        //         }
-        //     }
-        // }
     }
 }

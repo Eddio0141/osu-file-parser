@@ -13,7 +13,7 @@ fn storyboard_cmd_errors() {
     let missing_loop_count = "L,0";
 
     assert_eq!(
-        "Unknown event: foo",
+        "Unknown command type",
         invalid_event.parse::<Command>().unwrap_err().to_string()
     );
     assert_eq!(
