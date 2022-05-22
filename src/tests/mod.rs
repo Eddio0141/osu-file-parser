@@ -6,7 +6,7 @@ mod storyboard;
 #[cfg(test)]
 use pretty_assertions::assert_eq;
 use rust_decimal::Decimal;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use rust_decimal_macros::dec;
 
@@ -47,7 +47,7 @@ SamplesMatchPlaybackRate: 1";
     let i = General::from_str_v14(i_str).unwrap().unwrap();
 
     let g = General {
-        audio_filename: Some("test.mp3".to_string()),
+        audio_filename: Some(PathBuf::from("test.mp3")),
         audio_lead_in: Some(555),
         audio_hash: Some("no.mp3".to_string()),
         preview_time: Some(5),
