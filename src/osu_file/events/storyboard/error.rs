@@ -45,35 +45,35 @@ pub enum CommandParseError {
     /// Missing the `start_time` field.
     #[error("Missing the `start_time` field")]
     MissingStartTime,
-    /// Invalid `start_time` field.
-    #[error("Invalid `start_time` field")]
+    /// Invalid `start_time` value.
+    #[error("Invalid `start_time` value")]
     InvalidStartTime,
     /// Missing the `loop_count` field.
     #[error("Missing the `loop_count` field")]
     MissingLoopCount,
-    /// Invalid `loop_count` field.
-    #[error("Invalid `loop_count` field")]
+    /// Invalid `loop_count` value.
+    #[error("Invalid `loop_count` value")]
     InvalidLoopCount,
     /// Missing the "trigger_type" field.
     #[error("Missing the `trigger_type` field")]
     MissingTriggerType,
-    /// Invalid `trigger_type` field.
-    #[error("Invalid `trigger_type` field")]
+    /// Invalid `trigger_type` value.
+    #[error("Invalid `trigger_type` value")]
     InvalidTriggerType,
-    /// Invalid `group_number` field.
-    #[error("Invalid `group_number` field")]
+    /// Invalid `group_number` value.
+    #[error("Invalid `group_number` value")]
     InvalidGroupNumber,
     /// Missing `end_time` field.
     #[error("Missing `end_time` field")]
     MissingEndTime,
-    /// Invalid `end_time` field.
-    #[error("Invalid `end_time` field")]
+    /// Invalid `end_time` value.
+    #[error("Invalid `end_time` value")]
     InvalidEndTime,
     /// Missing `easing` field.
     #[error("Missing `easing` field")]
     MissingEasing,
-    /// Invalid `easing` field.
-    #[error("Invalid `easing` field")]
+    /// Invalid `easing` value.
+    #[error("Invalid `easing` value")]
     InvalidEasing,
     /// Missing colour's `red` field.
     #[error("Missing `red` field")]
@@ -84,77 +84,77 @@ pub enum CommandParseError {
     /// Missing colour's `blue` field.
     #[error("Missing `blue` field")]
     MissingBlue,
-    /// Invalid colour value, expected u8 integer.
-    #[error("Invalid colour value, expected u8 integer")]
+    /// Invalid colour value.
+    #[error("Invalid colour value")]
     InvalidColourValue,
-    /// Invalid continuing colours, expected format of `,r,g,b,r,g,b,r,g...`
-    #[error("Invalid continuing colours, expected format of `,r,g,b,r,g...`")]
+    /// Invalid continuing colour value.
+    #[error("Invalid continuing colour value")]
     InvalidContinuingColours,
     /// Missing parameter's `parameter_type` field.
     #[error("Missing `parameter_type` field")]
     MissingParameterType,
-    /// Invalid `parameter_type` field.
-    #[error("Invalid `parameter_type` field")]
+    /// Invalid `parameter_type` value.
+    #[error("Invalid `parameter_type` value")]
     InvalidParameterType,
-    /// Invalid continuing parameters, expected format of `,param_type,param_type,param_type...`
-    #[error("Invalid continuing parameters, expected format of `,param_type,param_type...`")]
+    /// Invalid continuing parameter value.
+    #[error("Invalid continuing parameter value")]
     InvalidContinuingParameters,
     /// Missing `move_x` field.
     #[error("Missing `move_x` field")]
     MissingMoveX,
-    /// Invalid `move_x` field.
-    #[error("Invalid `move_x` field")]
+    /// Invalid `move_x` value.
+    #[error("Invalid `move_x` value")]
     InvalidMoveX,
     /// Missing `move_y` field.
     #[error("Missing `move_y` field")]
     MissingMoveY,
-    /// Invalid `move_y` field.
-    #[error("Invalid `move_y` field")]
+    /// Invalid `move_y` value.
+    #[error("Invalid `move_y` value")]
     InvalidMoveY,
-    /// Invalid continuing move values, expected format of `,x,y,x...`
-    #[error("Invalid continuing move values, expected format of `,x,y,x...`")]
+    /// Invalid continuing move value.
+    #[error("Invalid continuing move value")]
     InvalidContinuingMove,
     /// Missing `scale_x` field.
     #[error("Missing `scale_x` field")]
     MissingScaleX,
-    /// Invalid `scale_x` field.
-    #[error("Invalid `scale_x` field")]
+    /// Invalid `scale_x` value.
+    #[error("Invalid `scale_x` value")]
     InvalidScaleX,
     /// Missing `scale_y` field.
     #[error("Missing `scale_y` field")]
     MissingScaleY,
-    /// Invalid `scale_y` field.
-    #[error("Invalid `scale_y` field")]
+    /// Invalid `scale_y` value.
+    #[error("Invalid `scale_y` value")]
     InvalidScaleY,
-    /// Invalid continuing scale values, expected format of `,x,y,x...`
-    #[error("Invalid continuing scale values, expected format of `,x,y,x...`")]
+    /// Invalid continuing scale value.
+    #[error("Invalid continuing scale value")]
     InvalidContinuingScales,
     /// Missing `start_opacity` field.
     #[error("Missing `start_opacity` field")]
     MissingStartOpacity,
-    /// Invalid `start_opacity` field.
-    #[error("Invalid `start_opacity` field")]
+    /// Invalid `start_opacity` value.
+    #[error("Invalid `start_opacity` value")]
     InvalidStartOpacity,
-    /// Invalid continuing opacity values, expected format of `,opacity,opacity...`
-    #[error("Invalid continuing opacity values, expected format of `,opacity,opacity...`")]
+    /// Invalid continuing opacity value.
+    #[error("Invalid continuing opacity value")]
     InvalidContinuingOpacities,
     /// Missing `start_scale` field.
     #[error("Missing `start_scale` field")]
     MissingStartScale,
-    /// Invalid `start_scale` field.
-    #[error("Invalid `start_scale` field")]
+    /// Invalid `start_scale` value.
+    #[error("Invalid `start_scale` value")]
     InvalidStartScale,
-    /// Invalid continuing scale values, expected format of `,scale,scale...`
-    #[error("Invalid continuing scale values, expected format of `,scale,scale...`")]
+    /// Invalid continuing scale value.
+    #[error("Invalid continuing scale value")]
     InvalidContinuingScale,
     /// Missing `start_rotation` field.
     #[error("Missing `start_rotation` field")]
     MissingStartRotation,
-    /// Invalid `start_rotation` field.
-    #[error("Invalid `start_rotation` field")]
+    /// Invalid `start_rotation` value.
+    #[error("Invalid `start_rotation` value")]
     InvalidStartRotation,
-    /// Invalid continuing rotation values, expected format of `,rotation,rotation...`
-    #[error("Invalid continuing rotation values, expected format of `,rotation,rotation...`")]
+    /// Invalid continuing rotation value.
+    #[error("Invalid continuing rotation value")]
     InvalidContinuingRotation,
 }
 
