@@ -568,25 +568,25 @@ impl FromStr for Command {
                 tuple((comma(), comma())),
                 context(
                     CommandParseError::InvalidGroupNumber.into(),
-                    cut(consume_rest_i32()),
+                    cut(consume_rest_type()),
                 ),
             )
             .map(|group_number| (None, Some(group_number)));
             let trigger_end_time = preceded(
                 comma(),
-                context(CommandParseError::InvalidEndTime.into(), consume_rest_i32()),
+                context(CommandParseError::InvalidEndTime.into(), consume_rest_type()),
             )
             .map(|end_time| (Some(end_time), None));
             let trigger_everything = tuple((
                 preceded(
                     comma(),
-                    context(CommandParseError::InvalidEndTime.into(), consume_rest_i32()),
+                    context(CommandParseError::InvalidEndTime.into(), consume_rest_type()),
                 ),
                 preceded(
                     comma(),
                     context(
                         CommandParseError::InvalidGroupNumber.into(),
-                        comma_field_i32(),
+                        comma_field_type(),
                     ),
                 ),
             ))

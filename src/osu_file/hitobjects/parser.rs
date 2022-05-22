@@ -22,13 +22,13 @@ pub fn hitobject(s: &str) -> IResult<&str, HitObject, VerboseError<&str>> {
     );
 
     let (s, (x, _, y, _, time, _, obj_type, _, hitsound, _)) = tuple((
-        context(HitObjectContext::InvalidX.into(), comma_field_i32()),
+        context(HitObjectContext::InvalidX.into(), comma_field_type()),
         context(HitObjectContext::MissingY.into(), comma()),
-        context(HitObjectContext::InvalidY.into(), comma_field_i32()),
+        context(HitObjectContext::InvalidY.into(), comma_field_type()),
         context(HitObjectContext::MissingTime.into(), comma()),
-        context(HitObjectContext::InvalidTime.into(), comma_field_i32()),
+        context(HitObjectContext::InvalidTime.into(), comma_field_type()),
         context(HitObjectContext::MissingObjType.into(), comma()),
-        context(HitObjectContext::InvalidObjType.into(), comma_field_i32()),
+        context(HitObjectContext::InvalidObjType.into(), comma_field_type::<_, Integer>()),
         context(HitObjectContext::MissingHitsound.into(), comma()),
         hitsound,
         context(HitObjectContext::MissingObjParams.into(), comma()),
@@ -83,7 +83,7 @@ pub fn hitobject(s: &str) -> IResult<&str, HitObject, VerboseError<&str>> {
             curve_type,
             context(HitObjectContext::MissingCurvePoints.into(), pipe),
             curve_points,
-            context(HitObjectContext::InvalidSlides.into(), comma_field_i32()),
+            context(HitObjectContext::InvalidSlides.into(), comma_field_type()),
             context(HitObjectContext::MissingLength.into(), comma()),
             context(HitObjectContext::InvalidLength.into(), decimal),
             context(HitObjectContext::MissingEdgeSounds.into(), comma()),
@@ -114,7 +114,7 @@ pub fn hitobject(s: &str) -> IResult<&str, HitObject, VerboseError<&str>> {
     } else if nth_bit_state_i64(obj_type as i64, 3) {
         // spinner
         let (s, (end_time, _, hitsample)) = tuple((
-            context(HitObjectContext::InvalidEndTime.into(), comma_field_i32()),
+            context(HitObjectContext::InvalidEndTime.into(), comma_field_type()),
             context(HitObjectContext::MissingHitsample.into(), comma()),
             hitsample,
         ))(s)?;

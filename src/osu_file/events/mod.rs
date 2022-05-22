@@ -81,7 +81,7 @@ impl Version for Events {
                                     let (_, (_, _, start_time, _)) = tuple((
                                         comma_field(),
                                         context("missing_start_time", comma()),
-                                        context("invalid_end_time", comma_field_i32()),
+                                        context("invalid_end_time", comma_field_type()),
                                         rest,
                                     ))(
                                         line
@@ -306,14 +306,14 @@ impl FromStr for EventParams {
                         context(EventParamsParseError::MissingXOffset.into(), comma()),
                         context(
                             EventParamsParseError::InvalidXOffset.into(),
-                            comma_field_i32(),
+                            comma_field_type(),
                         ),
                     ),
                     preceded(
                         context(EventParamsParseError::MissingYOffset.into(), comma()),
                         context(
                             EventParamsParseError::InvalidYOffset.into(),
-                            consume_rest_i32(),
+                            consume_rest_type(),
                         ),
                     ),
                 )),
@@ -321,7 +321,7 @@ impl FromStr for EventParams {
             .map(|(x, y)| Position { x, y })
         };
         let file_name_and_coordinates = || tuple((file_name(), coordinates()));
-        let end_time = consume_rest_i32();
+        let end_time = consume_rest_type();
 
         let background = preceded(
             tuple((
@@ -372,14 +372,14 @@ impl FromStr for EventParams {
                 ))),
             )),
             cut(tuple((
-                context(EventParamsParseError::InvalidRed.into(), comma_field_u8()),
+                context(EventParamsParseError::InvalidRed.into(), comma_field_type()),
                 preceded(
                     context(EventParamsParseError::MissingGreen.into(), comma()),
-                    context(EventParamsParseError::InvalidGreen.into(), comma_field_u8()),
+                    context(EventParamsParseError::InvalidGreen.into(), comma_field_type()),
                 ),
                 preceded(
                     context(EventParamsParseError::MissingBlue.into(), comma()),
-                    context(EventParamsParseError::InvalidBlue.into(), consume_rest_u8()),
+                    context(EventParamsParseError::InvalidBlue.into(), consume_rest_type()),
                 ),
             ))),
         )

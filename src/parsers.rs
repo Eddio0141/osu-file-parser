@@ -1,4 +1,4 @@
-use std::{num::ParseIntError, str::FromStr};
+use std::str::FromStr;
 
 use nom::{
     bytes::complete::take_while,
@@ -77,21 +77,6 @@ where
     take_while(|c: char| c != ',')
 }
 
-pub fn comma_field_u8<'a, E>() -> impl FnMut(&'a str) -> IResult<&str, u8, E>
-where
-    E: ParseError<&'a str> + FromExternalError<&'a str, ParseIntError>,
-{
-    map_res(comma_field(), |s| s.parse::<u8>())
-}
-
-pub fn comma_field_i32<'a, E>() -> impl FnMut(&'a str) -> IResult<&str, i32, E>
-where
-    E: ParseError<&'a str> + FromExternalError<&'a str, ParseIntError>,
-{
-    map_res(comma_field(), |s| s.parse::<i32>())
-}
-
-// TODO replace all comma_field type with this one
 pub fn comma_field_type<'a, E, T>() -> impl FnMut(&'a str) -> IResult<&str, T, E>
 where
     E: ParseError<&'a str> + FromExternalError<&'a str, <T as FromStr>::Err>,
@@ -100,18 +85,10 @@ where
     map_res(comma_field(), |i| i.parse())
 }
 
-/// Consumes the rest of the input and parses it as i32.
-pub fn consume_rest_i32<'a, E>() -> impl FnMut(&'a str) -> IResult<&str, i32, E>
+pub fn consume_rest_type<'a, E, T>() -> impl FnMut(&'a str) -> IResult<&str, T, E>
 where
-    E: ParseError<&'a str> + FromExternalError<&'a str, ParseIntError>,
+    E: ParseError<&'a str> + FromExternalError<&'a str, <T as FromStr>::Err>,
+    T: FromStr,
 {
-    map_res(rest, |s: &str| s.parse::<i32>())
-}
-
-/// Consumes the rest of the input and parses as u8.
-pub fn consume_rest_u8<'a, E>() -> impl FnMut(&'a str) -> IResult<&str, u8, E>
-where
-    E: ParseError<&'a str> + FromExternalError<&'a str, ParseIntError>,
-{
-    map_res(rest, |s: &str| s.parse::<u8>())
+    map_res(rest, |s: &str| s.parse())
 }
