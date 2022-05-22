@@ -1,8 +1,8 @@
+use nom::error::VerboseErrorKind;
+use strum_macros::{EnumString, IntoStaticStr};
 use thiserror::Error;
 
-use std::{error::Error, num::ParseIntError};
-
-use super::cmds::Field;
+use std::{error::Error, num::ParseIntError, str::FromStr};
 
 #[derive(Debug, Error)]
 pub enum CommandPushError {
@@ -37,28 +37,82 @@ pub enum EasingParseError {
     UnknownEasingType(usize),
 }
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, EnumString, IntoStaticStr)]
 pub enum CommandParseError {
-    #[error("Missing the {0} field")]
-    MissingField(Field),
-    #[error("Invalid easing: {0}")]
-    InvalidEasing(String),
-    #[error("Invalid field ending, expected command to be end of line, got {0}")]
-    InvalidFieldEnding(String),
-    #[error("Tried parsing a str {0} as an integer")]
-    ParseIntError(String),
-    #[error("Tried parsing a str {0} as a trigger type")]
-    ParseTriggerTypeError(String),
-    #[error("Tried parsing a str {0} as a decimal")]
-    ParseDecimalError(String),
-    #[error("Missing additional command fields")]
-    MissingCommandFields,
-    #[error("Unknown event: {0}")]
-    UnknownEvent(String),
-    #[error("Tried parsing a str {0} as a parameter type")]
-    ParseParameterTypeError(String),
-    #[error("The second additional command field is missing")]
-    MissingSecondField,
+    /// Missing the `start_time` field.
+    #[error("Missing the `start_time` field")]
+    MissingStartTime,
+    /// Invalid `start_time` field.
+    #[error("Invalid `start_time` field")]
+    InvalidStartTime,
+    /// Missing the `loop_count` field.
+    #[error("Missing the `loop_count` field")]
+    MissingLoopCount,
+    /// Invalid `loop_count` field.
+    #[error("Invalid `loop_count` field")]
+    InvalidLoopCount,
+    /// Missing the "trigger_type" field.
+    #[error("Missing the `trigger_type` field")]
+    MissingTriggerType,
+    /// Invalid `trigger_type` field.
+    #[error("Invalid `trigger_type` field")]
+    InvalidTriggerType,
+    /// Invalid `group_number` field.
+    #[error("Invalid `group_number` field")]
+    InvalidGroupNumber,
+    /// Missing `end_time` field.
+    #[error("Missing `end_time` field")]
+    MissingEndTime,
+    /// Invalid `end_time` field.
+    #[error("Invalid `end_time` field")]
+    InvalidEndTime,
+    /// Missing `easing` field.
+    #[error("Missing `easing` field")]
+    MissingEasing,
+    /// Invalid `easing` field.
+    #[error("Invalid `easing` field")]
+    InvalidEasing,
+    /// Missing colour's `red` field.
+    #[error("Missing `red` field")]
+    MissingRed,
+    /// Missing colour's `green` field.
+    #[error("Missing `green` field")]
+    MissingGreen,
+    /// Missing colour's `blue` field.
+    #[error("Missing `blue` field")]
+    MissingBlue,
+    /// Invalid colour value, expected u8 integer.
+    #[error("Invalid colour value, expected u8 integer")]
+    InvalidColourValue,
+    /// Invalid continuing colours, expected format of `,r,g,b,r,g,b,r,g...`
+    #[error("Invalid continuing colours, expected format of `,r,g,b,r,g...`")]
+    InvalidContinuingColours,
+    /// Missing parameter's `parameter_type` field.
+    #[error("Missing `parameter_type` field")]
+    MissingParameterType,
+    /// Invalid `parameter_type` field.
+    #[error("Invalid `parameter_type` field")]
+    InvalidParameterType,
+    /// Invalid continuing parameters, expected format of `,param_type,param_type,param_type...`
+    #[error("Invalid continuing parameters, expected format of `,param_type,param_type...`")]
+    InvalidContinuingParameters,
+}
+
+impl From<nom::Err<nom::error::VerboseError<&str>>> for CommandParseError {
+    fn from(err: nom::Err<nom::error::VerboseError<&str>>) -> Self {
+        match err {
+            nom::Err::Error(err) | nom::Err::Failure(err) => {
+                for (_, err) in err.errors {
+                    if let VerboseErrorKind::Context(context) = err {
+                        return CommandParseError::from_str(context).unwrap();
+                    }
+                }
+
+                unreachable!()
+            }
+            nom::Err::Incomplete(_) => unreachable!(),
+        }
+    }
 }
 
 #[derive(Debug, Error)]
