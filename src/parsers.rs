@@ -1,4 +1,4 @@
-use std::num::ParseIntError;
+use std::{num::ParseIntError, str::FromStr};
 
 use nom::{
     bytes::complete::take_while,
@@ -89,6 +89,15 @@ where
     E: ParseError<&'a str> + FromExternalError<&'a str, ParseIntError>,
 {
     map_res(comma_field(), |s| s.parse::<i32>())
+}
+
+// TODO replace all comma_field type with this one
+pub fn comma_field_type<'a, E, T>() -> impl FnMut(&'a str) -> IResult<&str, T, E>
+where
+    E: ParseError<&'a str> + FromExternalError<&'a str, <T as FromStr>::Err>,
+    T: FromStr,
+{
+    map_res(comma_field(), |i| i.parse())
 }
 
 /// Consumes the rest of the input and parses it as i32.
