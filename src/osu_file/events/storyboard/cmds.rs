@@ -492,7 +492,7 @@ impl FromStr for Command {
                 ),
             ))
         };
-        let start_time_end_time_easing = || tuple((start_time(), end_time(), easing()));
+        let start_time_end_time_easing = || tuple((easing(), start_time(), end_time()));
         let continuing_decimal_two_fields =
             |command_type: &'static str,
              missing_starting_first,
@@ -672,7 +672,7 @@ impl FromStr for Command {
                 )),
             )
             .map(
-                |((start_time, end_time, easing), start_r, start_g, start_b, continuing)| Command {
+                |((easing, start_time, end_time), start_r, start_g, start_b, continuing)| Command {
                     start_time,
                     properties: CommandProperties::Colour {
                         easing,
@@ -709,7 +709,7 @@ impl FromStr for Command {
                 )),
             )
             .map(
-                |((start_time, end_time, easing), parameter, continuing_parameters)| Command {
+                |((easing, start_time, end_time), parameter, continuing_parameters)| Command {
                     start_time,
                     properties: CommandProperties::Parameter {
                         easing,
@@ -729,7 +729,7 @@ impl FromStr for Command {
             CommandParseError::InvalidContinuingMove.into(),
         )
         .map(
-            |((start_time, end_time, easing), start_x, start_y, continuing)| Command {
+            |((easing, start_time, end_time), start_x, start_y, continuing)| Command {
                 start_time,
                 properties: CommandProperties::Move {
                     easing,
@@ -750,7 +750,7 @@ impl FromStr for Command {
             CommandParseError::InvalidContinuingScales.into(),
         )
         .map(
-            |((start_time, end_time, easing), start_x, start_y, continuing)| Command {
+            |((easing, start_time, end_time), start_x, start_y, continuing)| Command {
                 start_time,
                 properties: CommandProperties::VectorScale {
                     easing,
@@ -769,7 +769,7 @@ impl FromStr for Command {
             CommandParseError::InvalidContinuingOpacities.into(),
         )
         .map(
-            |((start_time, end_time, easing), start_opacity, continuing_opacities)| Command {
+            |((easing, start_time, end_time), start_opacity, continuing_opacities)| Command {
                 start_time,
                 properties: CommandProperties::Fade {
                     easing,
@@ -786,7 +786,7 @@ impl FromStr for Command {
             CommandParseError::InvalidContinuingMove.into(),
         )
         .map(
-            |((start_time, end_time, easing), start_x, continuing_x)| Command {
+            |((easing, start_time, end_time), start_x, continuing_x)| Command {
                 start_time,
                 properties: CommandProperties::MoveX {
                     easing,
@@ -803,7 +803,7 @@ impl FromStr for Command {
             CommandParseError::InvalidContinuingMove.into(),
         )
         .map(
-            |((start_time, end_time, easing), start_y, continuing_y)| Command {
+            |((easing, start_time, end_time), start_y, continuing_y)| Command {
                 start_time,
                 properties: CommandProperties::MoveY {
                     easing,
@@ -820,7 +820,7 @@ impl FromStr for Command {
             CommandParseError::InvalidContinuingScales.into(),
         )
         .map(
-            |((start_time, end_time, easing), start_scale, continuing_scales)| Command {
+            |((easing, start_time, end_time), start_scale, continuing_scales)| Command {
                 start_time,
                 properties: CommandProperties::Scale {
                     easing,
@@ -837,7 +837,7 @@ impl FromStr for Command {
             CommandParseError::InvalidContinuingRotation.into(),
         )
         .map(
-            |((start_time, end_time, easing), start_rotation, continuing_rotations)| Command {
+            |((easing, start_time, end_time), start_rotation, continuing_rotations)| Command {
                 start_time,
                 properties: CommandProperties::Rotate {
                     easing,
