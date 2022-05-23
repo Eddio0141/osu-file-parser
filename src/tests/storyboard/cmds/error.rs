@@ -17,7 +17,7 @@ fn storyboard_cmd_errors() {
         invalid_event.parse::<Command>().unwrap_err().to_string()
     );
     assert_eq!(
-        "Missing the Easing field",
+        "Missing `easing` field",
         missing_easing.parse::<Command>().unwrap_err().to_string()
     );
     assert_eq!(
