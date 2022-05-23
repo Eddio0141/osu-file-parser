@@ -151,7 +151,6 @@ impl Display for Event {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let event_str = match self {
             Event::Comment(comment) => format!("//{comment}"),
-            // TODO do normal event type's value storage such as if being 0, it will remember that for 1:1 matching
             Event::NormalEvent {
                 start_time,
                 event_params,
