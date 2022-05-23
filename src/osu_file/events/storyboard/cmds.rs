@@ -583,16 +583,13 @@ impl FromStr for Command {
             let trigger_everything = tuple((
                 preceded(
                     comma(),
-                    context(
-                        CommandParseError::InvalidEndTime.into(),
-                        consume_rest_type(),
-                    ),
+                    context(CommandParseError::InvalidEndTime.into(), comma_field_type()),
                 ),
                 preceded(
                     comma(),
                     context(
                         CommandParseError::InvalidGroupNumber.into(),
-                        comma_field_type(),
+                        consume_rest_type(),
                     ),
                 ),
             ))
@@ -611,14 +608,14 @@ impl FromStr for Command {
                     start_time(),
                     // there are 4 possibilities:
                     alt((
-                        // 1. nothing
-                        trigger_nothing,
-                        // 2. has group number
-                        trigger_group_number,
-                        // 3. has end time
-                        trigger_end_time,
-                        // 4. has everything
+                        // has everything
                         trigger_everything,
+                        // has group number
+                        trigger_group_number,
+                        // has end time
+                        trigger_end_time,
+                        // nothing
+                        trigger_nothing,
                     )),
                 ))),
             )
