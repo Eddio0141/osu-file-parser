@@ -563,7 +563,10 @@ impl FromStr for Command {
             },
         });
         let trigger = {
-            let trigger_nothing = alt((eof.map(|_| (None, None)), comma().map(|_| (None, None))));
+            let trigger_nothing = alt((
+                eof.map(|_| (None, None)),
+                verify(rest, |s: &str| s == ",").map(|_| (None, None)),
+            ));
             let trigger_group_number = preceded(
                 tuple((comma(), comma())),
                 context(
@@ -609,10 +612,10 @@ impl FromStr for Command {
                         trigger_everything,
                         // has group number
                         trigger_group_number,
-                        // has end time
-                        trigger_end_time,
                         // nothing
                         trigger_nothing,
+                        // has end time
+                        trigger_end_time,
                     )),
                 ))),
             )
