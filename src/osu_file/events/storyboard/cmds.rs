@@ -563,7 +563,7 @@ impl FromStr for Command {
             },
         });
         let trigger = {
-            let trigger_nothing = eof.map(|_| (None, None));
+            let trigger_nothing = alt((eof.map(|_| (None, None)), comma().map(|_| (None, None))));
             let trigger_group_number = preceded(
                 tuple((comma(), comma())),
                 context(
@@ -576,20 +576,17 @@ impl FromStr for Command {
                 comma(),
                 context(
                     CommandParseError::InvalidEndTime.into(),
-                    consume_rest_type(),
+                    cut(consume_rest_type()),
                 ),
             )
             .map(|end_time| (Some(end_time), None));
             let trigger_everything = tuple((
-                preceded(
-                    comma(),
-                    context(CommandParseError::InvalidEndTime.into(), comma_field_type()),
-                ),
+                preceded(comma(), comma_field_type()),
                 preceded(
                     comma(),
                     context(
                         CommandParseError::InvalidGroupNumber.into(),
-                        consume_rest_type(),
+                        cut(consume_rest_type()),
                     ),
                 ),
             ))
