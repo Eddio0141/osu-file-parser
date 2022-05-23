@@ -21,40 +21,40 @@ fn storyboard_cmd_errors() {
         missing_easing.parse::<Command>().unwrap_err().to_string()
     );
     assert_eq!(
-        "Invalid easing: this is wrong!",
+        "Invalid `easing` value",
         invalid_easing.parse::<Command>().unwrap_err().to_string()
     );
     assert_eq!(
-        "Missing the StartTime field",
+        "Missing `start_time` field",
         missing_start_time
             .parse::<Command>()
             .unwrap_err()
             .to_string()
     );
     assert_eq!(
-        "Tried parsing a str foo as an integer",
+        "Invalid `start_time` value",
         invalid_start_time
             .parse::<Command>()
             .unwrap_err()
             .to_string()
     );
     assert_eq!(
-        "Missing the EndTime field",
+        "Missing `end_time` field",
         missing_end_time.parse::<Command>().unwrap_err().to_string()
     );
     assert_eq!(
-        "Tried parsing a str foo as an integer",
+        "Invalid `end_time` value",
         invalid_end_time.parse::<Command>().unwrap_err().to_string()
     );
     assert_eq!(
-        "Missing additional command fields",
+        "Missing `start_opacity` field",
         missing_command_params
             .parse::<Command>()
             .unwrap_err()
             .to_string()
     );
     assert_eq!(
-        "Missing the LoopCount field",
+        "Missing `loop_count` field",
         missing_loop_count
             .parse::<Command>()
             .unwrap_err()
