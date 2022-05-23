@@ -606,12 +606,9 @@ impl FromStr for Command {
                 cut(tuple((
                     context(
                         CommandParseError::InvalidTriggerType.into(),
-                        map_res(comma_field(), |s: &str| s.parse()),
+                        comma_field_type(),
                     ),
-                    preceded(
-                        context(CommandParseError::MissingStartTime.into(), comma()),
-                        start_time(),
-                    ),
+                    start_time(),
                     // there are 4 possibilities:
                     alt((
                         // 1. nothing
