@@ -574,13 +574,19 @@ impl FromStr for Command {
             .map(|group_number| (None, Some(group_number)));
             let trigger_end_time = preceded(
                 comma(),
-                context(CommandParseError::InvalidEndTime.into(), consume_rest_type()),
+                context(
+                    CommandParseError::InvalidEndTime.into(),
+                    consume_rest_type(),
+                ),
             )
             .map(|end_time| (Some(end_time), None));
             let trigger_everything = tuple((
                 preceded(
                     comma(),
-                    context(CommandParseError::InvalidEndTime.into(), consume_rest_type()),
+                    context(
+                        CommandParseError::InvalidEndTime.into(),
+                        consume_rest_type(),
+                    ),
                 ),
                 preceded(
                     comma(),
@@ -632,12 +638,6 @@ impl FromStr for Command {
             )
         };
         let colour = {
-            let colour = || {
-                context(
-                    CommandParseError::InvalidColourValue.into(),
-                    comma_field_type(),
-                )
-            };
             let continuing_colour = || {
                 alt((
                     eof.map(|_| None),
@@ -655,15 +655,15 @@ impl FromStr for Command {
                     start_time_end_time_easing(),
                     cut(preceded(
                         context(CommandParseError::MissingRed.into(), comma()),
-                        colour(),
+                        context(CommandParseError::InvalidRed.into(), comma_field_type()),
                     )),
                     cut(preceded(
                         context(CommandParseError::MissingGreen.into(), comma()),
-                        colour(),
+                        context(CommandParseError::InvalidGreen.into(), comma_field_type()),
                     )),
                     cut(preceded(
                         context(CommandParseError::MissingBlue.into(), comma()),
-                        colour(),
+                        context(CommandParseError::InvalidBlue.into(), comma_field_type()),
                     )),
                     terminated(
                         continuing_colours,

@@ -84,9 +84,15 @@ pub enum CommandParseError {
     /// Missing colour's `blue` field.
     #[error("Missing `blue` field")]
     MissingBlue,
-    /// Invalid colour value.
-    #[error("Invalid colour value")]
-    InvalidColourValue,
+    /// Invalid `red` value.
+    #[error("Invalid `red` value")]
+    InvalidRed,
+    /// Invalid `green` value.
+    #[error("Invalid `green` value")]
+    InvalidGreen,
+    /// Invalid `blue` value.
+    #[error("Invalid `blue` value")]
+    InvalidBlue,
     /// Invalid continuing colour value.
     #[error("Invalid continuing colour value")]
     InvalidContinuingColours,
