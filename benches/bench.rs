@@ -1,7 +1,16 @@
-use std::str::FromStr;
+use std::{path::PathBuf, str::FromStr};
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use osu_file_parser::osu_file::events::storyboard::cmds::Command;
+use osu_file_parser::osu_file::{
+    events::{
+        storyboard::{
+            cmds::{Command, CommandProperties},
+            sprites::{Layer, Object, ObjectType, Origin, Sprite},
+        },
+        Event,
+    },
+    Position,
+};
 
 pub fn storyboard_cmds_bench(c: &mut Criterion) {
     let fade_str = "F,0,500,1000,0,0.5";
@@ -75,5 +84,31 @@ pub fn storyboard_cmds_bench(c: &mut Criterion) {
     });
 }
 
-criterion_group!(benches, storyboard_cmds_bench);
+pub fn storyboard_loop_cmd_display(c: &mut Criterion) {
+    let loop_cmd = |commands| Command {
+        start_time: 0,
+        properties: CommandProperties::Loop {
+            loop_count: 5,
+            commands,
+        },
+    };
+
+    let event = Event::Storyboard(Object {
+        layer: Layer::Background,
+        origin: Origin::BottomCentre,
+        position: Position::default(),
+        object_type: ObjectType::Sprite(Sprite {
+            filepath: PathBuf::new(),
+        }),
+        commands: vec![loop_cmd(vec![loop_cmd(vec![loop_cmd(vec![loop_cmd(
+            vec![loop_cmd(Vec::new())],
+        )])])])],
+    });
+
+    c.bench_function("loop_cmd_display", |b| {
+        b.iter(|| black_box(&event).to_string())
+    });
+}
+
+criterion_group!(benches, storyboard_cmds_bench, storyboard_loop_cmd_display);
 criterion_main!(benches);
