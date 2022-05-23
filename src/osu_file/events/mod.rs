@@ -18,11 +18,7 @@ use nom::{
 
 use crate::{osu_file::events::storyboard::sprites, parsers::*};
 
-use self::storyboard::{
-    cmds::{Command, CommandProperties},
-    error::ObjectParseError,
-    sprites::Object,
-};
+use self::storyboard::{cmds::CommandProperties, error::ObjectParseError, sprites::Object};
 
 use super::{types::Error, Integer, Position, Version};
 
@@ -218,7 +214,56 @@ impl Display for Event {
                     if object.commands.is_empty() {
                         None
                     } else {
-                        Some(command_recursive_display(&object.commands, 1).join("\n"))
+                        let mut builder = Vec::new();
+                        let mut indentation = 1usize;
+
+                        for cmd in &object.commands {
+                            builder.push(format!("{}{cmd}", " ".repeat(indentation)));
+
+                            if let CommandProperties::Loop { commands, .. }
+                            | CommandProperties::Trigger { commands, .. } = &cmd.properties
+                            {
+                                indentation += 1;
+
+                                let mut current_cmds = commands;
+                                let mut current_index = 0;
+                                // stack of commands and index
+                                let mut cmds = Vec::new();
+
+                                'cmds_outer: loop {
+                                    // loop until we run out of commands or index is valid
+                                    while current_index >= current_cmds.len() {
+                                        indentation -= 1;
+
+                                        match cmds.pop() {
+                                            Some((last_cmds, last_index)) => {
+                                                current_cmds = last_cmds;
+                                                current_index = last_index;
+                                            }
+                                            None => break 'cmds_outer,
+                                        }
+                                    }
+
+                                    let cmd = &current_cmds[current_index];
+                                    current_index += 1;
+
+                                    builder.push(format!("{}{cmd}", " ".repeat(indentation)));
+                                    if let CommandProperties::Loop { commands, .. }
+                                    | CommandProperties::Trigger { commands, .. } =
+                                        &cmd.properties
+                                    {
+                                        // save the current cmds and index
+                                        cmds.push((current_cmds, current_index));
+
+                                        current_cmds = commands;
+                                        current_index = 0;
+                                        indentation += 1;
+                                    }
+                                }
+                            }
+                        }
+
+                        Some(builder.join("\n"))
                     }
                 };
 
@@ -231,24 +276,6 @@ impl Display for Event {
 
         write!(f, "{event_str}")
     }
-}
-
-fn command_recursive_display(commands: &[Command], indentation: usize) -> Vec<String> {
-    let mut cmd_lines = Vec::with_capacity(commands.len());
-
-    for cmd in commands {
-        cmd_lines.push(format!("{}{cmd}", " ".repeat(indentation)));
-
-        if let CommandProperties::Loop { commands, .. }
-        | CommandProperties::Trigger { commands, .. } = &cmd.properties
-        {
-            for command_str in command_recursive_display(commands, indentation + 1) {
-                cmd_lines.push(command_str);
-            }
-        }
-    }
-
-    cmd_lines
 }
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
@@ -375,11 +402,17 @@ impl FromStr for EventParams {
                 context(EventParamsParseError::InvalidRed.into(), comma_field_type()),
                 preceded(
                     context(EventParamsParseError::MissingGreen.into(), comma()),
-                    context(EventParamsParseError::InvalidGreen.into(), comma_field_type()),
+                    context(
+                        EventParamsParseError::InvalidGreen.into(),
+                        comma_field_type(),
+                    ),
                 ),
                 preceded(
                     context(EventParamsParseError::MissingBlue.into(), comma()),
-                    context(EventParamsParseError::InvalidBlue.into(), consume_rest_type()),
+                    context(
+                        EventParamsParseError::InvalidBlue.into(),
+                        consume_rest_type(),
+                    ),
                 ),
             ))),
         )
