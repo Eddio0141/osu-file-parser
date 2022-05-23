@@ -5,12 +5,12 @@ use std::path::{Path, PathBuf};
 use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
 
-use crate::osu_file::Version;
 use crate::osu_file::events::storyboard::cmds::*;
 use crate::osu_file::events::storyboard::sprites::*;
 use crate::osu_file::events::storyboard::types::*;
 use crate::osu_file::events::*;
 use crate::osu_file::types::Position;
+use crate::osu_file::Version;
 
 #[test]
 fn storyboard_sprites_cmd_parse() {
@@ -416,6 +416,14 @@ fn parameters() {
     };
 
     assert_eq!(i, cmd);
+}
+
+#[test]
+fn trigger() {
+    let i = "T,HitSound,0,0";
+    let t = i.parse::<Command>().unwrap();
+
+    assert_eq!(i, t.to_string());
 }
 
 #[test]
