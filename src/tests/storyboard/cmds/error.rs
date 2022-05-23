@@ -65,38 +65,38 @@ fn storyboard_cmd_errors() {
 #[test]
 fn continuing_error() {
     let colour_invalid_red = "C,0,0,1,foo";
-    let missing_blue = "C,0,0,1,255";
+    let missing_green = "C,0,0,1,255";
     let invalid_continuing_red = "C,0,0,0,255,255,255,foo";
     let missing_second_field = "V,0,0,0,0.5";
     let invalid_move_x_continuing = "M,0,0,0,100,-100,foo";
 
     assert_eq!(
-        "Tried parsing a str foo as an integer",
+        "Invalid continuing colour value",
         invalid_continuing_red
             .parse::<Command>()
             .unwrap_err()
             .to_string()
     );
     assert_eq!(
-        "Tried parsing a str foo as an integer",
+        "Invalid `red` value",
         colour_invalid_red
             .parse::<Command>()
             .unwrap_err()
             .to_string()
     );
     assert_eq!(
-        "Missing the Blue field",
-        missing_blue.parse::<Command>().unwrap_err().to_string()
+        "Missing `green` field",
+        missing_green.parse::<Command>().unwrap_err().to_string()
     );
     assert_eq!(
-        "The second additional command field is missing",
+        "Missing `scale_y` field",
         missing_second_field
             .parse::<Command>()
             .unwrap_err()
             .to_string()
     );
     assert_eq!(
-        "Tried parsing a str foo as a decimal",
+        "Invalid continuing move value",
         invalid_move_x_continuing
             .parse::<Command>()
             .unwrap_err()
