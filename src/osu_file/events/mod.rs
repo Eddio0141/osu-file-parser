@@ -227,47 +227,59 @@ impl Display for Event {
                                     continue;
                                 }
 
+                                let starting_indentation = indentation;
                                 indentation += 1;
 
                                 let mut current_cmds = commands;
                                 let mut current_index = 0;
-                                // stack of commands and index
-                                let mut cmds = Vec::new();
+                                // stack of commands, index, and indentation
+                                let mut cmds_stack = Vec::new();
 
                                 loop {
                                     let cmd = &current_cmds[current_index];
                                     current_index += 1;
 
                                     builder.push(format!("{}{cmd}", " ".repeat(indentation)));
-                                    if let CommandProperties::Loop { commands, .. }
-                                    | CommandProperties::Trigger { commands, .. } =
-                                        &cmd.properties
-                                    {
-                                        // save the current cmds and index
-                                        // ignore if index is already at the end of the current cmds
-                                        if current_index < current_cmds.len() {
-                                            cmds.push((current_cmds, current_index));
+                                    match &cmd.properties {
+                                        CommandProperties::Loop { commands, .. }
+                                        | CommandProperties::Trigger { commands, .. }
+                                            if !commands.is_empty() =>
+                                        {
+                                            // save the current cmds and index
+                                            // ignore if index is already at the end of the current cmds
+                                            if current_index < current_cmds.len() {
+                                                cmds_stack.push((
+                                                    current_cmds,
+                                                    current_index,
+                                                    indentation,
+                                                ));
+                                            }
+
+                                            current_cmds = commands;
+                                            current_index = 0;
+                                            indentation += 1;
                                         }
-
-                                        current_cmds = commands;
-                                        current_index = 0;
-                                        // BUG fix indentation not being saved and applied
-                                        indentation += 1;
-                                    } else {
-                                        // check for end of commands
-                                        if current_index >= current_cmds.len() {
-                                            indentation -= 1;
-
-                                            match cmds.pop() {
-                                                Some((last_cmds, last_index)) => {
-                                                    current_cmds = last_cmds;
-                                                    current_index = last_index;
+                                        _ => {
+                                            if current_index >= current_cmds.len() {
+                                                // check for end of commands
+                                                match cmds_stack.pop() {
+                                                    Some((
+                                                        last_cmds,
+                                                        last_index,
+                                                        last_indentation,
+                                                    )) => {
+                                                        current_cmds = last_cmds;
+                                                        current_index = last_index;
+                                                        indentation = last_indentation;
+                                                    }
+                                                    None => break,
                                                 }
-                                                None => break,
                                             }
                                         }
                                     }
                                 }
+
+                                indentation = starting_indentation;
                             }
                         }
 
