@@ -467,7 +467,7 @@ impl FromStr for Command {
                 context(CommandParseError::MissingStartTime.into(), cut(comma())),
                 context(
                     CommandParseError::InvalidStartTime.into(),
-                    comma_field_type(),
+                    cut(comma_field_type()),
                 ),
             )
         };
@@ -540,10 +540,7 @@ impl FromStr for Command {
             };
 
         let loop_ = preceded(
-            tuple((
-                tag("L"),
-                context(CommandParseError::MissingStartTime.into(), cut(comma())),
-            )),
+            tag("L"),
             cut(tuple((
                 start_time(),
                 preceded(
