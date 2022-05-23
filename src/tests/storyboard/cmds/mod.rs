@@ -420,10 +420,25 @@ fn parameters() {
 
 #[test]
 fn trigger() {
-    let i = "T,HitSound,0,0";
-    let t = i.parse::<Command>().unwrap();
+    // we test the 4 possibilities
+    // has group number, has end time
+    // has group number, no end time
+    // no group number, has end time
+    // no group number, no end time
+    let everything_str = "T,HitSound,0,1,2";
+    let everything = everything_str.parse::<Command>().unwrap();
+    let group_str = "T,HitSound,0,,1";
+    let group = group_str.parse::<Command>().unwrap();
+    let end_time_str = "T,HitSound,0,1";
+    let end_time = end_time_str.parse::<Command>().unwrap();
+    // TODO check if this is accurate
+    let nothing_str = "T,HitSound,0,";
+    let nothing = nothing_str.parse::<Command>().unwrap();
 
-    assert_eq!(i, t.to_string());
+    assert_eq!(everything_str, everything.to_string());
+    assert_eq!(group_str, group.to_string());
+    assert_eq!(end_time_str, end_time.to_string());
+    assert_eq!(nothing_str, nothing.to_string());
 }
 
 #[test]
