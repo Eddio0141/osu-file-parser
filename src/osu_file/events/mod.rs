@@ -223,6 +223,10 @@ impl Display for Event {
                             if let CommandProperties::Loop { commands, .. }
                             | CommandProperties::Trigger { commands, .. } = &cmd.properties
                             {
+                                if commands.len() == 0 {
+                                    continue;
+                                }
+
                                 indentation += 1;
 
                                 let mut current_cmds = commands;
@@ -230,20 +234,7 @@ impl Display for Event {
                                 // stack of commands and index
                                 let mut cmds = Vec::new();
 
-                                'cmds_outer: loop {
-                                    // loop until we run out of commands or index is valid
-                                    while current_index >= current_cmds.len() {
-                                        indentation -= 1;
-
-                                        match cmds.pop() {
-                                            Some((last_cmds, last_index)) => {
-                                                current_cmds = last_cmds;
-                                                current_index = last_index;
-                                            }
-                                            None => break 'cmds_outer,
-                                        }
-                                    }
-
+                                loop {
                                     let cmd = &current_cmds[current_index];
                                     current_index += 1;
 
@@ -253,11 +244,28 @@ impl Display for Event {
                                         &cmd.properties
                                     {
                                         // save the current cmds and index
-                                        cmds.push((current_cmds, current_index));
+                                        // ignore if index is already at the end of the current cmds
+                                        if current_index < current_cmds.len() {
+                                            cmds.push((current_cmds, current_index));
+                                        }
 
                                         current_cmds = commands;
                                         current_index = 0;
+                                        // BUG fix indentation not being saved and applied
                                         indentation += 1;
+                                    } else {
+                                        // check for end of commands
+                                        if current_index >= current_cmds.len() {
+                                            indentation -= 1;
+
+                                            match cmds.pop() {
+                                                Some((last_cmds, last_index)) => {
+                                                    current_cmds = last_cmds;
+                                                    current_index = last_index;
+                                                }
+                                                None => break,
+                                            }
+                                        }
                                     }
                                 }
                             }
