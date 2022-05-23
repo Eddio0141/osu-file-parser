@@ -42,20 +42,20 @@ pub enum CommandParseError {
     /// Unknown command type
     #[error("Unknown command type")]
     UnknownCommandType,
-    /// Missing the `start_time` field.
-    #[error("Missing the `start_time` field")]
+    /// Missing `start_time` field.
+    #[error("Missing `start_time` field")]
     MissingStartTime,
     /// Invalid `start_time` value.
     #[error("Invalid `start_time` value")]
     InvalidStartTime,
-    /// Missing the `loop_count` field.
-    #[error("Missing the `loop_count` field")]
+    /// Missing `loop_count` field.
+    #[error("Missing `loop_count` field")]
     MissingLoopCount,
     /// Invalid `loop_count` value.
     #[error("Invalid `loop_count` value")]
     InvalidLoopCount,
-    /// Missing the "trigger_type" field.
-    #[error("Missing the `trigger_type` field")]
+    /// Missing "trigger_type" field.
+    #[error("Missing `trigger_type` field")]
     MissingTriggerType,
     /// Invalid `trigger_type` value.
     #[error("Invalid `trigger_type` value")]
