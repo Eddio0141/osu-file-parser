@@ -5,7 +5,7 @@ fn invalid_int() {
     let i = "";
     let o = i.parse::<HitObject>().unwrap_err();
 
-    assert_eq!("Failed to parse `` as an integer", o.to_string());
+    assert_eq!("Invalid `x` value", o.to_string());
 }
 
 #[test]
@@ -13,7 +13,7 @@ fn missing_field_y() {
     let i = "1";
     let o = i.parse::<HitObject>().unwrap_err();
 
-    assert_eq!("The hitobject is missing the `Y` field", o.to_string());
+    assert_eq!("Missing `y` field", o.to_string());
 }
 
 #[test]
@@ -21,7 +21,7 @@ fn invalid_int2() {
     let i = "1,foo";
     let o = i.parse::<HitObject>().unwrap_err();
 
-    assert_eq!("Failed to parse `foo` as an integer", o.to_string());
+    assert_eq!("Invalid `y` value", o.to_string());
 }
 
 #[test]
@@ -29,7 +29,7 @@ fn invalid_decimal() {
     let i = "0,0,0,2,0,B|0:0,0,foo";
     let o = i.parse::<HitObject>().unwrap_err();
 
-    assert_eq!("Failed to parse `foo` as a decimal", o.to_string());
+    assert_eq!("Invalid `length` value", o.to_string());
 }
 
 #[test]
@@ -45,5 +45,6 @@ fn missing_obj_params() {
     let i = "0,0,0,2,0";
     let o = i.parse::<HitObject>().unwrap_err();
 
-    assert_eq!("Missing object params", o.to_string());
+    // TODO investigate why this is trying to parse curve type
+    assert_eq!("Missing `curve_type` field", o.to_string());
 }
