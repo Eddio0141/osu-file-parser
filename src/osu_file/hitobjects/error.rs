@@ -3,11 +3,12 @@
 use std::{
     error::Error,
     num::{ParseIntError, TryFromIntError},
+    str::FromStr,
 };
 
+use nom::error::VerboseErrorKind;
+use strum_macros::{EnumString, IntoStaticStr};
 use thiserror::Error;
-
-use super::FieldName;
 
 #[derive(Debug, Error)]
 #[error(transparent)]
@@ -38,33 +39,105 @@ pub enum ColonSetParseError {
     },
 }
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, EnumString, IntoStaticStr)]
 /// Error used when there was a problem parsing a `str` into a [`hitobject`][super::HitObjectWrapper].
 pub enum HitObjectParseError {
-    #[error("The hitobject is missing the `{0}` field")]
-    MissingField(FieldName),
-    #[error("Failed to parse `{0}` as an integer")]
-    ParseIntError(String),
-    #[error("Failed to parse `{0}` as a decimal")]
-    ParseDecimalError(String),
-    #[error("The hitobject failed to parse the CurveType from `{0}`")]
-    ParseCurveTypeError(String),
-    #[error("The hitobject failed to parse the CurvePoints from `{0}`")]
-    ParseCurvePointsError(String),
-    #[error("The hitobject failed to parse the Hitsample from `{0}`")]
-    ParseHitsampleError(String),
-    #[error("The hitobject failed to parse the Slides from `{0}`")]
-    ParseSlidesError(String),
-    #[error("The hitobject failed to parse the EdgeSounds from `{0}`")]
-    ParseEdgeSoundsError(String),
-    #[error("The hitobject failed to parse the EdgeSets from `{0}`")]
-    ParseEdgeSetsError(String),
+    /// Invalid `hit_sound` value.
+    #[error("Invalid `hit_sound` value")]
+    InvalidHitSound,
+    /// Missing `hit_sound` field.
+    #[error("Missing `hit_sound` field")]
+    MissingHitSound,
+    /// Missing `hit_sample` field.
+    #[error("Missing `hit_sample` field")]
+    MissingHitSample,
+    /// Invalid `hit_sample` value.
+    #[error("Invalid `hit_sample` value")]
+    InvalidHitSample,
+    /// Invalid `x` value.
+    #[error("Invalid `x` value")]
+    InvalidX,
+    /// Missing `x` field.
+    #[error("Missing `x` field")]
+    MissingX,
+    /// Invalid `y` value.
+    #[error("Invalid `y` value")]
+    InvalidY,
+    /// Missing `y` field.
+    #[error("Missing `y` field")]
+    MissingY,
+    /// Missing `obj_type` field.
+    #[error("Missing `obj_type` field")]
+    MissingObjType,
+    /// Invalid `obj_type` value.
+    #[error("Invalid `obj_type` value")]
+    InvalidObjType,
+    /// Missing `time` field.
+    #[error("Missing `time` field")]
+    MissingTime,
+    /// Invalid `time` value.
+    #[error("Invalid `time` value")]
+    InvalidTime,
+    /// Invalid `curve_type` value.
+    #[error("Invalid `curve_type` value")]
+    InvalidCurveType,
+    /// Missing `curve_type` field.
+    #[error("Missing `curve_type` field")]
+    MissingCurveType,
+    /// Invalid `curve_point` value.
+    #[error("Invalid `curve_point` value")]
+    InvalidCurvePoint,
+    /// Missing `curve_point` field.
+    #[error("Missing `curve_point` field")]
+    MissingCurvePoint,
+    /// Invalid `edge_sound` value.
+    #[error("Invalid `edge_sound` value")]
+    InvalidEdgeSound,
+    /// Missing `edge_sound` field.
+    #[error("Missing `edge_sound` field")]
+    MissingEdgeSound,
+    /// Invalid `edge_set` value.
+    #[error("Invalid `edge_set` value")]
+    InvalidEdgeSet,
+    /// Missing `edge_set` field.
+    #[error("Missing `edge_set` field")]
+    MissingEdgeSet,
+    /// Invalid `slides_count` value.
+    #[error("Invalid `slides_count` value")]
+    InvalidSlidesCount,
+    /// Invalid `length` value.
+    #[error("Invalid `length` value")]
+    InvalidLength,
+    /// Missing `length` field.
+    #[error("Missing `length` field")]
+    MissingLength,
+    /// Invalid `end_time` value.
+    #[error("Invalid `end_time` value")]
+    InvalidEndTime,
+    /// Missing `end_time` field.
+    #[error("Missing `end_time` field")]
+    MissingEndTime,
+    /// Unknown object type.
     #[error("Unknown object type")]
     UnknownObjType,
-    #[error("Missing object params")]
-    MissingObjParams,
-    #[error("Failed to parse `{0}` as a HitSound")]
-    ParseHitSoundError(String),
+}
+
+impl From<nom::Err<nom::error::VerboseError<&str>>> for HitObjectParseError {
+    fn from(err: nom::Err<nom::error::VerboseError<&str>>) -> Self {
+        match err {
+            nom::Err::Error(err) | nom::Err::Failure(err) => {
+                for (_, err) in err.errors {
+                    if let VerboseErrorKind::Context(context) = err {
+                        return HitObjectParseError::from_str(context).unwrap();
+                    }
+                }
+
+                unreachable!()
+            }
+            // should never happen
+            nom::Err::Incomplete(_) => unreachable!(),
+        }
+    }
 }
 
 #[derive(Debug, Error)]
