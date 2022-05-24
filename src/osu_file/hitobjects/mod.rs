@@ -1,25 +1,26 @@
 pub mod error;
-mod parser;
 pub mod types;
 
 use std::fmt::Display;
 use std::str::FromStr;
 
+use nom::bytes::complete::is_not;
+use nom::bytes::complete::take_until;
 use nom::character::streaming::char;
-use nom::error::VerboseErrorKind;
-use nom::Finish;
+use nom::combinator::map_res;
+use nom::error::context;
+use nom::sequence::preceded;
+use nom::sequence::tuple;
+use nom::Parser;
 use rust_decimal::Decimal;
-use strum_macros::Display;
 
-use self::parser::hitobject;
-use self::parser::HitObjectContext;
 use self::types::*;
 use super::Error;
 use super::Integer;
 use super::Position;
 use super::Version;
 use crate::helper::*;
-use crate::parsers::comma_field;
+use crate::parsers::*;
 
 pub use self::error::*;
 
@@ -150,117 +151,216 @@ impl HitObject {
     }
 }
 
+/*pub enum HitObjectParseError {
+    InvalidX,
+    InvalidY,
+    InvalidTime,
+    InvalidObjType,
+    InvalidCurveType,
+    InvalidCurvePoints,
+    InvalidSlides,
+    InvalidLength,
+    InvalidEndTime,
+    InvalidHitsound,
+    InvalidHitsample,
+    InvalidEdgeSounds,
+    InvalidEdgeSets,
+    MissingY,
+    MissingTime,
+    MissingObjType,
+    MissingCurveType,
+    MissingCurvePoints,
+    MissingSlides,
+    MissingLength,
+    MissingEndTime,
+    MissingHitsound,
+    MissingHitsample,
+    MissingEdgeSounds,
+    MissingEdgeSets,
+    MissingObjParams,
+    UnknownObjType,
+} */
+
 impl FromStr for HitObject {
     type Err = HitObjectParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match hitobject(s).finish() {
-            Ok((_, hitobject)) => Ok(hitobject),
-            Err(err) => {
-                let mut context = None;
-                let mut input = None;
+        let hitsound = context(
+            HitObjectParseError::InvalidHitSound.into(),
+            // TODO replace all map_res(is_not(",")) with comma_field_type
+            comma_field_type(),
+        );
+        let hitsample = context(
+            HitObjectParseError::InvalidHitSample.into(),
+            consume_rest_type(),
+        );
 
-                for err in &err.errors {
-                    input = Some(err.0);
+        let (s, (position, time, obj_type, hitsound)) = tuple((
+            tuple((
+                context(HitObjectParseError::InvalidX.into(), comma_field_type()),
+                preceded(
+                    context(HitObjectParseError::MissingY.into(), comma()),
+                    context(HitObjectParseError::InvalidY.into(), comma_field_type()),
+                ),
+            ))
+            .map(|(x, y)| (Position { x, y })),
+            preceded(
+                context(HitObjectParseError::MissingTime.into(), comma()),
+                context(HitObjectParseError::InvalidTime.into(), comma_field_type()),
+            ),
+            preceded(
+                context(HitObjectParseError::MissingObjType.into(), comma()),
+                context(
+                    HitObjectParseError::InvalidObjType.into(),
+                    comma_field_type::<_, Integer>(),
+                ),
+            ),
+            preceded(
+                context(HitObjectParseError::MissingHitSound.into(), comma()),
+                hitsound,
+            ),
+        ))(s)?;
 
-                    if let VerboseErrorKind::Context(c) = &err.1 {
-                        context = Some(c);
-                        break;
-                    }
-                }
+        let new_combo = nth_bit_state_i64(obj_type as i64, 2);
+        let combo_skip_count = ComboSkipCount::try_from((obj_type >> 4 & 0b111) as u8).unwrap();
 
-                let context = context.unwrap();
-                let input = input.unwrap();
-                let input_field = || {
-                    comma_field::<nom::error::Error<_>>()(input)
-                        .unwrap()
-                        .1
-                        .to_string()
-                };
+        let hitobject = if nth_bit_state_i64(obj_type as i64, 0) {
+            let (_, hitsample) = preceded(
+                context(HitObjectParseError::MissingHitSample.into(), comma()),
+                hitsample,
+            )(s)?;
 
-                let err = match HitObjectContext::from_str(context).unwrap() {
-                    HitObjectContext::InvalidX
-                    | HitObjectContext::InvalidY
-                    | HitObjectContext::InvalidTime
-                    | HitObjectContext::InvalidObjType
-                    | HitObjectContext::InvalidEndTime => HitObjectParseError::ParseIntError(input_field()),
-                    HitObjectContext::InvalidCurveType => {
-                        HitObjectParseError::ParseCurveTypeError(input.to_string())
-                    }
-                    HitObjectContext::InvalidCurvePoints => {
-                        HitObjectParseError::ParseCurvePointsError(input.to_string())
-                    }
-                    HitObjectContext::InvalidSlides => {
-                        HitObjectParseError::ParseSlidesError(input.to_string())
-                    }
-                    HitObjectContext::InvalidLength => {
-                        HitObjectParseError::ParseDecimalError(input.to_string())
-                    }
-                    HitObjectContext::InvalidHitsound => {
-                        HitObjectParseError::ParseHitSoundError(input.to_string())
-                    }
-                    HitObjectContext::InvalidHitsample => {
-                        HitObjectParseError::ParseHitsampleError(input.to_string())
-                    }
-                    HitObjectContext::InvalidEdgeSounds => {
-                        HitObjectParseError::ParseEdgeSoundsError(input.to_string())
-                    }
-                    HitObjectContext::InvalidEdgeSets => {
-                        HitObjectParseError::ParseEdgeSetsError(input.to_string())
-                    }
-                    HitObjectContext::MissingY => HitObjectParseError::MissingField(FieldName::Y),
-                    HitObjectContext::MissingTime => HitObjectParseError::MissingField(FieldName::Time),
-                    HitObjectContext::MissingObjType => {
-                        HitObjectParseError::MissingField(FieldName::ObjType)
-                    }
-                    HitObjectContext::MissingCurveType => {
-                        HitObjectParseError::MissingField(FieldName::CurveType)
-                    }
-                    HitObjectContext::MissingCurvePoints => {
-                        HitObjectParseError::MissingField(FieldName::CurvePoints)
-                    }
-                    HitObjectContext::MissingSlides => HitObjectParseError::MissingField(FieldName::Slides),
-                    HitObjectContext::MissingLength => HitObjectParseError::MissingField(FieldName::Length),
-                    HitObjectContext::MissingEndTime => {
-                        HitObjectParseError::MissingField(FieldName::EndTime)
-                    }
-                    HitObjectContext::MissingHitsound => {
-                        HitObjectParseError::MissingField(FieldName::Hitsound)
-                    }
-                    HitObjectContext::MissingHitsample => {
-                        HitObjectParseError::MissingField(FieldName::Hitsample)
-                    }
-                    HitObjectContext::MissingEdgeSounds => {
-                        HitObjectParseError::MissingField(FieldName::EdgeSounds)
-                    }
-                    HitObjectContext::MissingEdgeSets => {
-                        HitObjectParseError::MissingField(FieldName::EdgeSets)
-                    }
-                    HitObjectContext::MissingObjParams => HitObjectParseError::MissingObjParams,
-                    HitObjectContext::UnknownObjType => HitObjectParseError::UnknownObjType,
-                };
-
-                Err(err)
+            // hitcircle
+            HitObject {
+                position,
+                time,
+                obj_params: HitObjectParams::HitCircle,
+                new_combo,
+                combo_skip_count,
+                hitsound,
+                hitsample,
             }
-        }
-    }
-}
+        } else if nth_bit_state_i64(obj_type as i64, 1) {
+            // slider
+            let pipe = char('|');
+            let curve_type = context(
+                HitObjectParseError::InvalidCurveType.into(),
+                map_res(is_not("|"), |f: &str| f.parse()),
+            );
+            let curve_points = context(
+                HitObjectParseError::InvalidCurvePoint.into(),
+                pipe_vec(|s: &str| s.parse()),
+            );
+            let edge_sounds = context(
+                HitObjectParseError::InvalidEdgeSound.into(),
+                pipe_vec(|s: &str| s.parse()),
+            );
+            let edge_sets = context(
+                HitObjectParseError::InvalidEdgeSet.into(),
+                pipe_vec(|s: &str| s.parse()),
+            );
 
-#[derive(Debug, Display)]
-pub enum FieldName {
-    X,
-    Y,
-    Time,
-    ObjType,
-    Hitsound,
-    Hitsample,
-    Length,
-    EndTime,
-    Slides,
-    CurvePoints,
-    EdgeSounds,
-    EdgeSets,
-    CurveType,
+            let (_, (curve_type, curve_points, slides, length, edge_sounds, edge_sets, hitsample)) =
+                tuple((
+                    preceded(
+                        context(HitObjectParseError::MissingCurveType.into(), comma()),
+                        curve_type,
+                    ),
+                    preceded(
+                        context(HitObjectParseError::MissingCurvePoint.into(), pipe),
+                        curve_points,
+                    ),
+                    context(
+                        HitObjectParseError::InvalidSlidesCount.into(),
+                        comma_field_type(),
+                    ),
+                    preceded(
+                        context(HitObjectParseError::MissingLength.into(), comma()),
+                        context(
+                            HitObjectParseError::InvalidLength.into(),
+                            comma_field_type(),
+                        ),
+                    ),
+                    preceded(
+                        context(HitObjectParseError::MissingEdgeSound.into(), comma()),
+                        edge_sounds,
+                    ),
+                    edge_sets,
+                    hitsample,
+                ))(s)?;
+
+            HitObject {
+                position,
+                time,
+                obj_params: HitObjectParams::Slider {
+                    curve_type,
+                    curve_points,
+                    slides,
+                    length,
+                    edge_sounds,
+                    edge_sets,
+                },
+                new_combo,
+                combo_skip_count,
+                hitsound,
+                hitsample,
+            }
+        } else if nth_bit_state_i64(obj_type as i64, 3) {
+            // spinner
+            let (_, (end_time, hitsample)) = tuple((
+                preceded(
+                    context(HitObjectParseError::MissingEndTime.into(), comma()),
+                    context(
+                        HitObjectParseError::InvalidEndTime.into(),
+                        comma_field_type(),
+                    ),
+                ),
+                preceded(
+                    context(HitObjectParseError::MissingHitSample.into(), comma()),
+                    hitsample,
+                ),
+            ))(s)?;
+
+            HitObject {
+                position,
+                time,
+                obj_params: HitObjectParams::Spinner { end_time },
+                new_combo,
+                combo_skip_count,
+                hitsound,
+                hitsample,
+            }
+        } else if nth_bit_state_i64(obj_type as i64, 7) {
+            // osu!mania hold
+            // ppy has done it once again
+            let end_time = context(
+                HitObjectParseError::InvalidEndTime.into(),
+                map_res(take_until(":"), |s: &str| s.parse()),
+            );
+            let (_, (end_time, _, hitsample)) = tuple((
+                preceded(
+                    context(HitObjectParseError::MissingEndTime.into(), comma()),
+                    end_time,
+                ),
+                context(HitObjectParseError::MissingHitSample.into(), char(':')),
+                hitsample,
+            ))(s)?;
+
+            HitObject {
+                position,
+                time,
+                obj_params: HitObjectParams::OsuManiaHold { end_time },
+                new_combo,
+                combo_skip_count,
+                hitsound,
+                hitsample,
+            }
+        } else {
+            return Err(HitObjectParseError::UnknownObjType);
+        };
+
+        Ok(hitobject)
+    }
 }
 
 impl Display for HitObject {
