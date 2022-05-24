@@ -151,36 +151,6 @@ impl HitObject {
     }
 }
 
-/*pub enum HitObjectParseError {
-    InvalidX,
-    InvalidY,
-    InvalidTime,
-    InvalidObjType,
-    InvalidCurveType,
-    InvalidCurvePoints,
-    InvalidSlides,
-    InvalidLength,
-    InvalidEndTime,
-    InvalidHitsound,
-    InvalidHitsample,
-    InvalidEdgeSounds,
-    InvalidEdgeSets,
-    MissingY,
-    MissingTime,
-    MissingObjType,
-    MissingCurveType,
-    MissingCurvePoints,
-    MissingSlides,
-    MissingLength,
-    MissingEndTime,
-    MissingHitsound,
-    MissingHitsample,
-    MissingEdgeSounds,
-    MissingEdgeSets,
-    MissingObjParams,
-    UnknownObjType,
-} */
-
 impl FromStr for HitObject {
     type Err = HitObjectParseError;
 
