@@ -182,6 +182,180 @@ impl Version for General {
         display_colon_fields(&fields, true)
     }
 
+    // TODO find out fields
+    fn from_str_v12(s: &str) -> std::result::Result<Option<Self>, Self::ParseError>
+    where
+        Self: Sized,
+    {
+        let mut general = General::new();
+
+        let (s, fields) = get_colon_field_value_lines(s).unwrap();
+
+        if !s.trim().is_empty() {
+            // line count from fields
+            let line_count = { fields.iter().map(|(_, _, ws)| ws.lines().count()).sum() };
+
+            // TODO test this
+            return Err(Error::new(ParseError::InvalidColonSet, line_count));
+        }
+
+        let mut line_count = 0;
+        let mut parsed_fields = Vec::new();
+
+        for (name, value, ws) in fields {
+            let new_into_int = move |err| Error::new_into(err, line_count);
+            let new_into_decimal = move |err| Error::new_into(err, line_count);
+            let new_into_zero_one_bool = move |err| Error::new_into(err, line_count);
+            let new_into_countdown_speed = move |err| Error::new_into(err, line_count);
+            let new_into_strum_parse_error = move |err| Error::new_into(err, line_count);
+            let new_into_combine_game_mode = move |err| Error::new_into(err, line_count);
+
+            if parsed_fields.contains(&name) {
+                return Err(Error::new(ParseError::DuplicateField, line_count));
+            }
+
+            match name {
+                "AudioFilename" => general.audio_filename = Some(PathBuf::from(value)),
+                "AudioLeadIn" => general.audio_lead_in = Some(value.parse().map_err(new_into_int)?),
+                "AudioHash" => general.audio_hash = Some(value.to_owned()),
+                "PreviewTime" => general.preview_time = Some(value.parse().map_err(new_into_int)?),
+                "Countdown" => {
+                    general.countdown = Some(value.parse().map_err(new_into_countdown_speed)?)
+                }
+                "SampleSet" => {
+                    general.sample_set = Some(
+                        SampleSet::from_str_v12(value)
+                            .map_err(new_into_strum_parse_error)?
+                            .unwrap(),
+                    )
+                }
+                "StackLeniency" => {
+                    general.stack_leniency = Some(value.parse().map_err(new_into_decimal)?)
+                }
+                "Mode" => general.mode = Some(value.parse().map_err(new_into_combine_game_mode)?),
+                "LetterboxInBreaks" => {
+                    general.letterbox_in_breaks =
+                        Some(parse_zero_one_bool(value).map_err(new_into_zero_one_bool)?)
+                }
+                // "StoryFireInFront" => {
+                //     general.story_fire_in_front =
+                //         Some(parse_zero_one_bool(value).map_err(new_into_zero_one_bool)?)
+                // }
+                // "UseSkinSprites" => {
+                //     general.use_skin_sprites =
+                //         Some(parse_zero_one_bool(value).map_err(new_into_zero_one_bool)?)
+                // }
+                // "AlwaysShowPlayfield" => {
+                //     general.always_show_playfield =
+                //         Some(parse_zero_one_bool(value).map_err(new_into_zero_one_bool)?)
+                // }
+                // "OverlayPosition" => {
+                //     general.overlay_position =
+                //         Some(value.parse().map_err(new_into_strum_parse_error)?)
+                // }
+                // "SkinPreference" => general.skin_preference = Some(value.to_owned()),
+                // "EpilepsyWarning" => {
+                //     general.epilepsy_warning =
+                //         Some(parse_zero_one_bool(value).map_err(new_into_zero_one_bool)?)
+                // }
+                // "CountdownOffset" => {
+                //     general.countdown_offset = Some(value.parse().map_err(new_into_int)?)
+                // }
+                // "SpecialStyle" => {
+                //     general.special_style =
+                //         Some(parse_zero_one_bool(value).map_err(new_into_zero_one_bool)?)
+                // }
+                "WidescreenStoryboard" => {
+                    general.widescreen_storyboard =
+                        Some(parse_zero_one_bool(value).map_err(new_into_zero_one_bool)?)
+                }
+                // "SamplesMatchPlaybackRate" => {
+                //     general.samples_match_playback_rate =
+                //         Some(parse_zero_one_bool(value).map_err(new_into_zero_one_bool)?)
+                // }
+                _ => return Err(Error::new(ParseError::InvalidKey, line_count)),
+            }
+
+            line_count += ws.lines().count();
+            parsed_fields.push(name);
+        }
+
+        Ok(Some(general))
+    }
+
+    fn to_string_v12(&self) -> String {
+        let audio_file_name = self
+            .audio_filename
+            .as_ref()
+            .map(|p| p.display().to_string());
+        let fields = [
+            ("AudioFilename", &audio_file_name),
+            ("AudioLeadIn", &self.audio_lead_in.map(|v| v.to_string())),
+            ("AudioHash", &self.audio_hash),
+            ("PreviewTime", &self.preview_time.map(|v| v.to_string())),
+            (
+                "Countdown",
+                &self.countdown.map(|v| (v as Integer).to_string()),
+            ),
+            ("SampleSet", &self.sample_set.map(|v| v.to_string_v14())),
+            ("StackLeniency", &self.stack_leniency.map(|v| v.to_string())),
+            ("Mode", &self.mode.map(|v| (v as Integer).to_string())),
+            (
+                "LetterboxInBreaks",
+                &self.letterbox_in_breaks.map(|v| (v as Integer).to_string()),
+            ),
+            // (
+            //     "StoryFireInFront",
+            //     &self.story_fire_in_front.map(|v| (v as Integer).to_string()),
+            // ),
+            // (
+            //     "UseSkinSprites",
+            //     &self.use_skin_sprites.map(|v| (v as Integer).to_string()),
+            // ),
+            // (
+            //     "AlwaysShowPlayfield",
+            //     &self
+            //         .always_show_playfield
+            //         .map(|v| (v as Integer).to_string()),
+            // ),
+            // (
+            //     "OverlayPosition",
+            //     &self.overlay_position.map(|v| v.to_string()),
+            // ),
+            // (
+            //     "SkinPreference",
+            //     &self.skin_preference.as_ref().map(|v| v.to_string()),
+            // ),
+            // (
+            //     "EpilepsyWarning",
+            //     &self.epilepsy_warning.map(|v| (v as Integer).to_string()),
+            // ),
+            // (
+            //     "CountdownOffset",
+            //     &self.countdown_offset.map(|v| v.to_string()),
+            // ),
+            // (
+            //     "SpecialStyle",
+            //     &self.special_style.map(|v| (v as Integer).to_string()),
+            // ),
+            (
+                "WidescreenStoryboard",
+                &self
+                    .widescreen_storyboard
+                    .map(|v| (v as Integer).to_string()),
+            ),
+            // (
+            //     "SamplesMatchPlaybackRate",
+            //     &self
+            //         .samples_match_playback_rate
+            //         .map(|v| (v as Integer).to_string()),
+            // ),
+        ];
+
+        display_colon_fields(&fields, true)
+    }
+
+    // TODO find out fields
     fn from_str_v13(s: &str) -> std::result::Result<Option<Self>, Self::ParseError>
     where
         Self: Sized,
