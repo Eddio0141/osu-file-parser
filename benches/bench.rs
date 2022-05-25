@@ -9,10 +9,11 @@ use osu_file_parser::osu_file::{
         },
         Event,
     },
+    hitobjects::HitObject,
     Position,
 };
 
-pub fn storyboard_cmds_bench(c: &mut Criterion) {
+fn storyboard_cmds_bench(c: &mut Criterion) {
     let fade_str = "F,0,500,1000,0,0.5";
     let move_str = "M,0,500,1000,0,1,2,3";
     let move_x_str = "MX,0,500,1000,0,1";
@@ -84,7 +85,7 @@ pub fn storyboard_cmds_bench(c: &mut Criterion) {
     });
 }
 
-pub fn storyboard_loop_cmd_display(c: &mut Criterion) {
+fn storyboard_loop_cmd_display(c: &mut Criterion) {
     let loop_cmd = |commands| Command {
         start_time: 0,
         properties: CommandProperties::Loop {
@@ -110,5 +111,40 @@ pub fn storyboard_loop_cmd_display(c: &mut Criterion) {
     });
 }
 
-criterion_group!(benches, storyboard_cmds_bench, storyboard_loop_cmd_display);
+fn hitobject_parse_bench(c: &mut Criterion) {
+    let hitcircle_str = "221,350,9780,1,0,0:0:0:0:";
+    let slider_str = "31,85,3049,2,0,B|129:55|123:136|228:86,1,172.51,2|0,3:2|0:2,0:2:0:0:";
+    let spinner_str = "256,192,33598,12,0,431279,0:0:0:0:";
+    let osu_mania_hold_str = "51,192,350,128,2,849:0:0:0:0:";
+
+    let mut group = c.benchmark_group("hitobjects_parse");
+
+    group.bench_function("hitcircle_parse", |b| {
+        b.iter(|| {
+            black_box(hitcircle_str).parse::<HitObject>().unwrap();
+        })
+    });
+    group.bench_function("slider_parse", |b| {
+        b.iter(|| {
+            black_box(slider_str).parse::<HitObject>().unwrap();
+        })
+    });
+    group.bench_function("spinner_parse", |b| {
+        b.iter(|| {
+            black_box(spinner_str).parse::<HitObject>().unwrap();
+        })
+    });
+    group.bench_function("osu_mania_hold_parse", |b| {
+        b.iter(|| {
+            black_box(osu_mania_hold_str).parse::<HitObject>().unwrap();
+        })
+    });
+}
+
+criterion_group!(
+    benches,
+    storyboard_cmds_bench,
+    storyboard_loop_cmd_display,
+    hitobject_parse_bench
+);
 criterion_main!(benches);
