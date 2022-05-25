@@ -27,11 +27,51 @@ fn v5_file() {
 }
 
 #[test]
+fn v6_file() {
+    let v6 = include_str!("./files/v6.osu").replace("\r\n", "\n");
+    let osu_file = v6.parse::<OsuFile>().unwrap();
+
+    assert_eq!(v6, osu_file.to_string());
+}
+
+#[test]
+fn v7_file() {
+    let v7 = include_str!("./files/v7.osu").replace("\r\n", "\n");
+    let osu_file = v7.parse::<OsuFile>().unwrap();
+
+    assert_eq!(v7, osu_file.to_string());
+}
+
+#[test]
+fn v8_file() {
+    let v8 = include_str!("./files/v8.osu").replace("\r\n", "\n");
+    let osu_file = v8.parse::<OsuFile>().unwrap();
+
+    assert_eq!(v8, osu_file.to_string());
+}
+
+#[test]
 fn v9_file() {
     let v9 = include_str!("./files/v9.osu").replace("\r\n", "\n");
     let osu_file = v9.parse::<OsuFile>().unwrap();
 
     assert_eq!(v9, osu_file.to_string());
+}
+
+#[test]
+fn v10_file() {
+    let v10 = include_str!("./files/v10.osu").replace("\r\n", "\n");
+    let osu_file = v10.parse::<OsuFile>().unwrap();
+
+    assert_eq!(v10, osu_file.to_string());
+}
+
+#[test]
+fn v11_file() {
+    let v11 = include_str!("./files/v11.osu").replace("\r\n", "\n");
+    let osu_file = v11.parse::<OsuFile>().unwrap();
+
+    assert_eq!(v11, osu_file.to_string());
 }
 
 #[test]
