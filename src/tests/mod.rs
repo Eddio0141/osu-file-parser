@@ -8,7 +8,6 @@ use nom::{
     multi::separated_list0,
     Parser,
 };
-#[cfg(test)]
 use pretty_assertions::assert_eq;
 use rust_decimal::Decimal;
 use std::path::{Path, PathBuf};

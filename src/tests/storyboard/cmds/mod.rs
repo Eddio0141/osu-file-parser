@@ -12,7 +12,6 @@ use crate::osu_file::events::*;
 use crate::osu_file::types::Position;
 use crate::osu_file::Version;
 
-#[cfg(test)]
 use pretty_assertions::assert_eq;
 
 #[test]

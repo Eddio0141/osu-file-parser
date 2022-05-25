@@ -1,5 +1,4 @@
 use crate::osu_file::OsuFile;
-#[cfg(test)]
 use pretty_assertions::assert_eq;
 
 #[test]
