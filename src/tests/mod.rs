@@ -3,6 +3,11 @@ mod hitobjects;
 mod osu_files;
 mod storyboard;
 
+use nom::{
+    bytes::complete::{tag, take_while},
+    multi::separated_list0,
+    Parser,
+};
 #[cfg(test)]
 use pretty_assertions::assert_eq;
 use rust_decimal::Decimal;
@@ -267,4 +272,17 @@ fn colour_parse_error() {
     let err = i.parse::<Colour>().unwrap_err();
 
     assert_eq!(err.to_string(), "Invalid red value");
+}
+
+#[test]
+fn pipe_vec_parse() {
+    let mut pipe_vec = separated_list0::<_, _, _, nom::error::Error<_>, _, _>(
+        tag("|"),
+        take_while(|c: char| !['|', ',', '\r', '\n'].contains(&c)),
+    );
+
+    let i = "1|2|3,foo";
+    let (_, v) = pipe_vec.parse(i).unwrap();
+
+    assert_eq!(v, vec!["1", "2", "3"]);
 }
