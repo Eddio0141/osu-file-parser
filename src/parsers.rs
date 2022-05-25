@@ -1,13 +1,13 @@
 use std::str::FromStr;
 
 use nom::{
-    bytes::complete::take_while,
+    bytes::complete::{tag, take_while},
     character::complete::char,
     character::complete::multispace0,
-    combinator::{map, map_res, opt, rest},
+    combinator::{map_res, rest},
     error::{FromExternalError, ParseError},
-    multi::{many0, many_till},
-    sequence::{preceded, terminated, tuple},
+    multi::{many0, separated_list0},
+    sequence::{terminated, tuple},
     IResult,
 };
 
@@ -52,22 +52,22 @@ pub fn get_colon_field_value_lines(s: &str) -> IResult<&str, Vec<(&str, &str, &s
     many0(field_line)(s)
 }
 
-pub fn pipe_vec<'a, O, E, M, E2>(mapper: M) -> impl FnMut(&'a str) -> IResult<&'a str, Vec<O>, E>
+pub fn pipe_vec_map<'a, E, T>() -> impl FnMut(&'a str) -> IResult<&'a str, Vec<T>, E>
 where
-    E: ParseError<&'a str> + nom::error::FromExternalError<&'a str, E2>,
-    M: Fn(&str) -> Result<O, E2> + 'a,
+    E: ParseError<&'a str> + nom::error::FromExternalError<&'a str, <T as FromStr>::Err>,
+    T: FromStr,
 {
-    let comma = char(',');
-    let item = preceded(opt(char('|')), take_while(|c: char| c != '|' && c != ','));
-    let item_map = map_res(item, mapper);
-    map(many_till(item_map, comma), |(v, _)| v)
+    let item = take_while(|c: char| !['|', ',', '\r', '\n'].contains(&c));
+    let item = map_res(item, |s: &str| s.parse());
+
+    separated_list0(tag("|"), item)
 }
 
-pub fn comma<'a, E>() -> impl FnMut(&'a str) -> IResult<&'a str, char, E>
+pub fn comma<'a, E>() -> impl FnMut(&'a str) -> IResult<&'a str, &str, E>
 where
     E: ParseError<&'a str>,
 {
-    char(',')
+    tag(",")
 }
 
 pub fn comma_field<'a, E>() -> impl FnMut(&'a str) -> IResult<&str, &str, E>
