@@ -10,7 +10,7 @@ use osu_file_parser::osu_file::{
         Event,
     },
     hitobjects::HitObject,
-    Position,
+    OsuFile, Position,
 };
 
 fn storyboard_cmds_bench(c: &mut Criterion) {
@@ -141,10 +141,29 @@ fn hitobject_parse_bench(c: &mut Criterion) {
     });
 }
 
+const ONE_HOUR_OSU: &str = include_str!("./files/1hr.osu");
+const CRAZY_OSU: &str = include_str!("./files/crazy.osu");
+
+fn files_bench(c: &mut Criterion) {
+    let mut group = c.benchmark_group("files_parse");
+
+    group.bench_function("1hr_parse", |b| {
+        b.iter(|| {
+            black_box(ONE_HOUR_OSU).parse::<OsuFile>().unwrap();
+        })
+    });
+    group.bench_function("crazy_parse", |b| {
+        b.iter(|| {
+            black_box(CRAZY_OSU).parse::<OsuFile>().unwrap();
+        })
+    });
+}
+
 criterion_group!(
     benches,
     storyboard_cmds_bench,
     storyboard_loop_cmd_display,
-    hitobject_parse_bench
+    hitobject_parse_bench,
+    files_bench,
 );
 criterion_main!(benches);
