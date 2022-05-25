@@ -35,16 +35,12 @@ pub enum ParseZeroOneBoolError {
 }
 
 pub fn display_colon_fields(fields: &[(&str, &Option<String>)], space_after_colon: bool) -> String {
-    // TODO test directly building string performance
     let mut fields_str_builder = Vec::with_capacity(fields.len());
-    let space_after_colon = if space_after_colon { 1usize } else { 0usize };
+    let space_after_colon = if space_after_colon { " " } else { "" };
 
     for (field_name, field) in fields {
         if let Some(field) = field {
-            fields_str_builder.push(format!(
-                "{field_name}:{}{field}",
-                " ".repeat(space_after_colon)
-            ));
+            fields_str_builder.push(format!("{field_name}:{space_after_colon}{field}",));
         }
     }
 
