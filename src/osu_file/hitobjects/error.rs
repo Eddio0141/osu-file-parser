@@ -105,6 +105,9 @@ pub enum HitObjectParseError {
     /// Invalid `slides_count` value.
     #[error("Invalid `slides_count` value")]
     InvalidSlidesCount,
+    /// Missing `slides_count` field.
+    #[error("Missing `slides_count` field")]
+    MissingSlidesCount,
     /// Invalid `length` value.
     #[error("Invalid `length` value")]
     InvalidLength,

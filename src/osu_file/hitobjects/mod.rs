@@ -4,9 +4,12 @@ pub mod types;
 use std::fmt::Display;
 use std::str::FromStr;
 
+use nom::branch::alt;
 use nom::bytes::complete::is_not;
 use nom::bytes::complete::take_until;
+use nom::character::complete::space0;
 use nom::character::streaming::char;
+use nom::combinator::eof;
 use nom::combinator::map_res;
 use nom::error::context;
 use nom::sequence::preceded;
@@ -160,10 +163,16 @@ impl FromStr for HitObject {
             // TODO replace all map_res(is_not(",")) with comma_field_type
             comma_field_type(),
         );
-        let hitsample = context(
-            HitObjectParseError::InvalidHitSample.into(),
-            consume_rest_type(),
-        );
+        let mut hitsample = alt((
+            preceded(space0, eof).map(|_| HitSample::default()),
+            preceded(
+                context(HitObjectParseError::MissingHitSample.into(), comma()),
+                context(
+                    HitObjectParseError::InvalidHitSample.into(),
+                    consume_rest_type(),
+                ),
+            ),
+        ));
 
         let (s, (position, time, obj_type, hitsound)) = tuple((
             tuple((
@@ -195,10 +204,7 @@ impl FromStr for HitObject {
         let combo_skip_count = ComboSkipCount::try_from((obj_type >> 4 & 0b111) as u8).unwrap();
 
         let hitobject = if nth_bit_state_i64(obj_type as i64, 0) {
-            let (_, hitsample) = preceded(
-                context(HitObjectParseError::MissingHitSample.into(), comma()),
-                hitsample,
-            )(s)?;
+            let (_, hitsample) = hitsample(s)?;
 
             // hitcircle
             HitObject {
@@ -213,51 +219,58 @@ impl FromStr for HitObject {
         } else if nth_bit_state_i64(obj_type as i64, 1) {
             // slider
             let pipe = char('|');
-            let curve_type = context(
-                HitObjectParseError::InvalidCurveType.into(),
-                map_res(is_not("|"), |f: &str| f.parse()),
-            );
-            let curve_points = context(
-                HitObjectParseError::InvalidCurvePoint.into(),
-                pipe_vec(|s: &str| s.parse()),
-            );
-            let edge_sounds = context(
-                HitObjectParseError::InvalidEdgeSound.into(),
-                pipe_vec(|s: &str| s.parse()),
-            );
-            let edge_sets = context(
-                HitObjectParseError::InvalidEdgeSet.into(),
-                pipe_vec(|s: &str| s.parse()),
-            );
 
-            let (_, (curve_type, curve_points, slides, length, edge_sounds, edge_sets, hitsample)) =
-                tuple((
-                    preceded(
-                        context(HitObjectParseError::MissingCurveType.into(), comma()),
-                        curve_type,
+            let (
+                _,
+                (curve_type, curve_points, slides, length, (edge_sounds, edge_sets, hitsample)),
+            ) = tuple((
+                preceded(
+                    context(HitObjectParseError::MissingCurveType.into(), comma()),
+                    context(
+                        HitObjectParseError::InvalidCurveType.into(),
+                        map_res(is_not("|"), |f: &str| f.parse()),
                     ),
-                    preceded(
-                        context(HitObjectParseError::MissingCurvePoint.into(), pipe),
-                        curve_points,
+                ),
+                preceded(
+                    context(HitObjectParseError::MissingCurvePoint.into(), pipe),
+                    context(
+                        HitObjectParseError::InvalidCurvePoint.into(),
+                        pipe_vec_map(),
                     ),
+                ),
+                preceded(
+                    context(HitObjectParseError::MissingSlidesCount.into(), comma()),
                     context(
                         HitObjectParseError::InvalidSlidesCount.into(),
                         comma_field_type(),
                     ),
+                ),
+                preceded(
+                    context(HitObjectParseError::MissingLength.into(), comma()),
+                    context(
+                        HitObjectParseError::InvalidLength.into(),
+                        comma_field_type(),
+                    ),
+                ),
+                alt((
                     preceded(
-                        context(HitObjectParseError::MissingLength.into(), comma()),
-                        context(
-                            HitObjectParseError::InvalidLength.into(),
-                            comma_field_type(),
+                        space0,
+                        eof.map(|_| (Vec::new(), Vec::new(), Default::default())),
+                    ),
+                    tuple((
+                        preceded(
+                            context(HitObjectParseError::MissingEdgeSound.into(), comma()),
+                            context(HitObjectParseError::InvalidEdgeSound.into(), pipe_vec_map()),
                         ),
-                    ),
-                    preceded(
-                        context(HitObjectParseError::MissingEdgeSound.into(), comma()),
-                        edge_sounds,
-                    ),
-                    edge_sets,
-                    hitsample,
-                ))(s)?;
+                        preceded(
+                            context(HitObjectParseError::MissingEdgeSet.into(), comma()),
+                            context(HitObjectParseError::InvalidEdgeSet.into(), pipe_vec_map()),
+                        ),
+                        hitsample,
+                    ))
+                    .map(|(edge_sounds, edge_sets, hitsample)| (edge_sounds, edge_sets, hitsample)),
+                )),
+            ))(s)?;
 
             HitObject {
                 position,
@@ -285,10 +298,7 @@ impl FromStr for HitObject {
                         comma_field_type(),
                     ),
                 ),
-                preceded(
-                    context(HitObjectParseError::MissingHitSample.into(), comma()),
-                    hitsample,
-                ),
+                hitsample,
             ))(s)?;
 
             HitObject {
@@ -303,6 +313,16 @@ impl FromStr for HitObject {
         } else if nth_bit_state_i64(obj_type as i64, 7) {
             // osu!mania hold
             // ppy has done it once again
+            let hitsample = alt((
+                preceded(space0, eof).map(|_| HitSample::default()),
+                preceded(
+                    context(HitObjectParseError::MissingHitSample.into(), char(':')),
+                    context(
+                        HitObjectParseError::InvalidHitSample.into(),
+                        consume_rest_type(),
+                    ),
+                ),
+            ));
             let end_time = context(
                 HitObjectParseError::InvalidEndTime.into(),
                 map_res(take_until(":"), |s: &str| s.parse()),
