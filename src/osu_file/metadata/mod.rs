@@ -6,7 +6,7 @@ use nom::{
     Parser,
 };
 
-use crate::parsers::get_colon_field_value_lines;
+use crate::{helper::display_colon_fields, parsers::get_colon_field_value_lines};
 
 use super::{Error, Integer, Version};
 
@@ -100,7 +100,7 @@ impl Version for Metadata {
         let beatmap_id = self.beatmap_id.map(|v| v.to_string());
         let beatmap_set_id = self.beatmap_set_id.map(|v| v.to_string());
 
-        let key_value = vec![
+        let fields = [
             ("Title", &self.title),
             ("TitleUnicode", &self.title),
             ("Artist", &self.artist),
@@ -113,12 +113,6 @@ impl Version for Metadata {
             ("BeatmapSetID", &beatmap_set_id),
         ];
 
-        Some(
-            key_value
-                .iter()
-                .filter_map(|(k, v)| v.as_ref().map(|v| format!("{k}:{v}")))
-                .collect::<Vec<_>>()
-                .join("\n"),
-        )
+        Some(display_colon_fields(&fields, false))
     }
 }
