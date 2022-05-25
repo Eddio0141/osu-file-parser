@@ -13,7 +13,7 @@ use osu_file_parser::osu_file::{
     OsuFile, Position,
 };
 
-fn storyboard_cmds_bench(c: &mut Criterion) {
+fn storyboard_cmds_parse(c: &mut Criterion) {
     let fade_str = "F,0,500,1000,0,0.5";
     let move_str = "M,0,500,1000,0,1,2,3";
     let move_x_str = "MX,0,500,1000,0,1";
@@ -26,66 +26,138 @@ fn storyboard_cmds_bench(c: &mut Criterion) {
     let loop_str = "L,0,10";
     let trigger_str = "T,HitSound,500,1000";
 
-    let mut group = c.benchmark_group("storyboard_cmds");
+    let mut group = c.benchmark_group("storyboard_cmds_parse");
 
-    group.bench_function("fade_cmd", |b| {
+    group.bench_function("fade", |b| {
         b.iter(|| {
             Command::from_str(black_box(fade_str)).unwrap();
         })
     });
-    group.bench_function("move_cmd", |b| {
+    group.bench_function("move", |b| {
         b.iter(|| {
             Command::from_str(black_box(move_str)).unwrap();
         })
     });
-    group.bench_function("move_x_cmd", |b| {
+    group.bench_function("move_x", |b| {
         b.iter(|| {
             Command::from_str(black_box(move_x_str)).unwrap();
         })
     });
-    group.bench_function("move_y_cmd", |b| {
+    group.bench_function("move_y", |b| {
         b.iter(|| {
             Command::from_str(black_box(move_y_str)).unwrap();
         })
     });
-    group.bench_function("scale_cmd", |b| {
+    group.bench_function("scale", |b| {
         b.iter(|| {
             Command::from_str(black_box(scale_str)).unwrap();
         })
     });
-    group.bench_function("vector_scale_cmd", |b| {
+    group.bench_function("vector_scale", |b| {
         b.iter(|| {
             Command::from_str(black_box(vector_scale_str)).unwrap();
         })
     });
-    group.bench_function("rotate_cmd", |b| {
+    group.bench_function("rotate", |b| {
         b.iter(|| {
             Command::from_str(black_box(rotate_str)).unwrap();
         })
     });
-    group.bench_function("colour_cmd", |b| {
+    group.bench_function("colour", |b| {
         b.iter(|| {
             Command::from_str(black_box(colour_str)).unwrap();
         })
     });
-    group.bench_function("parameter_cmd", |b| {
+    group.bench_function("parameter", |b| {
         b.iter(|| {
             Command::from_str(black_box(parameter_str)).unwrap();
         })
     });
-    group.bench_function("loop_cmd", |b| {
+    group.bench_function("loop", |b| {
         b.iter(|| {
             Command::from_str(black_box(loop_str)).unwrap();
         })
     });
-    group.bench_function("trigger_cmd", |b| {
+    group.bench_function("trigger", |b| {
         b.iter(|| {
             Command::from_str(black_box(trigger_str)).unwrap();
         })
     });
 }
 
-fn storyboard_loop_cmd_display(c: &mut Criterion) {
+fn storyboard_cmds_to_string(c: &mut Criterion) {
+    let fade = Command::from_str("F,0,500,1000,0,0.5").unwrap();
+    let move_ = Command::from_str("M,0,500,1000,0,1,2,3").unwrap();
+    let move_x = Command::from_str("MX,0,500,1000,0,1").unwrap();
+    let move_y = Command::from_str("MY,0,500,1000,0,1").unwrap();
+    let scale = Command::from_str("S,0,500,1000,0,0.5").unwrap();
+    let vector_scale = Command::from_str("V,0,500,1000,0,0,0.5,0.5").unwrap();
+    let rotate = Command::from_str("R,0,500,1000,0,0.5").unwrap();
+    let colour = Command::from_str("C,0,500,1000,0,0,0,255,255,255").unwrap();
+    let parameter = Command::from_str("P,0,500,1000,H").unwrap();
+    let loop_ = Command::from_str("L,0,10").unwrap();
+    let trigger = Command::from_str("T,HitSound,500,1000").unwrap();
+
+    let mut group = c.benchmark_group("storyboard_cmds_to_string");
+
+    group.bench_function("fade", |b| {
+        b.iter(|| {
+            black_box(&fade).to_string();
+        })
+    });
+    group.bench_function("move", |b| {
+        b.iter(|| {
+            black_box(&move_).to_string();
+        })
+    });
+    group.bench_function("move_x", |b| {
+        b.iter(|| {
+            black_box(&move_x).to_string();
+        })
+    });
+    group.bench_function("move_y", |b| {
+        b.iter(|| {
+            black_box(&move_y).to_string();
+        })
+    });
+    group.bench_function("scale", |b| {
+        b.iter(|| {
+            black_box(&scale).to_string();
+        })
+    });
+    group.bench_function("vector_scale", |b| {
+        b.iter(|| {
+            black_box(&vector_scale).to_string();
+        })
+    });
+    group.bench_function("rotate", |b| {
+        b.iter(|| {
+            black_box(&rotate).to_string();
+        })
+    });
+    group.bench_function("colour", |b| {
+        b.iter(|| {
+            black_box(&colour).to_string();
+        })
+    });
+    group.bench_function("parameter", |b| {
+        b.iter(|| {
+            black_box(&parameter).to_string();
+        })
+    });
+    group.bench_function("loop", |b| {
+        b.iter(|| {
+            black_box(&loop_).to_string();
+        })
+    });
+    group.bench_function("trigger", |b| {
+        b.iter(|| {
+            black_box(&trigger).to_string();
+        })
+    });
+}
+
+fn storyboard_loop_cmd_to_string(c: &mut Criterion) {
     let loop_cmd = |commands| Command {
         start_time: 0,
         properties: CommandProperties::Loop {
@@ -106,12 +178,12 @@ fn storyboard_loop_cmd_display(c: &mut Criterion) {
         )])])])],
     });
 
-    c.bench_function("loop_cmd_display", |b| {
+    c.bench_function("storyboard_loop_cmd_to_string", |b| {
         b.iter(|| black_box(&event).to_string())
     });
 }
 
-fn hitobject_parse_bench(c: &mut Criterion) {
+fn hitobject_parse(c: &mut Criterion) {
     let hitcircle_str = "221,350,9780,1,0,0:0:0:0:";
     let slider_str = "31,85,3049,2,0,B|129:55|123:136|228:86,1,172.51,2|0,3:2|0:2,0:2:0:0:";
     let spinner_str = "256,192,33598,12,0,431279,0:0:0:0:";
@@ -119,51 +191,84 @@ fn hitobject_parse_bench(c: &mut Criterion) {
 
     let mut group = c.benchmark_group("hitobjects_parse");
 
-    group.bench_function("hitcircle_parse", |b| {
+    group.bench_function("hitcircle", |b| {
         b.iter(|| {
             black_box(hitcircle_str).parse::<HitObject>().unwrap();
         })
     });
-    group.bench_function("slider_parse", |b| {
+    group.bench_function("slider", |b| {
         b.iter(|| {
             black_box(slider_str).parse::<HitObject>().unwrap();
         })
     });
-    group.bench_function("spinner_parse", |b| {
+    group.bench_function("spinner", |b| {
         b.iter(|| {
             black_box(spinner_str).parse::<HitObject>().unwrap();
         })
     });
-    group.bench_function("osu_mania_hold_parse", |b| {
+    group.bench_function("osu_mania_hold", |b| {
         b.iter(|| {
             black_box(osu_mania_hold_str).parse::<HitObject>().unwrap();
         })
     });
 }
 
-fn files_bench(c: &mut Criterion) {
-    let one_hour_osu = include_str!("./files/1hr.osu");
-    let crazy_osu = include_str!("./files/crazy.osu");
+fn hitobject_to_string(c: &mut Criterion) {
+    let hitcircle = HitObject::from_str("221,350,9780,1,0,0:0:0:0:").unwrap();
+    let slider =
+        HitObject::from_str("31,85,3049,2,0,B|129:55|123:136|228:86,1,172.51,2|0,3:2|0:2,0:2:0:0:")
+            .unwrap();
+    let spinner = HitObject::from_str("256,192,33598,12,0,431279,0:0:0:0:").unwrap();
+    let osu_mania_hold = HitObject::from_str("51,192,350,128,2,849:0:0:0:0:").unwrap();
 
+    let mut group = c.benchmark_group("hitobjects_to_string");
+
+    group.bench_function("hitcircle", |b| {
+        b.iter(|| black_box(&hitcircle).to_string())
+    });
+    group.bench_function("slider", |b| b.iter(|| black_box(&slider).to_string()));
+    group.bench_function("spinner", |b| b.iter(|| black_box(&spinner).to_string()));
+    group.bench_function("osu_mania_hold", |b| {
+        b.iter(|| black_box(&osu_mania_hold).to_string())
+    });
+}
+
+const ONE_HOUR_OSU: &str = include_str!("./files/1hr.osu");
+const CRAZY_OSU: &str = include_str!("./files/crazy.osu");
+
+fn files_parse(c: &mut Criterion) {
     let mut group = c.benchmark_group("files_parse");
 
-    group.bench_function("1hr_parse", |b| {
+    group.bench_function("1hr", |b| {
         b.iter(|| {
-            black_box(one_hour_osu).parse::<OsuFile>().unwrap();
+            black_box(ONE_HOUR_OSU).parse::<OsuFile>().unwrap();
         })
     });
-    group.bench_function("crazy_parse", |b| {
+    group.bench_function("crazy", |b| {
         b.iter(|| {
-            black_box(crazy_osu).parse::<OsuFile>().unwrap();
+            black_box(CRAZY_OSU).parse::<OsuFile>().unwrap();
         })
     });
 }
 
+fn files_to_string(c: &mut Criterion) {
+    let one_hour_osu = OsuFile::from_str(ONE_HOUR_OSU).unwrap();
+    let crazy_osu = OsuFile::from_str(CRAZY_OSU).unwrap();
+
+    let mut group = c.benchmark_group("files_to_string");
+
+    group.bench_function("1hr", |b| b.iter(|| black_box(&one_hour_osu).to_string()));
+    group.bench_function("crazy", |b| b.iter(|| black_box(&crazy_osu).to_string()));
+}
+
 criterion_group!(
     benches,
-    storyboard_cmds_bench,
-    storyboard_loop_cmd_display,
-    hitobject_parse_bench,
-    files_bench,
+    storyboard_cmds_parse,
+    storyboard_cmds_to_string,
+    storyboard_loop_cmd_to_string,
+    hitobject_parse,
+    hitobject_to_string,
+    files_parse,
+    files_to_string,
 );
 criterion_main!(benches);
