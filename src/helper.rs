@@ -35,6 +35,7 @@ pub enum ParseZeroOneBoolError {
 }
 
 pub fn display_colon_fields(fields: &[(&str, &Option<String>)], space_after_colon: bool) -> String {
+    // TODO test directly building string performance
     let mut fields_str_builder = Vec::with_capacity(fields.len());
     let space_after_colon = if space_after_colon { 1usize } else { 0usize };
 
