@@ -159,7 +159,7 @@ pub trait Version: Sized {
     where
         Self: Sized;
 
-    fn to_string_v3(&self) -> String;
+    fn to_string_v3(&self) -> Option<String>;
 
     fn from_str_v4(s: &str) -> std::result::Result<Option<Self>, Self::ParseError>
     where
@@ -168,7 +168,7 @@ pub trait Version: Sized {
         Self::from_str_v3(s)
     }
 
-    fn to_string_v4(&self) -> String {
+    fn to_string_v4(&self) -> Option<String> {
         self.to_string_v3()
     }
 
@@ -179,7 +179,7 @@ pub trait Version: Sized {
         Self::from_str_v4(s)
     }
 
-    fn to_string_v5(&self) -> String {
+    fn to_string_v5(&self) -> Option<String> {
         self.to_string_v4()
     }
 
@@ -190,7 +190,7 @@ pub trait Version: Sized {
         Self::from_str_v5(s)
     }
 
-    fn to_string_v6(&self) -> String {
+    fn to_string_v6(&self) -> Option<String> {
         self.to_string_v5()
     }
 
@@ -201,7 +201,7 @@ pub trait Version: Sized {
         Self::from_str_v6(s)
     }
 
-    fn to_string_v7(&self) -> String {
+    fn to_string_v7(&self) -> Option<String> {
         self.to_string_v6()
     }
 
@@ -212,7 +212,7 @@ pub trait Version: Sized {
         Self::from_str_v7(s)
     }
 
-    fn to_string_v8(&self) -> String {
+    fn to_string_v8(&self) -> Option<String> {
         self.to_string_v7()
     }
 
@@ -223,7 +223,7 @@ pub trait Version: Sized {
         Self::from_str_v8(s)
     }
 
-    fn to_string_v9(&self) -> String {
+    fn to_string_v9(&self) -> Option<String> {
         self.to_string_v8()
     }
 
@@ -234,7 +234,7 @@ pub trait Version: Sized {
         Self::from_str_v9(s)
     }
 
-    fn to_string_v10(&self) -> String {
+    fn to_string_v10(&self) -> Option<String> {
         self.to_string_v9()
     }
 
@@ -245,7 +245,7 @@ pub trait Version: Sized {
         Self::from_str_v10(s)
     }
 
-    fn to_string_v11(&self) -> String {
+    fn to_string_v11(&self) -> Option<String> {
         self.to_string_v10()
     }
 
@@ -256,7 +256,7 @@ pub trait Version: Sized {
         Self::from_str_v11(s)
     }
 
-    fn to_string_v12(&self) -> String {
+    fn to_string_v12(&self) -> Option<String> {
         self.to_string_v11()
     }
 
@@ -267,7 +267,7 @@ pub trait Version: Sized {
         Self::from_str_v12(s)
     }
 
-    fn to_string_v13(&self) -> String {
+    fn to_string_v13(&self) -> Option<String> {
         self.to_string_v12()
     }
 
@@ -278,7 +278,7 @@ pub trait Version: Sized {
         Self::from_str_v13(s)
     }
 
-    fn to_string_v14(&self) -> String {
+    fn to_string_v14(&self) -> Option<String> {
         self.to_string_v13()
     }
 }

@@ -88,34 +88,173 @@ impl Display for OsuFile {
 
         sections.push(format!("osu file format v{}", self.version));
 
-        match self.version {
-            14 => {
-                if let Some(general) = &self.general {
-                    sections.push(format!("[General]\n{}", general.to_string_v14()));
-                }
-                if let Some(editor) = &self.editor {
-                    sections.push(format!("[Editor]\n{}", editor.to_string_v14()));
-                }
-                if let Some(metadata) = &self.metadata {
-                    sections.push(format!("[Metadata]\n{}", metadata.to_string_v14()));
-                }
-                if let Some(difficulty) = &self.difficulty {
-                    sections.push(format!("[Difficulty]\n{}", difficulty.to_string_v14()));
-                }
-                if let Some(events) = &self.events {
-                    sections.push(format!("[Events]\n{}", events.to_string_v14()));
-                }
-                if let Some(timing_points) = &self.timing_points {
-                    sections.push(format!("[TimingPoints]\n{}", timing_points.to_string_v14()));
-                }
-                if let Some(colours) = &self.colours {
-                    sections.push(format!("[Colours]\n{}", colours.to_string_v14()));
-                }
-                if let Some(hitobjects) = &self.hitobjects {
-                    sections.push(format!("[HitObjects]\n{}", hitobjects.to_string_v14()));
-                }
+        if let Some(general) = &self.general {
+            let general = match &self.version {
+                3 => general.to_string_v3(),
+                4 => general.to_string_v4(),
+                5 => general.to_string_v5(),
+                6 => general.to_string_v6(),
+                7 => general.to_string_v7(),
+                8 => general.to_string_v8(),
+                9 => general.to_string_v9(),
+                10 => general.to_string_v10(),
+                11 => general.to_string_v11(),
+                12 => general.to_string_v12(),
+                13 => general.to_string_v13(),
+                14 => general.to_string_v14(),
+                _ => unreachable!(),
+            };
+
+            if let Some(general) = general {
+                sections.push(format!("[General]\n{general}",))
             }
-            _ => unimplemented!("osu! file version {} not implemented", self.version),
+        }
+        if let Some(editor) = &self.editor {
+            let editor = match &self.version {
+                3 => editor.to_string_v3(),
+                4 => editor.to_string_v4(),
+                5 => editor.to_string_v5(),
+                6 => editor.to_string_v6(),
+                7 => editor.to_string_v7(),
+                8 => editor.to_string_v8(),
+                9 => editor.to_string_v9(),
+                10 => editor.to_string_v10(),
+                11 => editor.to_string_v11(),
+                12 => editor.to_string_v12(),
+                13 => editor.to_string_v13(),
+                14 => editor.to_string_v14(),
+                _ => unreachable!(),
+            };
+
+            if let Some(editor) = editor {
+                sections.push(format!("[Editor]\n{editor}"));
+            }
+        }
+        if let Some(metadata) = &self.metadata {
+            let metadata = match &self.version {
+                3 => metadata.to_string_v3(),
+                4 => metadata.to_string_v4(),
+                5 => metadata.to_string_v5(),
+                6 => metadata.to_string_v6(),
+                7 => metadata.to_string_v7(),
+                8 => metadata.to_string_v8(),
+                9 => metadata.to_string_v9(),
+                10 => metadata.to_string_v10(),
+                11 => metadata.to_string_v11(),
+                12 => metadata.to_string_v12(),
+                13 => metadata.to_string_v13(),
+                14 => metadata.to_string_v14(),
+                _ => unreachable!(),
+            };
+
+            if let Some(metadata) = metadata {
+                sections.push(format!("[Metadata]\n{metadata}"));
+            }
+        }
+        if let Some(difficulty) = &self.difficulty {
+            let difficulty = match &self.version {
+                3 => difficulty.to_string_v3(),
+                4 => difficulty.to_string_v4(),
+                5 => difficulty.to_string_v5(),
+                6 => difficulty.to_string_v6(),
+                7 => difficulty.to_string_v7(),
+                8 => difficulty.to_string_v8(),
+                9 => difficulty.to_string_v9(),
+                10 => difficulty.to_string_v10(),
+                11 => difficulty.to_string_v11(),
+                12 => difficulty.to_string_v12(),
+                13 => difficulty.to_string_v13(),
+                14 => difficulty.to_string_v14(),
+                _ => unreachable!(),
+            };
+
+            if let Some(difficulty) = difficulty {
+                sections.push(format!("[Difficulty]\n{difficulty}"));
+            }
+        }
+        if let Some(events) = &self.events {
+            let events = match &self.version {
+                3 => events.to_string_v3(),
+                4 => events.to_string_v4(),
+                5 => events.to_string_v5(),
+                6 => events.to_string_v6(),
+                7 => events.to_string_v7(),
+                8 => events.to_string_v8(),
+                9 => events.to_string_v9(),
+                10 => events.to_string_v10(),
+                11 => events.to_string_v11(),
+                12 => events.to_string_v12(),
+                13 => events.to_string_v13(),
+                14 => events.to_string_v14(),
+                _ => unreachable!(),
+            };
+
+            if let Some(events) = events {
+                sections.push(format!("[Events]\n{events}"));
+            }
+        }
+        if let Some(timing_points) = &self.timing_points {
+            let timing_points = match &self.version {
+                3 => timing_points.to_string_v3(),
+                4 => timing_points.to_string_v4(),
+                5 => timing_points.to_string_v5(),
+                6 => timing_points.to_string_v6(),
+                7 => timing_points.to_string_v7(),
+                8 => timing_points.to_string_v8(),
+                9 => timing_points.to_string_v9(),
+                10 => timing_points.to_string_v10(),
+                11 => timing_points.to_string_v11(),
+                12 => timing_points.to_string_v12(),
+                13 => timing_points.to_string_v13(),
+                14 => timing_points.to_string_v14(),
+                _ => unreachable!(),
+            };
+
+            if let Some(timing_points) = timing_points {
+                sections.push(format!("[TimingPoints]\n{timing_points}"));
+            }
+        }
+        if let Some(colours) = &self.colours {
+            let colours = match &self.version {
+                3 => colours.to_string_v3(),
+                4 => colours.to_string_v4(),
+                5 => colours.to_string_v5(),
+                6 => colours.to_string_v6(),
+                7 => colours.to_string_v7(),
+                8 => colours.to_string_v8(),
+                9 => colours.to_string_v9(),
+                10 => colours.to_string_v10(),
+                11 => colours.to_string_v11(),
+                12 => colours.to_string_v12(),
+                13 => colours.to_string_v13(),
+                14 => colours.to_string_v14(),
+                _ => unreachable!(),
+            };
+
+            if let Some(colours) = colours {
+                sections.push(format!("[Colours]\n{colours}"));
+            }
+        }
+        if let Some(hitobjects) = &self.hitobjects {
+            let hitobjects = match &self.version {
+                3 => hitobjects.to_string_v3(),
+                4 => hitobjects.to_string_v4(),
+                5 => hitobjects.to_string_v5(),
+                6 => hitobjects.to_string_v6(),
+                7 => hitobjects.to_string_v7(),
+                8 => hitobjects.to_string_v8(),
+                9 => hitobjects.to_string_v9(),
+                10 => hitobjects.to_string_v10(),
+                11 => hitobjects.to_string_v11(),
+                12 => hitobjects.to_string_v12(),
+                13 => hitobjects.to_string_v13(),
+                14 => hitobjects.to_string_v14(),
+                _ => unreachable!(),
+            };
+
+            if let Some(hitobjects) = hitobjects {
+                sections.push(format!("[HitObjects]\n{hitobjects}"));
+            }
         }
 
         write!(f, "{}", sections.join("\n\n"))
