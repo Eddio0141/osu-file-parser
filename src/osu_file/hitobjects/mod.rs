@@ -327,12 +327,11 @@ impl FromStr for HitObject {
                 HitObjectParseError::InvalidEndTime.into(),
                 map_res(take_until(":"), |s: &str| s.parse()),
             );
-            let (_, (end_time, _, hitsample)) = tuple((
+            let (_, (end_time, hitsample)) = tuple((
                 preceded(
                     context(HitObjectParseError::MissingEndTime.into(), comma()),
                     end_time,
                 ),
-                context(HitObjectParseError::MissingHitSample.into(), char(':')),
                 hitsample,
             ))(s)?;
 
