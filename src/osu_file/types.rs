@@ -152,6 +152,7 @@ impl<E> From<E> for Error<E> {
     }
 }
 
+// TODO probably create a similar trait for each section or something similar
 pub trait Version: Sized {
     type ParseError;
 
