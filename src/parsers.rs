@@ -41,7 +41,7 @@ where
 pub fn get_colon_field_value_lines(s: &str) -> IResult<&str, Vec<(&str, &str, &str)>> {
     let field_name = take_while(|c| c != ':' && c != '\n');
     let field_separator = char(':');
-    let field_value = take_while(|c| c != '\n');
+    let field_value = take_while(|c| c != '\r' && c != '\n');
     // we keep whitespace information that can contain newlines
     let field_line = tuple((
         trailing_ws(terminated(field_name, field_separator)),
