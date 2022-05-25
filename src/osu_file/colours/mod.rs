@@ -41,12 +41,14 @@ impl Version for Colours {
         Ok(Some(Colours(colours)))
     }
 
-    fn to_string_v3(&self) -> String {
-        self.0
-            .iter()
-            .map(|c| c.to_string())
-            .collect::<Vec<_>>()
-            .join("\n")
+    fn to_string_v3(&self) -> Option<String> {
+        Some(
+            self.0
+                .iter()
+                .map(|c| c.to_string())
+                .collect::<Vec<_>>()
+                .join("\n"),
+        )
     }
 }
 

@@ -105,7 +105,7 @@ impl Version for Editor {
         Ok(Some(editor))
     }
 
-    fn to_string_v3(&self) -> String {
+    fn to_string_v3(&self) -> Option<String> {
         let bookmarks = self.bookmarks.as_ref().map(|b| {
             b.iter()
                 .map(|b| b.to_string())
@@ -125,6 +125,6 @@ impl Version for Editor {
             ("TimelineZoom", &timeline_zoom),
         ];
 
-        display_colon_fields(&fields, true)
+        Some(display_colon_fields(&fields, true))
     }
 }

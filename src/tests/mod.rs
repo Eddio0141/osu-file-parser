@@ -74,7 +74,7 @@ SamplesMatchPlaybackRate: 1";
     };
 
     assert_eq!(i, g);
-    assert_eq!(i_str, i.to_string_v14());
+    assert_eq!(i_str, i.to_string_v14().unwrap());
 }
 
 #[test]
@@ -97,7 +97,7 @@ TimelineZoom: 2";
     };
 
     assert_eq!(i, e);
-    assert_eq!(i_str, i.to_string_v14());
+    assert_eq!(i_str, i.to_string_v14().unwrap());
 }
 
 #[test]
@@ -137,7 +137,7 @@ BeatmapSetID:1499093";
     };
 
     assert_eq!(i, m);
-    assert_eq!(i_str, i.to_string_v14());
+    assert_eq!(i_str, i.to_string_v14().unwrap());
 }
 
 #[test]
@@ -160,7 +160,7 @@ SliderTickRate:1";
     };
 
     assert_eq!(i, d);
-    assert_eq!(i_str, i.to_string_v14());
+    assert_eq!(i_str, i.to_string_v14().unwrap());
 }
 
 #[test]
@@ -192,7 +192,7 @@ SliderBorder : 120,130,140";
     ];
 
     assert_eq!(i, Colours(c));
-    assert_eq!(i_str, i.to_string_v14());
+    assert_eq!(i_str, i.to_string_v14().unwrap());
 }
 
 #[test]
@@ -229,7 +229,7 @@ fn timing_points_parse_v14() {
     ];
 
     assert_eq!(i, TimingPoints(t));
-    assert_eq!(i_str, i.to_string_v14());
+    assert_eq!(i_str, i.to_string_v14().unwrap());
 }
 
 #[test]
@@ -263,7 +263,7 @@ fn events_parse_v14() {
     ]);
 
     assert_eq!(i, e);
-    assert_eq!(i_str, i.to_string_v14());
+    assert_eq!(i_str, i.to_string_v14().unwrap());
 }
 
 #[test]

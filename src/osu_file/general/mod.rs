@@ -169,7 +169,7 @@ impl Version for General {
         Ok(Some(general))
     }
 
-    fn to_string_v3(&self) -> String {
+    fn to_string_v3(&self) -> Option<String> {
         let audio_file_name = self
             .audio_filename
             .as_ref()
@@ -179,7 +179,7 @@ impl Version for General {
             ("AudioHash", &self.audio_hash),
         ];
 
-        display_colon_fields(&fields, true)
+        Some(display_colon_fields(&fields, true))
     }
 
     // TODO find out fields
@@ -283,7 +283,7 @@ impl Version for General {
         Ok(Some(general))
     }
 
-    fn to_string_v12(&self) -> String {
+    fn to_string_v12(&self) -> Option<String> {
         let audio_file_name = self
             .audio_filename
             .as_ref()
@@ -297,7 +297,10 @@ impl Version for General {
                 "Countdown",
                 &self.countdown.map(|v| (v as Integer).to_string()),
             ),
-            ("SampleSet", &self.sample_set.map(|v| v.to_string_v14())),
+            (
+                "SampleSet",
+                &self.sample_set.map(|v| v.to_string_v12().unwrap()),
+            ),
             ("StackLeniency", &self.stack_leniency.map(|v| v.to_string())),
             ("Mode", &self.mode.map(|v| (v as Integer).to_string())),
             (
@@ -352,7 +355,7 @@ impl Version for General {
             // ),
         ];
 
-        display_colon_fields(&fields, true)
+        Some(display_colon_fields(&fields, true))
     }
 
     // TODO find out fields
@@ -456,7 +459,7 @@ impl Version for General {
         Ok(Some(general))
     }
 
-    fn to_string_v13(&self) -> String {
+    fn to_string_v13(&self) -> Option<String> {
         let audio_file_name = self
             .audio_filename
             .as_ref()
@@ -470,7 +473,10 @@ impl Version for General {
                 "Countdown",
                 &self.countdown.map(|v| (v as Integer).to_string()),
             ),
-            ("SampleSet", &self.sample_set.map(|v| v.to_string_v13())),
+            (
+                "SampleSet",
+                &self.sample_set.map(|v| v.to_string_v13().unwrap()),
+            ),
             ("StackLeniency", &self.stack_leniency.map(|v| v.to_string())),
             ("Mode", &self.mode.map(|v| (v as Integer).to_string())),
             (
@@ -525,7 +531,7 @@ impl Version for General {
             // ),
         ];
 
-        display_colon_fields(&fields, true)
+        Some(display_colon_fields(&fields, true))
     }
 
     fn from_str_v14(s: &str) -> std::result::Result<Option<Self>, Self::ParseError>
@@ -628,7 +634,7 @@ impl Version for General {
         Ok(Some(general))
     }
 
-    fn to_string_v14(&self) -> String {
+    fn to_string_v14(&self) -> Option<String> {
         let audio_file_name = self
             .audio_filename
             .as_ref()
@@ -642,7 +648,10 @@ impl Version for General {
                 "Countdown",
                 &self.countdown.map(|v| (v as Integer).to_string()),
             ),
-            ("SampleSet", &self.sample_set.map(|v| v.to_string_v14())),
+            (
+                "SampleSet",
+                &self.sample_set.map(|v| v.to_string_v14().unwrap()),
+            ),
             ("StackLeniency", &self.stack_leniency.map(|v| v.to_string())),
             ("Mode", &self.mode.map(|v| (v as Integer).to_string())),
             (
@@ -697,7 +706,7 @@ impl Version for General {
             ),
         ];
 
-        display_colon_fields(&fields, true)
+        Some(display_colon_fields(&fields, true))
     }
 }
 
@@ -746,8 +755,8 @@ impl Version for CountdownSpeed {
         s.parse().map(Some)
     }
 
-    fn to_string_v3(&self) -> String {
-        (*self as usize).to_string()
+    fn to_string_v3(&self) -> Option<String> {
+        Some((*self as usize).to_string())
     }
 }
 
@@ -780,8 +789,8 @@ impl Version for SampleSet {
         Ok(None)
     }
 
-    fn to_string_v3(&self) -> String {
-        String::new()
+    fn to_string_v3(&self) -> Option<String> {
+        None
     }
 
     fn from_str_v5(s: &str) -> std::result::Result<Option<Self>, Self::ParseError>
@@ -795,9 +804,9 @@ impl Version for SampleSet {
         }
     }
 
-    fn to_string_v5(&self) -> String {
+    fn to_string_v5(&self) -> Option<String> {
         // I dont think we have to revert to None
-        self.to_string()
+        Some(self.to_string())
     }
 
     fn from_str_v14(s: &str) -> std::result::Result<Option<Self>, Self::ParseError>
@@ -853,8 +862,8 @@ impl Version for GameMode {
         s.parse().map(Some)
     }
 
-    fn to_string_v3(&self) -> String {
-        (*self as usize).to_string()
+    fn to_string_v3(&self) -> Option<String> {
+        Some((*self as usize).to_string())
     }
 }
 
@@ -887,8 +896,8 @@ impl Version for OverlayPosition {
         s.parse().map(Some)
     }
 
-    fn to_string_v3(&self) -> String {
-        self.to_string()
+    fn to_string_v3(&self) -> Option<String> {
+        Some(self.to_string())
     }
 }
 

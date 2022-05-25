@@ -47,12 +47,14 @@ impl Version for HitObjects {
         Ok(Some(HitObjects(hitobjects)))
     }
 
-    fn to_string_v3(&self) -> String {
-        self.0
-            .iter()
-            .map(|h| h.to_string())
-            .collect::<Vec<_>>()
-            .join("\n")
+    fn to_string_v3(&self) -> Option<String> {
+        Some(
+            self.0
+                .iter()
+                .map(|h| h.to_string())
+                .collect::<Vec<_>>()
+                .join("\n"),
+        )
     }
 }
 

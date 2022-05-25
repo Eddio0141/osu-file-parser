@@ -84,7 +84,7 @@ impl Version for Difficulty {
         Ok(Some(difficulty))
     }
 
-    fn to_string_v3(&self) -> String {
+    fn to_string_v3(&self) -> Option<String> {
         let hp_drain_rate = self.hp_drain_rate.as_ref().map(|v| v.to_string());
         let circle_size = self.circle_size.as_ref().map(|v| v.to_string());
         let overall_difficulty = self.overall_difficulty.as_ref().map(|v| v.to_string());
@@ -101,6 +101,6 @@ impl Version for Difficulty {
             ("SliderTickRate", &slider_tickrate),
         ];
 
-        display_colon_fields(&fields, false)
+        Some(display_colon_fields(&fields, false))
     }
 }

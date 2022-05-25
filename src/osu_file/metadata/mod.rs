@@ -95,7 +95,7 @@ impl Version for Metadata {
         Ok(Some(metadata))
     }
 
-    fn to_string_v3(&self) -> String {
+    fn to_string_v3(&self) -> Option<String> {
         let tags = self.tags.as_ref().map(|v| v.join(" "));
         let beatmap_id = self.beatmap_id.map(|v| v.to_string());
         let beatmap_set_id = self.beatmap_set_id.map(|v| v.to_string());
@@ -113,10 +113,12 @@ impl Version for Metadata {
             ("BeatmapSetID", &beatmap_set_id),
         ];
 
-        key_value
-            .iter()
-            .filter_map(|(k, v)| v.as_ref().map(|v| format!("{k}:{v}")))
-            .collect::<Vec<_>>()
-            .join("\n")
+        Some(
+            key_value
+                .iter()
+                .filter_map(|(k, v)| v.as_ref().map(|v| format!("{k}:{v}")))
+                .collect::<Vec<_>>()
+                .join("\n"),
+        )
     }
 }
