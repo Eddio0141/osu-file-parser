@@ -8,9 +8,9 @@ description = "Parser for .osu files written in rust"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rust_decimal = "1.22.0"
-rust_decimal_macros = "1.22.0"
-thiserror = "1.0.30"
+rust_decimal = "1.23.1"
+rust_decimal_macros = "1.23.1"
+thiserror = "1.0.31"
 strum = "0.24.0"
 strum_macros = "0.24.0"
 nom = "7.1.1"
