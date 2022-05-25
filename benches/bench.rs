@@ -141,20 +141,20 @@ fn hitobject_parse_bench(c: &mut Criterion) {
     });
 }
 
-const ONE_HOUR_OSU: &str = include_str!("./files/1hr.osu");
-const CRAZY_OSU: &str = include_str!("./files/crazy.osu");
-
 fn files_bench(c: &mut Criterion) {
+    let one_hour_osu = include_str!("./files/1hr.osu");
+    let crazy_osu = include_str!("./files/crazy.osu");
+
     let mut group = c.benchmark_group("files_parse");
 
     group.bench_function("1hr_parse", |b| {
         b.iter(|| {
-            black_box(ONE_HOUR_OSU).parse::<OsuFile>().unwrap();
+            black_box(one_hour_osu).parse::<OsuFile>().unwrap();
         })
     });
     group.bench_function("crazy_parse", |b| {
         b.iter(|| {
-            black_box(CRAZY_OSU).parse::<OsuFile>().unwrap();
+            black_box(crazy_osu).parse::<OsuFile>().unwrap();
         })
     });
 }
