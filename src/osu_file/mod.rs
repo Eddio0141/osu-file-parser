@@ -211,7 +211,14 @@ impl Display for OsuFile {
             };
 
             if let Some(timing_points) = timing_points {
-                sections.push(format!("[TimingPoints]\n{timing_points}"));
+                let section = format!("[TimingPoints]\n{timing_points}");
+
+                // for some reason below v14, theres an extra new line at the end
+                if self.version < 14 {
+                    sections.push(format!("{section}\n"));
+                } else {
+                    sections.push(section);
+                }
             }
         }
         if let Some(colours) = &self.colours {
@@ -257,7 +264,13 @@ impl Display for OsuFile {
             }
         }
 
-        write!(f, "{}", sections.join("\n\n"))
+        write!(f, "{}", sections.join("\n\n"))?;
+        // for some reason below v14 theres another new line at the end
+        if self.version < 14 {
+            write!(f, "\n")?;
+        }
+
+        Ok(())
     }
 }
 
