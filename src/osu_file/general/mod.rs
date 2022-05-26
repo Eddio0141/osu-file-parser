@@ -770,6 +770,9 @@ pub enum SampleSet {
     Soft,
     /// The `Drum` sample set.
     Drum,
+    /// The `None` sample set, used before version 14.
+    /// - Converted to `Normal` in version 14.
+    None,
 }
 
 impl Default for SampleSet {
@@ -797,11 +800,7 @@ impl Version for SampleSet {
     where
         Self: Sized,
     {
-        if s == "None" {
-            Ok(Some(Self::Soft))
-        } else {
-            s.parse().map(Some)
-        }
+        s.parse().map(Some)
     }
 
     fn to_string_v5(&self) -> Option<String> {
@@ -813,7 +812,13 @@ impl Version for SampleSet {
     where
         Self: Sized,
     {
-        s.parse().map(Some)
+        let mut sample_set = s.parse()?;
+
+        if let SampleSet::None = sample_set {
+            sample_set = SampleSet::Normal;
+        };
+
+        Ok(Some(sample_set))
     }
 }
 
