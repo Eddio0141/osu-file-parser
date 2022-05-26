@@ -17,3 +17,15 @@ fn hitobjects_parse() {
     assert_eq!(spinner_str, spinner.to_string());
     assert_eq!(osu_mania_hold_str, osu_mania_hold.to_string());
 }
+
+#[test]
+fn short_hand() {
+    let hitcircle_str = "221,350,9780,1,0";
+    let slider_str = "31,85,3049,2,0,B|129:55|123:136|228:86,1,172.51";
+
+    let hitcircle: HitObject = hitcircle_str.parse().unwrap();
+    let slider: HitObject = slider_str.parse().unwrap();
+
+    assert_eq!(hitcircle_str, hitcircle.to_string());
+    assert_eq!(slider_str, slider.to_string());
+}
