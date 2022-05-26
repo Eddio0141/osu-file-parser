@@ -69,26 +69,20 @@ impl Version for HitObjects {
 pub struct HitObject {
     /// The position of the hitobject.
     pub position: Position,
-
     /// The time when the object is to be hit, in milliseconds from the beginning of the beatmap's audio.
     pub time: Integer,
-
     /// The hitobject parameters.
     /// Each hitobject contains different parameters.
     /// Also is used to know which hitobject type this is.
     pub obj_params: HitObjectParams,
-
     /// If the hitobject is a new combo.
     pub new_combo: bool,
-
     /// A 3-bit integer specifying how many combo colours to skip, if this object starts a new combo.
     pub combo_skip_count: ComboSkipCount,
-
     /// The [hitsound][HitSound] property of the hitobject.
     pub hitsound: HitSound,
-
     /// The [hitsample][HitSample] property of the hitobject.
-    pub hitsample: HitSample,
+    pub hitsample: Option<HitSample>,
 }
 
 impl HitObject {
@@ -166,14 +160,15 @@ impl FromStr for HitObject {
             comma_field_type(),
         );
         let mut hitsample = alt((
-            preceded(space0, eof).map(|_| HitSample::default()),
+            preceded(space0, eof).map(|_| None),
             preceded(
                 context(HitObjectParseError::MissingHitSample.into(), comma()),
                 context(
                     HitObjectParseError::InvalidHitSample.into(),
                     consume_rest_type(),
                 ),
-            ),
+            )
+            .map(Some),
         ));
 
         let (s, (position, time, obj_type, hitsound)) = tuple((
@@ -224,7 +219,13 @@ impl FromStr for HitObject {
 
             let (
                 _,
-                (curve_type, curve_points, slides, length, (edge_sounds, edge_sets, hitsample)),
+                (
+                    curve_type,
+                    curve_points,
+                    slides,
+                    length,
+                    (edge_sounds, edge_sets, hitsample, edge_sounds_edge_sets_shorthand),
+                ),
             ) = tuple((
                 preceded(
                     context(HitObjectParseError::MissingCurveType.into(), comma()),
@@ -255,10 +256,7 @@ impl FromStr for HitObject {
                     ),
                 ),
                 alt((
-                    preceded(
-                        space0,
-                        eof.map(|_| (Vec::new(), Vec::new(), Default::default())),
-                    ),
+                    preceded(space0, eof.map(|_| (Vec::new(), Vec::new(), None, true))),
                     tuple((
                         preceded(
                             context(HitObjectParseError::MissingEdgeSound.into(), comma()),
@@ -270,21 +268,24 @@ impl FromStr for HitObject {
                         ),
                         hitsample,
                     ))
-                    .map(|(edge_sounds, edge_sets, hitsample)| (edge_sounds, edge_sets, hitsample)),
+                    .map(|(edge_sounds, edge_sets, hitsample)| {
+                        (edge_sounds, edge_sets, hitsample, false)
+                    }),
                 )),
             ))(s)?;
 
             HitObject {
                 position,
                 time,
-                obj_params: HitObjectParams::Slider {
+                obj_params: HitObjectParams::Slider(SlideParams {
                     curve_type,
                     curve_points,
                     slides,
                     length,
                     edge_sounds,
                     edge_sets,
-                },
+                    edge_sounds_edge_sets_shorthand,
+                }),
                 new_combo,
                 combo_skip_count,
                 hitsound,
@@ -316,14 +317,15 @@ impl FromStr for HitObject {
             // osu!mania hold
             // ppy has done it once again
             let hitsample = alt((
-                preceded(space0, eof).map(|_| HitSample::default()),
+                preceded(space0, eof).map(|_| None),
                 preceded(
                     context(HitObjectParseError::MissingHitSample.into(), char(':')),
                     context(
                         HitObjectParseError::InvalidHitSample.into(),
                         consume_rest_type(),
                     ),
-                ),
+                )
+                .map(Some),
             ));
             let end_time = context(
                 HitObjectParseError::InvalidEndTime.into(),
@@ -366,24 +368,37 @@ impl Display for HitObject {
 
         match &self.obj_params {
             HitObjectParams::HitCircle => (),
-            HitObjectParams::Slider {
+            HitObjectParams::Slider(SlideParams {
                 curve_type,
                 curve_points,
                 slides,
                 length,
                 edge_sounds,
                 edge_sets,
-            } => {
+                edge_sounds_edge_sets_shorthand,
+            }) => {
                 properties.push(curve_type.to_string());
 
-                let properties_2 = vec![
+                let mut properties_2 = vec![
                     pipe_vec_to_string(curve_points),
                     slides.to_string(),
                     length.to_string(),
-                    pipe_vec_to_string(edge_sounds),
-                    pipe_vec_to_string(edge_sets),
-                    self.hitsample.to_string(),
                 ];
+
+                // we dont add anything if edge_sounds and edge_sets are empty, and hitsample is in short hand form
+                if !(edge_sounds.is_empty()
+                    && edge_sets.is_empty()
+                    && self.hitsample.is_none()
+                    && *edge_sounds_edge_sets_shorthand)
+                {
+                    properties_2.push(pipe_vec_to_string(edge_sounds));
+                    properties_2.push(pipe_vec_to_string(edge_sets));
+                    properties_2.push(self.hitsample.as_ref().unwrap().to_string());
+                } else if let Some(hitsample) = &self.hitsample {
+                    properties_2.push(pipe_vec_to_string(edge_sounds));
+                    properties_2.push(pipe_vec_to_string(edge_sets));
+                    properties_2.push(hitsample.to_string());
+                }
 
                 return write!(f, "{}|{}", properties.join(","), properties_2.join(","));
             }
@@ -391,11 +406,18 @@ impl Display for HitObject {
             HitObjectParams::OsuManiaHold { end_time } => {
                 properties.push(end_time.to_string());
 
-                return write!(f, "{}:{}", properties.join(","), self.hitsample);
+                let hitsample = match &self.hitsample {
+                    Some(hitsample) => format!(":{hitsample}"),
+                    None => String::new(),
+                };
+
+                return write!(f, "{}{hitsample}", properties.join(","));
             }
         }
 
-        properties.push(self.hitsample.to_string());
+        if let Some(hitsample) = &self.hitsample {
+            properties.push(hitsample.to_string());
+        }
 
         write!(f, "{}", properties.join(","))
     }
@@ -405,18 +427,39 @@ impl Display for HitObject {
 #[non_exhaustive]
 pub enum HitObjectParams {
     HitCircle,
-    Slider {
+    Slider(SlideParams),
+    Spinner { end_time: Integer },
+    OsuManiaHold { end_time: Integer },
+}
+
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
+pub struct SlideParams {
+    pub curve_type: CurveType,
+    pub curve_points: Vec<CurvePoint>,
+    pub slides: Integer,
+    pub length: Decimal,
+    pub edge_sounds: Vec<HitSound>,
+    pub edge_sets: Vec<EdgeSet>,
+    edge_sounds_edge_sets_shorthand: bool,
+}
+
+impl SlideParams {
+    pub fn new(
         curve_type: CurveType,
         curve_points: Vec<CurvePoint>,
         slides: Integer,
         length: Decimal,
         edge_sounds: Vec<HitSound>,
         edge_sets: Vec<EdgeSet>,
-    },
-    Spinner {
-        end_time: Integer,
-    },
-    OsuManiaHold {
-        end_time: Integer,
-    },
+    ) -> Self {
+        Self {
+            curve_type,
+            curve_points,
+            slides,
+            length,
+            edge_sounds,
+            edge_sets,
+            edge_sounds_edge_sets_shorthand: true,
+        }
+    }
 }
