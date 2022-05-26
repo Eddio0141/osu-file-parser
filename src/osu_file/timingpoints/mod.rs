@@ -1,16 +1,20 @@
 pub mod error;
 
-use std::{
-    fmt::Display,
-    num::NonZeroUsize,
-    str::{FromStr, Split},
-};
+use std::{fmt::Display, num::NonZeroUsize, str::FromStr};
 
+use nom::{
+    combinator::map_res,
+    error::context,
+    sequence::{preceded, tuple},
+};
 use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
 use strum_macros::FromRepr;
 
-use crate::helper::{nth_bit_state_i64, parse_zero_one_bool};
+use crate::{
+    helper::{nth_bit_state_i64, parse_zero_one_bool},
+    parsers::*,
+};
 
 use super::{Error, Integer, Version};
 
@@ -54,7 +58,8 @@ impl Version for TimingPoints {
 /// The .osu file format requires these to be sorted in chronological order.
 #[derive(Default, Clone, Copy, Hash, PartialEq, Eq, Debug)]
 pub struct TimingPoint {
-    time: Integer,
+    // for some reason decimal is parsed anyway in the beatmap???
+    time: Decimal,
     beat_length: Decimal,
     meter: Integer,
     sample_set: SampleSet,
@@ -86,7 +91,7 @@ impl TimingPoint {
         effects: Effects,
     ) -> Self {
         Self {
-            time,
+            time: time.into(),
             beat_length: (Decimal::ONE / slider_velocity_multiplier) * dec!(-100),
             meter,
             sample_set,
@@ -108,7 +113,7 @@ impl TimingPoint {
         effects: Effects,
     ) -> Self {
         Self {
-            time,
+            time: time.into(),
             beat_length: beat_duration_ms,
             meter,
             sample_set,
@@ -138,13 +143,13 @@ impl TimingPoint {
 
     /// Start time of the timing section, in milliseconds from the beginning of the beatmap's audio.
     /// The end of the timing section is the next timing point's time (or never, if this is the last timing point).
-    pub fn time(&self) -> i32 {
+    pub fn time(&self) -> Decimal {
         self.time
     }
 
     /// Set the timing point's start time.
     pub fn set_time(&mut self, time: Integer) {
-        self.time = time;
+        self.time = time.into();
     }
 
     /// Amount of beats in a measure. Inherited timing points ignore this property.
@@ -206,51 +211,69 @@ impl TimingPoint {
     pub fn effects_mut(&mut self) -> &mut Effects {
         &mut self.effects
     }
-
-    fn parse_field<T>(
-        s: &mut Split<char>,
-        field_name: &'static str,
-    ) -> Result<T, TimingPointParseError>
-    where
-        T: FromStr,
-        <T as FromStr>::Err: std::error::Error + 'static,
-    {
-        let value = s
-            .next()
-            .ok_or(TimingPointParseError::MissingField(field_name))?;
-        value
-            .parse()
-            .map_err(|err| TimingPointParseError::FieldParseError {
-                source: Box::new(err),
-                value: value.to_string(),
-                field_name,
-            })
-    }
 }
 
 impl FromStr for TimingPoint {
     type Err = TimingPointParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut s = s.split(',');
-
-        let time = Self::parse_field(&mut s, "time")?;
-        let beat_length = Self::parse_field(&mut s, "beatLength")?;
-        let meter = Self::parse_field(&mut s, "meter")?;
-        let sample_set = Self::parse_field(&mut s, "sampleSet")?;
-        let sample_index = Self::parse_field(&mut s, "sampleIndex")?;
-        let volume = Self::parse_field(&mut s, "volume")?;
-        let uninherited = s
-            .next()
-            .ok_or(TimingPointParseError::MissingField("uninherited"))?;
-        let uninherited = parse_zero_one_bool(uninherited).map_err(|err| {
-            TimingPointParseError::FieldParseError {
-                source: Box::new(err),
-                value: uninherited.to_string(),
-                field_name: "uninherited",
-            }
-        })?;
-        let effects = Self::parse_field(&mut s, "effects")?;
+        dbg!(s);
+        let (_, (time, beat_length, meter, sample_set, sample_index, volume, uninherited, effects)) =
+            tuple((
+                context(
+                    TimingPointParseError::InvalidTime.into(),
+                    comma_field_type(),
+                ),
+                preceded(
+                    context(TimingPointParseError::MissingBeatLength.into(), comma()),
+                    context(
+                        TimingPointParseError::InvalidBeatLength.into(),
+                        comma_field_type(),
+                    ),
+                ),
+                preceded(
+                    context(TimingPointParseError::MissingMeter.into(), comma()),
+                    context(
+                        TimingPointParseError::InvalidMeter.into(),
+                        comma_field_type(),
+                    ),
+                ),
+                preceded(
+                    context(TimingPointParseError::MissingSampleSet.into(), comma()),
+                    context(
+                        TimingPointParseError::InvalidSampleSet.into(),
+                        comma_field_type(),
+                    ),
+                ),
+                preceded(
+                    context(TimingPointParseError::MissingSampleIndex.into(), comma()),
+                    context(
+                        TimingPointParseError::InvalidSampleIndex.into(),
+                        comma_field_type(),
+                    ),
+                ),
+                preceded(
+                    context(TimingPointParseError::MissingVolume.into(), comma()),
+                    context(
+                        TimingPointParseError::InvalidVolume.into(),
+                        comma_field_type(),
+                    ),
+                ),
+                preceded(
+                    context(TimingPointParseError::MissingUninherited.into(), comma()),
+                    context(
+                        TimingPointParseError::InvalidUninherited.into(),
+                        map_res(comma_field(), |s| parse_zero_one_bool(s)),
+                    ),
+                ),
+                preceded(
+                    context(TimingPointParseError::MissingEffects.into(), comma()),
+                    context(
+                        TimingPointParseError::InvalidEffects.into(),
+                        consume_rest_type(),
+                    ),
+                ),
+            ))(s)?;
 
         Ok(TimingPoint {
             time,

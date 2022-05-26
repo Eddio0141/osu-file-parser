@@ -1,5 +1,6 @@
-use std::{error::Error, num::ParseIntError};
+use std::{error::Error, num::ParseIntError, str::FromStr};
 
+use strum_macros::{EnumString, IntoStaticStr};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -7,20 +8,71 @@ use thiserror::Error;
 pub struct ParseError(#[from] TimingPointParseError);
 
 /// Error used when there was a problem parsing the [`TimingPoint`].
-#[derive(Debug, Error)]
+#[derive(Debug, Error, EnumString, IntoStaticStr)]
 pub enum TimingPointParseError {
-    // TODO replace all static strings with a enum instead
-    /// A field is missing.
-    #[error("The field {0} is missing")]
-    MissingField(&'static str),
-    #[error("There was a problem parsing the value {value}")]
-    /// The field failed to parse to some type from a `str`.
-    FieldParseError {
-        #[source]
-        source: Box<dyn Error>,
-        value: String,
-        field_name: &'static str,
-    },
+    /// Invalid `time` value.
+    #[error("Invalid `time` value")]
+    InvalidTime,
+    /// Missing `beat_length` field.
+    #[error("Missing `beat_length` field")]
+    MissingBeatLength,
+    /// Invalid `beat_length` value.
+    #[error("Invalid `beat_length` value")]
+    InvalidBeatLength,
+    /// Missing `meter` field.
+    #[error("Missing `meter` field")]
+    MissingMeter,
+    /// Invalid `meter` value.
+    #[error("Invalid `meter` value")]
+    InvalidMeter,
+    /// Missing `sample_set` field.
+    #[error("Missing `sample_set` field")]
+    MissingSampleSet,
+    /// Invalid `sample_set` value.
+    #[error("Invalid `sample_set` value")]
+    InvalidSampleSet,
+    /// Missing `sample_index` field.
+    #[error("Missing `sample_index` field")]
+    MissingSampleIndex,
+    /// Invalid `sample_index` value.
+    #[error("Invalid `sample_index` value")]
+    InvalidSampleIndex,
+    /// Missing `volume` field.
+    #[error("Missing `volume` field")]
+    MissingVolume,
+    /// Invalid `volume` value.
+    #[error("Invalid `volume` value")]
+    InvalidVolume,
+    /// Missing `effects` field.
+    #[error("Missing `effects` field")]
+    MissingEffects,
+    /// Invalid `effects` value.
+    #[error("Invalid `effects` value")]
+    InvalidEffects,
+    /// Missing `uninherited` field.
+    #[error("Missing `uninherited` field")]
+    MissingUninherited,
+    /// Invalid `uninherited` value.
+    #[error("Invalid `uninherited` value")]
+    InvalidUninherited,
+}
+
+impl From<nom::Err<nom::error::VerboseError<&str>>> for TimingPointParseError {
+    fn from(err: nom::Err<nom::error::VerboseError<&str>>) -> Self {
+        match err {
+            nom::Err::Error(err) | nom::Err::Failure(err) => {
+                for (_, err) in err.errors {
+                    if let nom::error::VerboseErrorKind::Context(context) = err {
+                        return TimingPointParseError::from_str(context).unwrap();
+                    }
+                }
+
+                unreachable!()
+            }
+            // should never happen
+            nom::Err::Incomplete(_) => unreachable!(),
+        }
+    }
 }
 
 /// There was some problem parsing the [`SampleSet`].
