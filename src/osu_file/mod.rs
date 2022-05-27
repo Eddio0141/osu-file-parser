@@ -35,7 +35,7 @@ pub use self::types::*;
 #[non_exhaustive]
 pub struct OsuFile {
     /// Version of the file format.
-    pub version: u8,
+    pub version: usize,
     /// General information about the beatmap.
     /// - `key`: `value` pairs.
     pub general: Option<General>,
@@ -279,9 +279,7 @@ impl FromStr for OsuFile {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let version_text = tag::<_, _, nom::error::Error<_>>("osu file format v");
-        let version_number = map_res(take_till(|c| c == '\r' || c == '\n'), |s: &str| {
-            s.parse::<u8>()
-        });
+        let version_number = map_res(take_till(|c| c == '\r' || c == '\n'), |s: &str| s.parse());
 
         let section_open = tag::<_, _, nom::error::Error<_>>("[");
         let section_close = tag("]");
