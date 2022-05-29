@@ -102,7 +102,7 @@ impl Version for Metadata {
 
         let fields = [
             ("Title", &self.title),
-            ("TitleUnicode", &self.title),
+            ("TitleUnicode", &self.title_unicode),
             ("Artist", &self.artist),
             ("ArtistUnicode", &self.artist_unicode),
             ("Creator", &self.creator),
