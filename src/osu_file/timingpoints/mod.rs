@@ -217,7 +217,6 @@ impl FromStr for TimingPoint {
     type Err = TimingPointParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        dbg!(s);
         let (_, (time, beat_length, meter, sample_set, sample_index, volume, uninherited, effects)) =
             tuple((
                 context(
