@@ -44,7 +44,7 @@ CountdownOffset: 120
 SpecialStyle: 1
 WidescreenStoryboard: 1
 SamplesMatchPlaybackRate: 1";
-    let i = General::from_str_v14(i_str).unwrap().unwrap();
+    let i = General::from_str(i_str, 14).unwrap().unwrap();
 
     let g = General {
         audio_filename: Some(PathBuf::from("test.mp3")),
@@ -69,7 +69,7 @@ SamplesMatchPlaybackRate: 1";
     };
 
     assert_eq!(i, g);
-    assert_eq!(i_str, i.to_string_v14().unwrap());
+    assert_eq!(i_str, i.to_string(14).unwrap());
 }
 
 #[test]
@@ -240,14 +240,14 @@ fn events_parse_v14() {
             start_time: 0,
             event_params: EventParams::Background(Background::new(
                 Path::new("\"bg2.jpg\""),
-                Position { x: 0, y: 0 },
+                Some(Position { x: 0, y: 0 }),
             )),
         },
         Event::NormalEvent {
             start_time: 0,
             event_params: EventParams::Background(Background::new(
                 Path::new("bg2.jpg"),
-                Position { x: 0, y: 1 },
+                Some(Position { x: 0, y: 1 }),
             )),
         },
         Event::Comment("Break Periods".to_string()),
