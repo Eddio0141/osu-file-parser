@@ -89,23 +89,7 @@ impl Display for OsuFile {
         sections.push(format!("osu file format v{}", self.version));
 
         if let Some(general) = &self.general {
-            let general = match &self.version {
-                3 => general.to_string_v3(),
-                4 => general.to_string_v4(),
-                5 => general.to_string_v5(),
-                6 => general.to_string_v6(),
-                7 => general.to_string_v7(),
-                8 => general.to_string_v8(),
-                9 => general.to_string_v9(),
-                10 => general.to_string_v10(),
-                11 => general.to_string_v11(),
-                12 => general.to_string_v12(),
-                13 => general.to_string_v13(),
-                14 => general.to_string_v14(),
-                _ => unreachable!(),
-            };
-
-            if let Some(general) = general {
+            if let Some(general) = general.to_string(self.version) {
                 sections.push(format!("[General]\n{general}",))
             }
         }
@@ -344,24 +328,8 @@ impl FromStr for OsuFile {
 
             match section_name {
                 "General" => {
-                    general = Error::processing_line(
-                        match version {
-                            14 => General::from_str_v14(section),
-                            13 => General::from_str_v13(section),
-                            12 => General::from_str_v12(section),
-                            11 => General::from_str_v11(section),
-                            10 => General::from_str_v10(section),
-                            9 => General::from_str_v9(section),
-                            8 => General::from_str_v8(section),
-                            7 => General::from_str_v7(section),
-                            6 => General::from_str_v6(section),
-                            5 => General::from_str_v5(section),
-                            4 => General::from_str_v4(section),
-                            3 => General::from_str_v3(section),
-                            _ => unreachable!("version {} not implemented", version),
-                        },
-                        line_number,
-                    )?
+                    general =
+                        Error::processing_line(General::from_str(section, version), line_number)?
                 }
                 "Editor" => {
                     editor = Error::processing_line(
