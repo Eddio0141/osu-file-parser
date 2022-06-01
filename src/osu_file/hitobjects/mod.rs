@@ -224,7 +224,13 @@ impl FromStr for HitObject {
                     curve_points,
                     slides,
                     length,
-                    (edge_sounds, edge_sets, hitsample, edge_sounds_edge_sets_shorthand),
+                    (
+                        edge_sounds,
+                        edge_sets,
+                        hitsample,
+                        edge_sounds_short_hand,
+                        edge_sets_shorthand,
+                    ),
                 ),
             ) = tuple((
                 preceded(
@@ -256,21 +262,41 @@ impl FromStr for HitObject {
                     ),
                 ),
                 alt((
-                    preceded(space0, eof.map(|_| (Vec::new(), Vec::new(), None, true))),
+                    preceded(
+                        space0,
+                        eof.map(|_| (Vec::new(), Vec::new(), None, true, true)),
+                    ),
                     tuple((
                         preceded(
                             context(HitObjectParseError::MissingEdgeSound.into(), comma()),
                             context(HitObjectParseError::InvalidEdgeSound.into(), pipe_vec_map()),
                         ),
-                        preceded(
-                            context(HitObjectParseError::MissingEdgeSet.into(), comma()),
-                            context(HitObjectParseError::InvalidEdgeSet.into(), pipe_vec_map()),
-                        ),
-                        hitsample,
+                        alt((
+                            preceded(space0, eof.map(|_| (Vec::new(), None, true))),
+                            tuple((
+                                preceded(
+                                    context(HitObjectParseError::MissingEdgeSet.into(), comma()),
+                                    context(
+                                        HitObjectParseError::InvalidEdgeSet.into(),
+                                        pipe_vec_map(),
+                                    ),
+                                ),
+                                hitsample,
+                            ))
+                            .map(|(edge_sets, hitsample)| (edge_sets, hitsample, false)),
+                        )),
                     ))
-                    .map(|(edge_sounds, edge_sets, hitsample)| {
-                        (edge_sounds, edge_sets, hitsample, false)
-                    }),
+                    .map(
+                        |(edge_sounds, (edge_sets, hitsample, edge_sets_shorthand))| {
+                            (
+                                edge_sounds,
+                                edge_sets,
+                                hitsample,
+                                false,
+                                edge_sets_shorthand,
+                            )
+                        },
+                    ),
                 )),
             ))(s)?;
 
@@ -284,7 +310,8 @@ impl FromStr for HitObject {
                     length,
                     edge_sounds,
                     edge_sets,
-                    edge_sounds_edge_sets_shorthand,
+                    edge_sets_shorthand,
+                    edge_sounds_short_hand,
                 }),
                 new_combo,
                 combo_skip_count,
@@ -375,7 +402,8 @@ impl Display for HitObject {
                 length,
                 edge_sounds,
                 edge_sets,
-                edge_sounds_edge_sets_shorthand,
+                edge_sounds_short_hand,
+                edge_sets_shorthand,
             }) => {
                 properties.push(curve_type.to_string());
 
@@ -385,18 +413,18 @@ impl Display for HitObject {
                     length.to_string(),
                 ];
 
-                // we dont add anything if edge_sounds and edge_sets are empty, and hitsample is in short hand form
-                if !(edge_sounds.is_empty()
-                    && edge_sets.is_empty()
-                    && self.hitsample.is_none()
-                    && *edge_sounds_edge_sets_shorthand)
+                if !edge_sounds.is_empty()
+                    || !*edge_sounds_short_hand
+                    || !edge_sets.is_empty()
+                    || !*edge_sets_shorthand
+                    || self.hitsample.is_some()
                 {
                     properties_2.push(pipe_vec_to_string(edge_sounds));
+                }
+                if !edge_sets.is_empty() || !*edge_sets_shorthand || self.hitsample.is_some() {
                     properties_2.push(pipe_vec_to_string(edge_sets));
-                    properties_2.push(self.hitsample.as_ref().unwrap().to_string());
-                } else if let Some(hitsample) = &self.hitsample {
-                    properties_2.push(pipe_vec_to_string(edge_sounds));
-                    properties_2.push(pipe_vec_to_string(edge_sets));
+                }
+                if let Some(hitsample) = &self.hitsample {
                     properties_2.push(hitsample.to_string());
                 }
 
@@ -439,8 +467,9 @@ pub struct SlideParams {
     pub slides: Integer,
     pub length: Decimal,
     pub edge_sounds: Vec<HitSound>,
+    edge_sounds_short_hand: bool,
     pub edge_sets: Vec<EdgeSet>,
-    edge_sounds_edge_sets_shorthand: bool,
+    edge_sets_shorthand: bool,
 }
 
 impl SlideParams {
@@ -459,7 +488,8 @@ impl SlideParams {
             length,
             edge_sounds,
             edge_sets,
-            edge_sounds_edge_sets_shorthand: true,
+            edge_sets_shorthand: true,
+            edge_sounds_short_hand: true,
         }
     }
 }
