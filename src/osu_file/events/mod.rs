@@ -157,21 +157,17 @@ impl Display for Event {
                 start_time,
                 event_params,
             } => {
-                let position_str = |position: &Position| {
-                    if position.x == 0 && position.y == 0 {
-                        String::new()
-                    } else {
-                        format!(",{},{}", position.x, position.y)
-                    }
+                let position_str = |position: &Option<Position>| match position {
+                    Some(position) => format!(",{},{}", position.x, position.y),
+                    None => String::new(),
                 };
 
                 match event_params {
                     // background by default doesn't print the shorthand for some reason
                     EventParams::Background(background) => format!(
-                        "0,{start_time},{},{},{}",
+                        "0,{start_time},{}{}",
                         background.filename.to_string_lossy(),
-                        background.position.x,
-                        background.position.y,
+                        position_str(&background.position),
                     ),
                     EventParams::Video(video) => format!(
                         "1,{start_time},{}{}",
@@ -302,11 +298,11 @@ impl Display for Event {
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Background {
     pub filename: PathBuf,
-    pub position: Position,
+    pub position: Option<Position>,
 }
 
 impl Background {
-    pub fn new(filename: &Path, position: Position) -> Self {
+    pub fn new(filename: &Path, position: Option<Position>) -> Self {
         Self {
             filename: filename.to_path_buf(),
             position,
@@ -317,7 +313,7 @@ impl Background {
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Video {
     pub filename: PathBuf,
-    pub position: Position,
+    pub position: Option<Position>,
 }
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
@@ -348,7 +344,7 @@ impl FromStr for EventParams {
         let file_name = || comma_field().map(|f| PathBuf::from(f));
         let coordinates = || {
             alt((
-                eof.map(|_| (0, 0)),
+                eof.map(|_| None),
                 tuple((
                     preceded(
                         context(EventParamsParseError::MissingXOffset.into(), comma()),
@@ -364,9 +360,10 @@ impl FromStr for EventParams {
                             consume_rest_type(),
                         ),
                     ),
-                )),
+                ))
+                .map(|(x, y)| Some((x, y))),
             ))
-            .map(|(x, y)| Position { x, y })
+            .map(|position| position.map(|(x, y)| Position { x, y }))
         };
         let file_name_and_coordinates = || tuple((file_name(), coordinates()));
         let end_time = consume_rest_type();
