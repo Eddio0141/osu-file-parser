@@ -1,10 +1,13 @@
-use std::fmt::{Debug, Display};
+use std::{
+    fmt::{Debug, Display},
+    ops::RangeInclusive,
+};
 
 /// Definition of the `Integer` type.
 pub type Integer = i32;
 
-pub const LATEST_VERSION: u8 = 14;
-pub const MIN_VERSION: u8 = 3;
+pub const LATEST_VERSION: usize = 14;
+pub const MIN_VERSION: usize = 3;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 /// The position of something in `osu!pixels` with the `x` `y` form.
@@ -281,5 +284,39 @@ pub trait Version: Sized {
 
     fn to_string_v14(&self) -> Option<String> {
         self.to_string_v13()
+    }
+}
+
+pub struct FieldVersion<T, E> {
+    pub field: &'static str,
+    /// Parse and display functions for a range of versions.
+    /// - `None` means that the field is not present in the version.
+    pub functions: Vec<(
+        Option<(fn(&str) -> std::result::Result<T, E>, fn(&T) -> String)>,
+        RangeInclusive<usize>,
+    )>,
+}
+
+impl<T, E> FieldVersion<T, E> {
+    pub fn parse(&self, version: usize, s: &str) -> Option<std::result::Result<T, E>> {
+        match self
+            .functions
+            .iter()
+            .find(|(_, supported)| supported.contains(&version))
+        {
+            Some((funcs, _)) => funcs.map(|(parse, _)| parse(s)),
+            None => None,
+        }
+    }
+
+    pub fn display(&self, version: usize, t: &T) -> Option<String> {
+        match self
+            .functions
+            .iter()
+            .find(|(_, supported)| supported.contains(&version))
+        {
+            Some((funcs, _)) => funcs.map(|(_, display)| display(t)),
+            None => None,
+        }
     }
 }

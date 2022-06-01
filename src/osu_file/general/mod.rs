@@ -1,20 +1,25 @@
 pub mod error;
 
+use std::fmt::Display;
 use std::path::PathBuf;
 use std::{fmt::Debug, str::FromStr};
 
+use lazy_static::lazy_static;
 use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
 
 use strum_macros::{Display, EnumString, FromRepr};
+use thiserror::Error;
 
-use crate::{helper::*, parsers::get_colon_field_value_lines};
+use crate::helper;
+use crate::parsers::get_colon_field_value_lines;
 
 use crate::osu_file::Integer;
 
 pub use self::error::*;
 
 use super::{types::Error, Version};
+use super::{FieldVersion, LATEST_VERSION, MIN_VERSION};
 
 /// A struct representing the general section of the .osu file.
 #[derive(PartialEq, Debug, Clone, Eq, Hash)]
@@ -75,32 +80,10 @@ pub struct General {
     pub samples_match_playback_rate: Option<bool>,
 }
 
-impl General {
-    /// Creates an empty `General` instance, with all fields being `None`.
-    pub fn new() -> Self {
-        Self {
-            audio_filename: None,
-            audio_lead_in: None,
-            audio_hash: None,
-            preview_time: None,
-            countdown: None,
-            sample_set: None,
-            stack_leniency: None,
-            mode: None,
-            letterbox_in_breaks: None,
-            story_fire_in_front: None,
-            use_skin_sprites: None,
-            always_show_playfield: None,
-            overlay_position: None,
-            skin_preference: None,
-            epilepsy_warning: None,
-            countdown_offset: None,
-            special_style: None,
-            widescreen_storyboard: None,
-            samples_match_playback_rate: None,
-        }
-    }
-}
+// TODO:
+// idea for General versioning:
+// have a const table of [field_name, valid_versions, [methods for parsing in each valid version], [methods for display in each valid version]]
+// introduce Type for the table?
 
 impl Default for General {
     fn default() -> Self {
@@ -128,14 +111,257 @@ impl Default for General {
     }
 }
 
-impl Version for General {
-    type ParseError = Error<ParseError>;
+#[derive(Debug)]
+enum GeneralFieldType {
+    String(String),
+    Integer(Integer),
+    Decimal(Decimal),
+    Bool(bool),
+    PathBuf(PathBuf),
+    GameMode(GameMode),
+    CountdownSpeed(CountdownSpeed),
+}
 
-    // TODO what fields are in each version?
-    fn from_str_v3(s: &str) -> std::result::Result<Option<Self>, Self::ParseError>
-    where
-        Self: Sized,
-    {
+// TODO clean all of this up
+macro_rules! impl_try_from_for_enum_type {
+    ($enum_type:ident, $enum_variant:ident, $type:ty) => {
+        impl TryFrom<$enum_type> for $type {
+            type Error = ();
+
+            fn try_from(value: $enum_type) -> Result<Self, Self::Error> {
+                if let $enum_type::$enum_variant(value) = value {
+                    Ok(value)
+                } else {
+                    Err(())
+                }
+            }
+        }
+    };
+}
+
+impl_try_from_for_enum_type!(GeneralFieldType, Integer, Integer);
+impl_try_from_for_enum_type!(GeneralFieldType, String, String);
+impl_try_from_for_enum_type!(GeneralFieldType, Decimal, Decimal);
+impl_try_from_for_enum_type!(GeneralFieldType, Bool, bool);
+impl_try_from_for_enum_type!(GeneralFieldType, PathBuf, PathBuf);
+impl_try_from_for_enum_type!(GeneralFieldType, GameMode, GameMode);
+impl_try_from_for_enum_type!(GeneralFieldType, CountdownSpeed, CountdownSpeed);
+
+#[derive(Debug, Error)]
+enum GeneralFieldParseError {
+    #[error(transparent)]
+    ParseIntError(#[from] std::num::ParseIntError),
+    #[error(transparent)]
+    ParseDecimalError(#[from] rust_decimal::Error),
+    #[error(transparent)]
+    ParseBoolError(#[from] helper::ParseZeroOneBoolError),
+    #[error(transparent)]
+    ParseGameModeError(#[from] ParseGameModeError),
+    #[error(transparent)]
+    ParseCountdownSpeedError(#[from] ParseCountdownSpeedError),
+}
+
+impl From<GeneralFieldParseError> for ParseError {
+    fn from(err: GeneralFieldParseError) -> Self {
+        err.into()
+    }
+}
+
+impl Display for GeneralFieldType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                GeneralFieldType::String(s) => s.to_string(),
+                GeneralFieldType::Integer(i) => i.to_string(),
+                GeneralFieldType::Decimal(d) => d.to_string(),
+                GeneralFieldType::Bool(b) => (*b as u8).to_string(),
+                GeneralFieldType::PathBuf(p) => p.display().to_string(),
+                GeneralFieldType::GameMode(gm) => gm.to_string_v3().unwrap(),
+                GeneralFieldType::CountdownSpeed(cs) => cs.to_string_v3().unwrap(),
+            }
+        )
+    }
+}
+
+lazy_static! {
+    static ref GENERAL_FIELD_VERSIONS: Vec<FieldVersion<GeneralFieldType, GeneralFieldParseError>> = {
+        let parse_string = |s: &str| -> Result<GeneralFieldType, GeneralFieldParseError> {
+            Ok(GeneralFieldType::String(s.to_string()))
+        };
+        let parse_integer = |s: &str| -> Result<GeneralFieldType, GeneralFieldParseError> {
+            Ok(GeneralFieldType::Integer(s.parse()?))
+        };
+        let parse_decimal = |s: &str| -> Result<GeneralFieldType, GeneralFieldParseError> {
+            Ok(GeneralFieldType::Decimal(s.parse()?))
+        };
+        let parse_bool = |s: &str| -> Result<GeneralFieldType, GeneralFieldParseError> {
+            Ok(GeneralFieldType::Bool(helper::parse_zero_one_bool(s)?))
+        };
+        let parse_pathbuf = |s: &str| -> Result<GeneralFieldType, GeneralFieldParseError> {
+            Ok(GeneralFieldType::PathBuf(PathBuf::from(s)))
+        };
+        let parse_game_mode = |s: &str| -> Result<GeneralFieldType, GeneralFieldParseError> {
+            Ok(GeneralFieldType::GameMode(s.parse()?))
+        };
+        let parse_countdown_speed = |s: &str| -> Result<GeneralFieldType, GeneralFieldParseError> {
+            Ok(GeneralFieldType::CountdownSpeed(s.parse()?))
+        };
+
+        let field_to_string = |s: &GeneralFieldType| s.to_string();
+
+        vec![
+            FieldVersion {
+                field: "AudioFilename",
+                functions: vec![(
+                    Some((parse_pathbuf, field_to_string)),
+                    MIN_VERSION..=LATEST_VERSION,
+                )],
+            },
+            FieldVersion {
+                field: "AudioLeadIn",
+                functions: vec![(
+                    Some((parse_integer, field_to_string)),
+                    MIN_VERSION..=LATEST_VERSION,
+                )],
+            },
+            FieldVersion {
+                field: "AudioHash",
+                functions: vec![(
+                    Some((parse_string, field_to_string)),
+                    MIN_VERSION..=LATEST_VERSION,
+                )],
+            },
+            FieldVersion {
+                field: "PreviewTime",
+                functions: vec![(
+                    Some((parse_integer, field_to_string)),
+                    MIN_VERSION..=LATEST_VERSION,
+                )],
+            },
+            FieldVersion {
+                field: "Countdown",
+                functions: vec![(
+                    Some((parse_countdown_speed, field_to_string)),
+                    MIN_VERSION..=LATEST_VERSION,
+                )],
+            },
+            FieldVersion {
+                field: "StackLeniency",
+                functions: vec![(
+                    Some((parse_decimal, field_to_string)),
+                    MIN_VERSION..=LATEST_VERSION,
+                )],
+            },
+            FieldVersion {
+                field: "Mode",
+                functions: vec![(
+                    Some((parse_game_mode, field_to_string)),
+                    MIN_VERSION..=LATEST_VERSION,
+                )],
+            },
+            FieldVersion {
+                field: "LetterboxInBreaks",
+                functions: vec![(
+                    Some((parse_bool, field_to_string)),
+                    MIN_VERSION..=LATEST_VERSION,
+                )],
+            },
+            FieldVersion {
+                field: "StoryFireInFront",
+                functions: vec![(
+                    Some((parse_bool, field_to_string)),
+                    MIN_VERSION..=LATEST_VERSION,
+                )],
+            },
+            FieldVersion {
+                field: "UseSkinSprites",
+                functions: vec![(
+                    Some((parse_bool, field_to_string)),
+                    MIN_VERSION..=LATEST_VERSION,
+                )],
+            },
+            FieldVersion {
+                field: "AlwaysShowPlayfield",
+                functions: vec![(
+                    Some((parse_bool, field_to_string)),
+                    MIN_VERSION..=LATEST_VERSION,
+                )],
+            },
+            FieldVersion {
+                field: "SkinPreference",
+                functions: vec![(
+                    Some((parse_string, field_to_string)),
+                    MIN_VERSION..=LATEST_VERSION,
+                )],
+            },
+            FieldVersion {
+                field: "EpilepsyWarning",
+                functions: vec![(
+                    Some((parse_bool, field_to_string)),
+                    MIN_VERSION..=LATEST_VERSION,
+                )],
+            },
+            FieldVersion {
+                field: "CountdownOffset",
+                functions: vec![(
+                    Some((parse_integer, field_to_string)),
+                    MIN_VERSION..=LATEST_VERSION,
+                )],
+            },
+            FieldVersion {
+                field: "SpecialStyle",
+                functions: vec![(
+                    Some((parse_bool, field_to_string)),
+                    MIN_VERSION..=LATEST_VERSION,
+                )],
+            },
+            FieldVersion {
+                field: "WidescreenStoryboard",
+                functions: vec![(
+                    Some((parse_bool, field_to_string)),
+                    MIN_VERSION..=LATEST_VERSION,
+                )],
+            },
+            FieldVersion {
+                field: "SamplesMatchPlaybackRate",
+                functions: vec![(
+                    Some((parse_bool, field_to_string)),
+                    MIN_VERSION..=LATEST_VERSION,
+                )],
+            },
+        ]
+    };
+}
+
+impl General {
+    /// Creates an empty `General` instance, with all fields being `None`.
+    pub fn new() -> Self {
+        Self {
+            audio_filename: None,
+            audio_lead_in: None,
+            audio_hash: None,
+            preview_time: None,
+            countdown: None,
+            sample_set: None,
+            stack_leniency: None,
+            mode: None,
+            letterbox_in_breaks: None,
+            story_fire_in_front: None,
+            use_skin_sprites: None,
+            always_show_playfield: None,
+            overlay_position: None,
+            skin_preference: None,
+            epilepsy_warning: None,
+            countdown_offset: None,
+            special_style: None,
+            widescreen_storyboard: None,
+            samples_match_playback_rate: None,
+        }
+    }
+
+    pub fn from_str(s: &str, version: usize) -> Result<Option<General>, Error<ParseError>> {
         let mut general = General::new();
 
         let (s, fields) = get_colon_field_value_lines(s).unwrap();
@@ -151,562 +377,312 @@ impl Version for General {
         let mut parsed_fields = Vec::new();
 
         for (name, value, ws) in fields {
-            if parsed_fields.contains(&name) {
-                return Err(Error::new(ParseError::DuplicateField, line_count));
-            }
-
-            // TODO multiple same fields error
-            match name {
-                "AudioFilename" => general.audio_filename = Some(PathBuf::from(value)),
-                "AudioHash" => general.audio_hash = Some(value.to_owned()),
-                _ => return Err(Error::new(ParseError::InvalidKey, line_count)),
-            }
-
-            line_count += ws.lines().count();
-            parsed_fields.push(name);
-        }
-
-        Ok(Some(general))
-    }
-
-    fn to_string_v3(&self) -> Option<String> {
-        let audio_file_name = self
-            .audio_filename
-            .as_ref()
-            .map(|p| p.display().to_string());
-        let fields = vec![
-            ("AudioFilename", &audio_file_name),
-            ("AudioHash", &self.audio_hash),
-        ];
-
-        Some(display_colon_fields(&fields, true))
-    }
-
-    // TODO find out fields
-    fn from_str_v12(s: &str) -> std::result::Result<Option<Self>, Self::ParseError>
-    where
-        Self: Sized,
-    {
-        let mut general = General::new();
-
-        let (s, fields) = get_colon_field_value_lines(s).unwrap();
-
-        if !s.trim().is_empty() {
-            // line count from fields
-            let line_count = { fields.iter().map(|(_, _, ws)| ws.lines().count()).sum() };
-
-            // TODO test this
-            return Err(Error::new(ParseError::InvalidColonSet, line_count));
-        }
-
-        let mut line_count = 0;
-        let mut parsed_fields = Vec::new();
-
-        for (name, value, ws) in fields {
-            let new_into_int = move |err| Error::new_into(err, line_count);
-            let new_into_decimal = move |err| Error::new_into(err, line_count);
-            let new_into_zero_one_bool = move |err| Error::new_into(err, line_count);
-            let new_into_countdown_speed = move |err| Error::new_into(err, line_count);
             let new_into_strum_parse_error = move |err| Error::new_into(err, line_count);
-            let new_into_combine_game_mode = move |err| Error::new_into(err, line_count);
 
             if parsed_fields.contains(&name) {
                 return Err(Error::new(ParseError::DuplicateField, line_count));
             }
 
-            match name {
-                "AudioFilename" => general.audio_filename = Some(PathBuf::from(value)),
-                "AudioLeadIn" => general.audio_lead_in = Some(value.parse().map_err(new_into_int)?),
-                "AudioHash" => general.audio_hash = Some(value.to_owned()),
-                "PreviewTime" => general.preview_time = Some(value.parse().map_err(new_into_int)?),
-                "Countdown" => {
-                    general.countdown = Some(value.parse().map_err(new_into_countdown_speed)?)
+            match GENERAL_FIELD_VERSIONS.iter().find(|v| v.field == name) {
+                Some(v) => {
+                    let value = v
+                        .parse(version, value)
+                        .ok_or(Error::new(ParseError::InvalidVersion, line_count))?
+                        .map_err(|err| Error::new_into(err, line_count))?;
+
+                    match name {
+                        "AudioFilename" => general.audio_filename = Some(value.try_into().unwrap()),
+                        "AudioLeadIn" => general.audio_lead_in = Some(value.try_into().unwrap()),
+                        "AudioHash" => general.audio_hash = Some(value.try_into().unwrap()),
+                        "PreviewTime" => general.preview_time = Some(value.try_into().unwrap()),
+                        "Countdown" => general.countdown = Some(value.try_into().unwrap()),
+                        "StackLeniency" => general.stack_leniency = Some(value.try_into().unwrap()),
+                        "Mode" => general.mode = Some(value.try_into().unwrap()),
+                        "LetterboxInBreaks" => {
+                            general.letterbox_in_breaks = Some(value.try_into().unwrap())
+                        }
+                        "StoryFireInFront" => {
+                            general.story_fire_in_front = Some(value.try_into().unwrap())
+                        }
+                        "UseSkinSprites" => {
+                            general.use_skin_sprites = Some(value.try_into().unwrap())
+                        }
+                        "AlwaysShowPlayfield" => {
+                            general.always_show_playfield = Some(value.try_into().unwrap())
+                        }
+                        "SkinPreference" => {
+                            general.skin_preference = Some(value.try_into().unwrap())
+                        }
+                        "EpilepsyWarning" => {
+                            general.epilepsy_warning = Some(value.try_into().unwrap())
+                        }
+                        "CountdownOffset" => {
+                            general.countdown_offset = Some(value.try_into().unwrap())
+                        }
+                        "SpecialStyle" => general.special_style = Some(value.try_into().unwrap()),
+                        "WidescreenStoryboard" => {
+                            general.widescreen_storyboard = Some(value.try_into().unwrap())
+                        }
+                        "SamplesMatchPlaybackRate" => {
+                            general.samples_match_playback_rate = Some(value.try_into().unwrap())
+                        }
+                        _ => return Err(Error::new(ParseError::InvalidKey, line_count)),
+                    }
                 }
-                "SampleSet" => {
-                    general.sample_set = Some(
-                        SampleSet::from_str_v12(value)
-                            .map_err(new_into_strum_parse_error)?
-                            .unwrap(),
-                    )
+                None => {
+                    match name {
+                        "SampleSet" => {
+                            // TODO probably change the Version trait to have a method for value and version
+                            // or use FieldVersion and get rid of Version trait
+                            general.sample_set = match version {
+                                3 => SampleSet::from_str_v3(value)
+                                    .map_err(new_into_strum_parse_error)?,
+                                4 => SampleSet::from_str_v4(value)
+                                    .map_err(new_into_strum_parse_error)?,
+                                5 => SampleSet::from_str_v5(value)
+                                    .map_err(new_into_strum_parse_error)?,
+                                6 => SampleSet::from_str_v6(value)
+                                    .map_err(new_into_strum_parse_error)?,
+                                7 => SampleSet::from_str_v7(value)
+                                    .map_err(new_into_strum_parse_error)?,
+                                8 => SampleSet::from_str_v8(value)
+                                    .map_err(new_into_strum_parse_error)?,
+                                9 => SampleSet::from_str_v9(value)
+                                    .map_err(new_into_strum_parse_error)?,
+                                10 => SampleSet::from_str_v10(value)
+                                    .map_err(new_into_strum_parse_error)?,
+                                11 => SampleSet::from_str_v11(value)
+                                    .map_err(new_into_strum_parse_error)?,
+                                12 => SampleSet::from_str_v12(value)
+                                    .map_err(new_into_strum_parse_error)?,
+                                13 => SampleSet::from_str_v13(value)
+                                    .map_err(new_into_strum_parse_error)?,
+                                14 => SampleSet::from_str_v14(value)
+                                    .map_err(new_into_strum_parse_error)?,
+                                _ => None,
+                            };
+                        }
+                        "OverlayPosition" => {
+                            general.overlay_position = match version {
+                                3 => OverlayPosition::from_str_v3(value)
+                                    .map_err(new_into_strum_parse_error)?,
+                                4 => OverlayPosition::from_str_v4(value)
+                                    .map_err(new_into_strum_parse_error)?,
+                                5 => OverlayPosition::from_str_v5(value)
+                                    .map_err(new_into_strum_parse_error)?,
+                                6 => OverlayPosition::from_str_v6(value)
+                                    .map_err(new_into_strum_parse_error)?,
+                                7 => OverlayPosition::from_str_v7(value)
+                                    .map_err(new_into_strum_parse_error)?,
+                                8 => OverlayPosition::from_str_v8(value)
+                                    .map_err(new_into_strum_parse_error)?,
+                                9 => OverlayPosition::from_str_v9(value)
+                                    .map_err(new_into_strum_parse_error)?,
+                                10 => OverlayPosition::from_str_v10(value)
+                                    .map_err(new_into_strum_parse_error)?,
+                                11 => OverlayPosition::from_str_v11(value)
+                                    .map_err(new_into_strum_parse_error)?,
+                                12 => OverlayPosition::from_str_v12(value)
+                                    .map_err(new_into_strum_parse_error)?,
+                                13 => OverlayPosition::from_str_v13(value)
+                                    .map_err(new_into_strum_parse_error)?,
+                                14 => OverlayPosition::from_str_v14(value)
+                                    .map_err(new_into_strum_parse_error)?,
+                                _ => None,
+                            };
+                        }
+                        _ => return Err(Error::new(ParseError::InvalidKey, line_count)),
+                    }
                 }
-                "StackLeniency" => {
-                    general.stack_leniency = Some(value.parse().map_err(new_into_decimal)?)
-                }
-                "Mode" => general.mode = Some(value.parse().map_err(new_into_combine_game_mode)?),
-                "LetterboxInBreaks" => {
-                    general.letterbox_in_breaks =
-                        Some(parse_zero_one_bool(value).map_err(new_into_zero_one_bool)?)
-                }
-                // "StoryFireInFront" => {
-                //     general.story_fire_in_front =
-                //         Some(parse_zero_one_bool(value).map_err(new_into_zero_one_bool)?)
-                // }
-                // "UseSkinSprites" => {
-                //     general.use_skin_sprites =
-                //         Some(parse_zero_one_bool(value).map_err(new_into_zero_one_bool)?)
-                // }
-                // "AlwaysShowPlayfield" => {
-                //     general.always_show_playfield =
-                //         Some(parse_zero_one_bool(value).map_err(new_into_zero_one_bool)?)
-                // }
-                // "OverlayPosition" => {
-                //     general.overlay_position =
-                //         Some(value.parse().map_err(new_into_strum_parse_error)?)
-                // }
-                // "SkinPreference" => general.skin_preference = Some(value.to_owned()),
-                // "EpilepsyWarning" => {
-                //     general.epilepsy_warning =
-                //         Some(parse_zero_one_bool(value).map_err(new_into_zero_one_bool)?)
-                // }
-                // "CountdownOffset" => {
-                //     general.countdown_offset = Some(value.parse().map_err(new_into_int)?)
-                // }
-                // "SpecialStyle" => {
-                //     general.special_style =
-                //         Some(parse_zero_one_bool(value).map_err(new_into_zero_one_bool)?)
-                // }
-                "WidescreenStoryboard" => {
-                    general.widescreen_storyboard =
-                        Some(parse_zero_one_bool(value).map_err(new_into_zero_one_bool)?)
-                }
-                // "SamplesMatchPlaybackRate" => {
-                //     general.samples_match_playback_rate =
-                //         Some(parse_zero_one_bool(value).map_err(new_into_zero_one_bool)?)
-                // }
-                _ => return Err(Error::new(ParseError::InvalidKey, line_count)),
             }
+            // .ok_or(Error::new(ParseError::InvalidKey, line_count))?;
 
             line_count += ws.lines().count();
             parsed_fields.push(name);
         }
 
+        // in case future versions don't have general, we use option
         Ok(Some(general))
     }
 
-    fn to_string_v12(&self) -> Option<String> {
-        let audio_file_name = self
-            .audio_filename
-            .as_ref()
-            .map(|p| p.display().to_string());
-        let fields = [
-            ("AudioFilename", &audio_file_name),
-            ("AudioLeadIn", &self.audio_lead_in.map(|v| v.to_string())),
-            ("AudioHash", &self.audio_hash),
-            ("PreviewTime", &self.preview_time.map(|v| v.to_string())),
-            (
-                "Countdown",
-                &self.countdown.map(|v| (v as Integer).to_string()),
-            ),
-            (
-                "SampleSet",
-                &self.sample_set.map(|v| v.to_string_v12().unwrap()),
-            ),
-            ("StackLeniency", &self.stack_leniency.map(|v| v.to_string())),
-            ("Mode", &self.mode.map(|v| (v as Integer).to_string())),
-            (
-                "LetterboxInBreaks",
-                &self.letterbox_in_breaks.map(|v| (v as Integer).to_string()),
-            ),
-            // (
-            //     "StoryFireInFront",
-            //     &self.story_fire_in_front.map(|v| (v as Integer).to_string()),
-            // ),
-            // (
-            //     "UseSkinSprites",
-            //     &self.use_skin_sprites.map(|v| (v as Integer).to_string()),
-            // ),
-            // (
-            //     "AlwaysShowPlayfield",
-            //     &self
-            //         .always_show_playfield
-            //         .map(|v| (v as Integer).to_string()),
-            // ),
-            // (
-            //     "OverlayPosition",
-            //     &self.overlay_position.map(|v| v.to_string()),
-            // ),
-            // (
-            //     "SkinPreference",
-            //     &self.skin_preference.as_ref().map(|v| v.to_string()),
-            // ),
-            // (
-            //     "EpilepsyWarning",
-            //     &self.epilepsy_warning.map(|v| (v as Integer).to_string()),
-            // ),
-            // (
-            //     "CountdownOffset",
-            //     &self.countdown_offset.map(|v| v.to_string()),
-            // ),
-            // (
-            //     "SpecialStyle",
-            //     &self.special_style.map(|v| (v as Integer).to_string()),
-            // ),
-            (
-                "WidescreenStoryboard",
-                &self
-                    .widescreen_storyboard
-                    .map(|v| (v as Integer).to_string()),
-            ),
-            // (
-            //     "SamplesMatchPlaybackRate",
-            //     &self
-            //         .samples_match_playback_rate
-            //         .map(|v| (v as Integer).to_string()),
-            // ),
-        ];
+    pub fn to_string(&self, version: usize) -> Option<String> {
+        let mut fields = Vec::new();
 
-        Some(display_colon_fields(&fields, true))
-    }
-
-    // TODO find out fields
-    fn from_str_v13(s: &str) -> std::result::Result<Option<Self>, Self::ParseError>
-    where
-        Self: Sized,
-    {
-        let mut general = General::new();
-
-        let (s, fields) = get_colon_field_value_lines(s).unwrap();
-
-        if !s.trim().is_empty() {
-            // line count from fields
-            let line_count = { fields.iter().map(|(_, _, ws)| ws.lines().count()).sum() };
-
-            // TODO test this
-            return Err(Error::new(ParseError::InvalidColonSet, line_count));
-        }
-
-        let mut line_count = 0;
-        let mut parsed_fields = Vec::new();
-
-        for (name, value, ws) in fields {
-            let new_into_int = move |err| Error::new_into(err, line_count);
-            let new_into_decimal = move |err| Error::new_into(err, line_count);
-            let new_into_zero_one_bool = move |err| Error::new_into(err, line_count);
-            let new_into_countdown_speed = move |err| Error::new_into(err, line_count);
-            let new_into_strum_parse_error = move |err| Error::new_into(err, line_count);
-            let new_into_combine_game_mode = move |err| Error::new_into(err, line_count);
-
-            if parsed_fields.contains(&name) {
-                return Err(Error::new(ParseError::DuplicateField, line_count));
+        let pathbuf = |name, value: &Option<PathBuf>, fields: &mut Vec<_>| {
+            if let Some(value) = value {
+                let value = value.to_owned();
+                if let Some(value) = GENERAL_FIELD_VERSIONS
+                    .iter()
+                    .find(|v| v.field == name)
+                    .unwrap()
+                    .display(version, &GeneralFieldType::PathBuf(value))
+                {
+                    fields.push((name, value));
+                }
             }
-
-            match name {
-                "AudioFilename" => general.audio_filename = Some(PathBuf::from(value)),
-                "AudioLeadIn" => general.audio_lead_in = Some(value.parse().map_err(new_into_int)?),
-                "AudioHash" => general.audio_hash = Some(value.to_owned()),
-                "PreviewTime" => general.preview_time = Some(value.parse().map_err(new_into_int)?),
-                "Countdown" => {
-                    general.countdown = Some(value.parse().map_err(new_into_countdown_speed)?)
+        };
+        let string = |name, value: &Option<String>, fields: &mut Vec<_>| {
+            if let Some(value) = value {
+                let value = value.to_owned();
+                if let Some(value) = GENERAL_FIELD_VERSIONS
+                    .iter()
+                    .find(|v| v.field == name)
+                    .unwrap()
+                    .display(version, &GeneralFieldType::String(value))
+                {
+                    fields.push((name, value));
                 }
-                "SampleSet" => {
-                    general.sample_set = Some(
-                        SampleSet::from_str_v13(value)
-                            .map_err(new_into_strum_parse_error)?
-                            .unwrap(),
-                    )
-                }
-                "StackLeniency" => {
-                    general.stack_leniency = Some(value.parse().map_err(new_into_decimal)?)
-                }
-                "Mode" => general.mode = Some(value.parse().map_err(new_into_combine_game_mode)?),
-                "LetterboxInBreaks" => {
-                    general.letterbox_in_breaks =
-                        Some(parse_zero_one_bool(value).map_err(new_into_zero_one_bool)?)
-                }
-                // "StoryFireInFront" => {
-                //     general.story_fire_in_front =
-                //         Some(parse_zero_one_bool(value).map_err(new_into_zero_one_bool)?)
-                // }
-                // "UseSkinSprites" => {
-                //     general.use_skin_sprites =
-                //         Some(parse_zero_one_bool(value).map_err(new_into_zero_one_bool)?)
-                // }
-                // "AlwaysShowPlayfield" => {
-                //     general.always_show_playfield =
-                //         Some(parse_zero_one_bool(value).map_err(new_into_zero_one_bool)?)
-                // }
-                // "OverlayPosition" => {
-                //     general.overlay_position =
-                //         Some(value.parse().map_err(new_into_strum_parse_error)?)
-                // }
-                // "SkinPreference" => general.skin_preference = Some(value.to_owned()),
-                "EpilepsyWarning" => {
-                    general.epilepsy_warning =
-                        Some(parse_zero_one_bool(value).map_err(new_into_zero_one_bool)?)
-                }
-                // "CountdownOffset" => {
-                //     general.countdown_offset = Some(value.parse().map_err(new_into_int)?)
-                // }
-                "SpecialStyle" => {
-                    general.special_style =
-                        Some(parse_zero_one_bool(value).map_err(new_into_zero_one_bool)?)
-                }
-                "WidescreenStoryboard" => {
-                    general.widescreen_storyboard =
-                        Some(parse_zero_one_bool(value).map_err(new_into_zero_one_bool)?)
-                }
-                // "SamplesMatchPlaybackRate" => {
-                //     general.samples_match_playback_rate =
-                //         Some(parse_zero_one_bool(value).map_err(new_into_zero_one_bool)?)
-                // }
-                _ => return Err(Error::new(ParseError::InvalidKey, line_count)),
             }
-
-            line_count += ws.lines().count();
-            parsed_fields.push(name);
-        }
-
-        Ok(Some(general))
-    }
-
-    fn to_string_v13(&self) -> Option<String> {
-        let audio_file_name = self
-            .audio_filename
-            .as_ref()
-            .map(|p| p.display().to_string());
-        let fields = [
-            ("AudioFilename", &audio_file_name),
-            ("AudioLeadIn", &self.audio_lead_in.map(|v| v.to_string())),
-            ("AudioHash", &self.audio_hash),
-            ("PreviewTime", &self.preview_time.map(|v| v.to_string())),
-            (
-                "Countdown",
-                &self.countdown.map(|v| (v as Integer).to_string()),
-            ),
-            (
-                "SampleSet",
-                &self.sample_set.map(|v| v.to_string_v13().unwrap()),
-            ),
-            ("StackLeniency", &self.stack_leniency.map(|v| v.to_string())),
-            ("Mode", &self.mode.map(|v| (v as Integer).to_string())),
-            (
-                "LetterboxInBreaks",
-                &self.letterbox_in_breaks.map(|v| (v as Integer).to_string()),
-            ),
-            // (
-            //     "StoryFireInFront",
-            //     &self.story_fire_in_front.map(|v| (v as Integer).to_string()),
-            // ),
-            // (
-            //     "UseSkinSprites",
-            //     &self.use_skin_sprites.map(|v| (v as Integer).to_string()),
-            // ),
-            // (
-            //     "AlwaysShowPlayfield",
-            //     &self
-            //         .always_show_playfield
-            //         .map(|v| (v as Integer).to_string()),
-            // ),
-            // (
-            //     "OverlayPosition",
-            //     &self.overlay_position.map(|v| v.to_string()),
-            // ),
-            // (
-            //     "SkinPreference",
-            //     &self.skin_preference.as_ref().map(|v| v.to_string()),
-            // ),
-            (
-                "EpilepsyWarning",
-                &self.epilepsy_warning.map(|v| (v as Integer).to_string()),
-            ),
-            // (
-            //     "CountdownOffset",
-            //     &self.countdown_offset.map(|v| v.to_string()),
-            // ),
-            (
-                "SpecialStyle",
-                &self.special_style.map(|v| (v as Integer).to_string()),
-            ),
-            (
-                "WidescreenStoryboard",
-                &self
-                    .widescreen_storyboard
-                    .map(|v| (v as Integer).to_string()),
-            ),
-            // (
-            //     "SamplesMatchPlaybackRate",
-            //     &self
-            //         .samples_match_playback_rate
-            //         .map(|v| (v as Integer).to_string()),
-            // ),
-        ];
-
-        Some(display_colon_fields(&fields, true))
-    }
-
-    fn from_str_v14(s: &str) -> std::result::Result<Option<Self>, Self::ParseError>
-    where
-        Self: Sized,
-    {
-        let mut general = General::new();
-
-        let (s, fields) = get_colon_field_value_lines(s).unwrap();
-
-        if !s.trim().is_empty() {
-            // line count from fields
-            let line_count = { fields.iter().map(|(_, _, ws)| ws.lines().count()).sum() };
-
-            // TODO test this
-            return Err(Error::new(ParseError::InvalidColonSet, line_count));
-        }
-
-        let mut line_count = 0;
-        let mut parsed_fields = Vec::new();
-
-        for (name, value, ws) in fields {
-            let new_into_int = move |err| Error::new_into(err, line_count);
-            let new_into_decimal = move |err| Error::new_into(err, line_count);
-            let new_into_zero_one_bool = move |err| Error::new_into(err, line_count);
-            let new_into_countdown_speed = move |err| Error::new_into(err, line_count);
-            let new_into_strum_parse_error = move |err| Error::new_into(err, line_count);
-            let new_into_combine_game_mode = move |err| Error::new_into(err, line_count);
-
-            if parsed_fields.contains(&name) {
-                return Err(Error::new(ParseError::DuplicateField, line_count));
+        };
+        let int = |name, value: &Option<Integer>, fields: &mut Vec<_>| {
+            if let Some(value) = value {
+                let value = value.to_owned();
+                if let Some(value) = GENERAL_FIELD_VERSIONS
+                    .iter()
+                    .find(|v| v.field == name)
+                    .unwrap()
+                    .display(version, &GeneralFieldType::Integer(value))
+                {
+                    fields.push((name, value));
+                }
             }
-
-            match name {
-                "AudioFilename" => general.audio_filename = Some(PathBuf::from(value)),
-                "AudioLeadIn" => general.audio_lead_in = Some(value.parse().map_err(new_into_int)?),
-                "AudioHash" => general.audio_hash = Some(value.to_owned()),
-                "PreviewTime" => general.preview_time = Some(value.parse().map_err(new_into_int)?),
-                "Countdown" => {
-                    general.countdown = Some(value.parse().map_err(new_into_countdown_speed)?)
+        };
+        let bool = |name, value: &Option<bool>, fields: &mut Vec<_>| {
+            if let Some(value) = value {
+                let value = value.to_owned();
+                if let Some(value) = GENERAL_FIELD_VERSIONS
+                    .iter()
+                    .find(|v| v.field == name)
+                    .unwrap()
+                    .display(version, &GeneralFieldType::Bool(value))
+                {
+                    fields.push((name, value));
                 }
-                "SampleSet" => {
-                    general.sample_set = Some(
-                        SampleSet::from_str_v14(value)
-                            .map_err(new_into_strum_parse_error)?
-                            .unwrap(),
-                    )
-                }
-                "StackLeniency" => {
-                    general.stack_leniency = Some(value.parse().map_err(new_into_decimal)?)
-                }
-                "Mode" => general.mode = Some(value.parse().map_err(new_into_combine_game_mode)?),
-                "LetterboxInBreaks" => {
-                    general.letterbox_in_breaks =
-                        Some(parse_zero_one_bool(value).map_err(new_into_zero_one_bool)?)
-                }
-                "StoryFireInFront" => {
-                    general.story_fire_in_front =
-                        Some(parse_zero_one_bool(value).map_err(new_into_zero_one_bool)?)
-                }
-                "UseSkinSprites" => {
-                    general.use_skin_sprites =
-                        Some(parse_zero_one_bool(value).map_err(new_into_zero_one_bool)?)
-                }
-                "AlwaysShowPlayfield" => {
-                    general.always_show_playfield =
-                        Some(parse_zero_one_bool(value).map_err(new_into_zero_one_bool)?)
-                }
-                "OverlayPosition" => {
-                    general.overlay_position =
-                        Some(value.parse().map_err(new_into_strum_parse_error)?)
-                }
-                "SkinPreference" => general.skin_preference = Some(value.to_owned()),
-                "EpilepsyWarning" => {
-                    general.epilepsy_warning =
-                        Some(parse_zero_one_bool(value).map_err(new_into_zero_one_bool)?)
-                }
-                "CountdownOffset" => {
-                    general.countdown_offset = Some(value.parse().map_err(new_into_int)?)
-                }
-                "SpecialStyle" => {
-                    general.special_style =
-                        Some(parse_zero_one_bool(value).map_err(new_into_zero_one_bool)?)
-                }
-                "WidescreenStoryboard" => {
-                    general.widescreen_storyboard =
-                        Some(parse_zero_one_bool(value).map_err(new_into_zero_one_bool)?)
-                }
-                "SamplesMatchPlaybackRate" => {
-                    general.samples_match_playback_rate =
-                        Some(parse_zero_one_bool(value).map_err(new_into_zero_one_bool)?)
-                }
-                _ => return Err(Error::new(ParseError::InvalidKey, line_count)),
             }
+        };
+        let decimal = |name, value: &Option<Decimal>, fields: &mut Vec<_>| {
+            if let Some(value) = value {
+                let value = value.to_owned();
+                if let Some(value) = GENERAL_FIELD_VERSIONS
+                    .iter()
+                    .find(|v| v.field == name)
+                    .unwrap()
+                    .display(version, &GeneralFieldType::Decimal(value))
+                {
+                    fields.push((name, value));
+                }
+            }
+        };
 
-            line_count += ws.lines().count();
-            parsed_fields.push(name);
+        pathbuf("AudioFilename", &self.audio_filename, &mut fields);
+        int("AudioLeadIn", &self.audio_lead_in, &mut fields);
+        string("AudioHash", &self.audio_hash, &mut fields);
+        int("PreviewTime", &self.preview_time, &mut fields);
+        if let Some(countdown) = &self.countdown {
+            let countdown = match version {
+                3 => countdown.to_string_v3(),
+                4 => countdown.to_string_v4(),
+                5 => countdown.to_string_v5(),
+                6 => countdown.to_string_v6(),
+                7 => countdown.to_string_v7(),
+                8 => countdown.to_string_v8(),
+                9 => countdown.to_string_v9(),
+                10 => countdown.to_string_v10(),
+                11 => countdown.to_string_v11(),
+                12 => countdown.to_string_v12(),
+                13 => countdown.to_string_v13(),
+                14 => countdown.to_string_v14(),
+                _ => None,
+            };
+
+            if let Some(countdown) = countdown {
+                fields.push(("Countdown", countdown));
+            }
         }
+        if let Some(sample_set) = &self.sample_set {
+            let countdown = match version {
+                3 => sample_set.to_string_v3(),
+                4 => sample_set.to_string_v4(),
+                5 => sample_set.to_string_v5(),
+                6 => sample_set.to_string_v6(),
+                7 => sample_set.to_string_v7(),
+                8 => sample_set.to_string_v8(),
+                9 => sample_set.to_string_v9(),
+                10 => sample_set.to_string_v10(),
+                11 => sample_set.to_string_v11(),
+                12 => sample_set.to_string_v12(),
+                13 => sample_set.to_string_v13(),
+                14 => sample_set.to_string_v14(),
+                _ => None,
+            };
 
-        Ok(Some(general))
-    }
+            if let Some(countdown) = countdown {
+                fields.push(("SampleSet", countdown));
+            }
+        }
+        decimal("StackLeniency", &self.stack_leniency, &mut fields);
+        if let Some(mode) = &self.mode {
+            let mode = mode.to_owned();
+            if let Some(value) = GENERAL_FIELD_VERSIONS
+                .iter()
+                .find(|v| v.field == "Mode")
+                .unwrap()
+                .display(version, &GeneralFieldType::GameMode(mode))
+            {
+                fields.push(("Mode", value));
+            }
+        }
+        bool("LetterboxInBreaks", &self.letterbox_in_breaks, &mut fields);
+        bool("StoryFireInFront", &self.story_fire_in_front, &mut fields);
+        bool("UseSkinSprites", &self.use_skin_sprites, &mut fields);
+        bool(
+            "AlwaysShowPlayfield",
+            &self.always_show_playfield,
+            &mut fields,
+        );
+        if let Some(overlay_position) = &self.overlay_position {
+            let countdown = match version {
+                3 => overlay_position.to_string_v3(),
+                4 => overlay_position.to_string_v4(),
+                5 => overlay_position.to_string_v5(),
+                6 => overlay_position.to_string_v6(),
+                7 => overlay_position.to_string_v7(),
+                8 => overlay_position.to_string_v8(),
+                9 => overlay_position.to_string_v9(),
+                10 => overlay_position.to_string_v10(),
+                11 => overlay_position.to_string_v11(),
+                12 => overlay_position.to_string_v12(),
+                13 => overlay_position.to_string_v13(),
+                14 => overlay_position.to_string_v14(),
+                _ => None,
+            };
 
-    fn to_string_v14(&self) -> Option<String> {
-        let audio_file_name = self
-            .audio_filename
-            .as_ref()
-            .map(|p| p.display().to_string());
-        let fields = [
-            ("AudioFilename", &audio_file_name),
-            ("AudioLeadIn", &self.audio_lead_in.map(|v| v.to_string())),
-            ("AudioHash", &self.audio_hash),
-            ("PreviewTime", &self.preview_time.map(|v| v.to_string())),
-            (
-                "Countdown",
-                &self.countdown.map(|v| (v as Integer).to_string()),
-            ),
-            (
-                "SampleSet",
-                &self.sample_set.map(|v| v.to_string_v14().unwrap()),
-            ),
-            ("StackLeniency", &self.stack_leniency.map(|v| v.to_string())),
-            ("Mode", &self.mode.map(|v| (v as Integer).to_string())),
-            (
-                "LetterboxInBreaks",
-                &self.letterbox_in_breaks.map(|v| (v as Integer).to_string()),
-            ),
-            (
-                "StoryFireInFront",
-                &self.story_fire_in_front.map(|v| (v as Integer).to_string()),
-            ),
-            (
-                "UseSkinSprites",
-                &self.use_skin_sprites.map(|v| (v as Integer).to_string()),
-            ),
-            (
-                "AlwaysShowPlayfield",
-                &self
-                    .always_show_playfield
-                    .map(|v| (v as Integer).to_string()),
-            ),
-            (
-                "OverlayPosition",
-                &self.overlay_position.map(|v| v.to_string()),
-            ),
-            (
-                "SkinPreference",
-                &self.skin_preference.as_ref().map(|v| v.to_string()),
-            ),
-            (
-                "EpilepsyWarning",
-                &self.epilepsy_warning.map(|v| (v as Integer).to_string()),
-            ),
-            (
-                "CountdownOffset",
-                &self.countdown_offset.map(|v| v.to_string()),
-            ),
-            (
-                "SpecialStyle",
-                &self.special_style.map(|v| (v as Integer).to_string()),
-            ),
-            (
-                "WidescreenStoryboard",
-                &self
-                    .widescreen_storyboard
-                    .map(|v| (v as Integer).to_string()),
-            ),
-            (
-                "SamplesMatchPlaybackRate",
-                &self
-                    .samples_match_playback_rate
-                    .map(|v| (v as Integer).to_string()),
-            ),
-        ];
+            if let Some(countdown) = countdown {
+                fields.push(("OverlayPosition", countdown));
+            }
+        }
+        string("SkinPreference", &self.skin_preference, &mut fields);
+        bool("EpilepsyWarning", &self.epilepsy_warning, &mut fields);
+        int("CountdownOffset", &self.countdown_offset, &mut fields);
+        bool("SpecialStyle", &self.special_style, &mut fields);
+        bool(
+            "WidescreenStoryboard",
+            &self.widescreen_storyboard,
+            &mut fields,
+        );
+        bool(
+            "SamplesMatchPlaybackRate",
+            &self.samples_match_playback_rate,
+            &mut fields,
+        );
 
-        Some(display_colon_fields(&fields, true))
+        Some(
+            fields
+                .iter()
+                .map(|(name, value)| format!("{}: {}", name, value))
+                .collect::<Vec<_>>()
+                .join("\n"),
+        )
     }
 }
 
@@ -731,10 +707,10 @@ impl From<CountdownSpeed> for Integer {
 }
 
 impl FromStr for CountdownSpeed {
-    type Err = CountdownSpeedParseError;
+    type Err = ParseCountdownSpeedError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        CountdownSpeed::from_repr(s.parse()?).ok_or(CountdownSpeedParseError::UnknownType)
+        CountdownSpeed::from_repr(s.parse()?).ok_or(ParseCountdownSpeedError::UnknownType)
     }
 }
 
@@ -745,7 +721,7 @@ impl Default for CountdownSpeed {
 }
 
 impl Version for CountdownSpeed {
-    type ParseError = CountdownSpeedParseError;
+    type ParseError = ParseCountdownSpeedError;
 
     // TODO investigate versions
     fn from_str_v3(s: &str) -> std::result::Result<Option<Self>, Self::ParseError>
@@ -843,10 +819,10 @@ impl Default for GameMode {
 }
 
 impl FromStr for GameMode {
-    type Err = GameModeParseError;
+    type Err = ParseGameModeError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        GameMode::from_repr(s.parse()?).ok_or(GameModeParseError::UnknownType)
+        GameMode::from_repr(s.parse()?).ok_or(ParseGameModeError::UnknownType)
     }
 }
 
@@ -857,7 +833,7 @@ impl From<GameMode> for Integer {
 }
 
 impl Version for GameMode {
-    type ParseError = GameModeParseError;
+    type ParseError = ParseGameModeError;
 
     // TODO check what gamemodes exist in versions
     fn from_str_v3(s: &str) -> std::result::Result<Option<Self>, Self::ParseError>
