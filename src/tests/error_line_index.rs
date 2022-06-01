@@ -6,7 +6,7 @@ use crate::osu_file::*;
 fn general() {
     let general = "AudioFilename: audio.mp3\nfoo: bar";
     let osu_file = format!("osu file format v14\n\n\n\n[General]\n{general}");
-    let general_err = General::from_str_v14(general).unwrap_err();
+    let general_err = General::from_str(general, 14).unwrap_err();
     let osu_file_err = osu_file.parse::<OsuFile>().unwrap_err();
 
     assert_eq!(general_err.line_index(), 1);
