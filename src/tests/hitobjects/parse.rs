@@ -1,4 +1,5 @@
 use crate::osu_file::hitobjects::HitObject;
+use pretty_assertions::assert_eq;
 
 #[test]
 fn hitobjects_parse() {
