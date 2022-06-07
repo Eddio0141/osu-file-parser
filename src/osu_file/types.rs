@@ -320,3 +320,41 @@ impl<T, E> FieldVersion<T, E> {
         }
     }
 }
+
+#[macro_export]
+macro_rules! versioned_field {
+    ($name:ident, $field_type:ty) => {
+        #[derive(PartialEq, Debug, Clone, Eq, Hash)]
+        pub struct $name(pub $field_type);
+
+        impl $name {
+            pub fn from_str(s: &str, version: usize) -> Option<Self> {
+                None
+            }
+        }
+    };
+    ($name:ident, $field_type:ty, $from_str:expr, $parse_str_error:ty) => {
+        #[derive(PartialEq, Debug, Clone, Eq, Hash)]
+        pub struct $name(pub $field_type);
+
+        impl $name {
+            pub fn from_str(s: &str, version: usize) -> Result<Option<Self>, $parse_str_error> {
+                Ok($from_str(s, version)?.map(|v| $name(v)))
+            }
+        }
+    };
+    ($name:ident, $field_type:ty, $from_str:expr, $parse_str_error:ty, $default:expr) => {
+        #[derive(PartialEq, Debug, Clone, Eq, Hash)]
+        pub struct $name(pub $field_type);
+
+        impl $name {
+            pub fn from_str(s: &str, version: usize) -> Result<Option<Self>, $parse_str_error> {
+                Ok($from_str(s, version)?.map($name))
+            }
+
+            pub fn default(version: usize) -> Option<Self> {
+                $default(version).map($name)
+            }
+        }
+    };
+}
