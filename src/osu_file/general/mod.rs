@@ -11,8 +11,8 @@ use rust_decimal_macros::dec;
 use strum_macros::{Display, EnumString, FromRepr};
 use thiserror::Error;
 
-use crate::helper;
 use crate::parsers::get_colon_field_value_lines;
+use crate::{helper, versioned_field};
 
 use crate::osu_file::Integer;
 
@@ -21,12 +21,20 @@ pub use self::error::*;
 use super::{types::Error, Version};
 use super::{FieldVersion, LATEST_VERSION, MIN_VERSION};
 
+versioned_field!(
+    AudioFilename,
+    PathBuf,
+    |s: &str, _: usize| { Ok(Some(PathBuf::from(s))) },
+    (),
+    |_: usize| { Some(PathBuf::from("")) }
+);
+
 /// A struct representing the general section of the .osu file.
 #[derive(PartialEq, Debug, Clone, Eq, Hash)]
 #[non_exhaustive]
 pub struct General {
     /// Location of the audio file relative to the current folder.
-    pub audio_filename: Option<PathBuf>,
+    pub audio_filename: Option<AudioFilename>,
     /// Milliseconds of silence before the audio starts playing.
     pub audio_lead_in: Option<Integer>,
     /// Deprecated.
@@ -391,7 +399,7 @@ impl General {
                         .map_err(|err| Error::new_into(err, line_count))?;
 
                     match name {
-                        "AudioFilename" => general.audio_filename = Some(value.try_into().unwrap()),
+                        "AudioFilename" => general.audio_filename = AudioFilename::from_str(value, version)?,
                         "AudioLeadIn" => general.audio_lead_in = Some(value.try_into().unwrap()),
                         "AudioHash" => general.audio_hash = Some(value.try_into().unwrap()),
                         "PreviewTime" => general.preview_time = Some(value.try_into().unwrap()),
