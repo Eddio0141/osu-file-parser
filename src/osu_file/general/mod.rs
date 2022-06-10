@@ -12,7 +12,7 @@ use strum_macros::{Display, EnumString, FromRepr};
 use thiserror::Error;
 
 use crate::parsers::get_colon_field_value_lines;
-use crate::{helper, versioned_field};
+use crate::{helper, versioned_field, general_section};
 
 use crate::osu_file::Integer;
 
@@ -27,6 +27,13 @@ versioned_field!(
     |s: &str, _: usize| { Ok(Some(PathBuf::from(s))) },
     (),
     |_: usize| { Some(PathBuf::from("")) }
+);
+
+general_section!(
+    /// test
+    ,    
+    GeneralTest,
+    audio_filename: AudioFilename
 );
 
 /// A struct representing the general section of the .osu file.
