@@ -39,6 +39,12 @@ pub enum ParseError {
     InvalidVersion,
 }
 
+impl From<()> for ParseError {
+    fn from(_: ()) -> Self {
+        unreachable!()
+    }
+}
+
 /// Error used when there's an error parsing the string as enum.
 #[derive(Debug, Error)]
 pub enum ParseGameModeError {
