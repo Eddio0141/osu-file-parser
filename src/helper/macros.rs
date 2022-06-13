@@ -1,4 +1,19 @@
-#[macro_export]
+macro_rules! versioned_field_from {
+    ($name:ident, $field_type:ty) => {
+        impl From<$field_type> for $name {
+            fn from(t: $field_type) -> Self {
+                $name(t)
+            }
+        }
+
+        impl From<$name> for $field_type {
+            fn from(t: $name) -> Self {
+                t.0
+            }
+        }
+    };
+}
+
 macro_rules! versioned_field {
     ($name:ident, $field_type:ty, no_versions, |$s:ident| { $from_str_inner:expr } -> $parse_str_error:ty, |$v:ident| { $to_string_inner:expr }, $default:expr) => {
         #[derive(PartialEq, Debug, Clone, Eq, Hash)]
@@ -21,17 +36,7 @@ macro_rules! versioned_field {
             }
         }
 
-        impl From<$field_type> for $name {
-            fn from(t: $field_type) -> Self {
-                $name(t)
-            }
-        }
-
-        impl From<$name> for $field_type {
-            fn from(t: $name) -> Self {
-                t.0
-            }
-        }
+        versioned_field_from!($name, $field_type);
     };
     ($name:ident, $field_type:ty, no_versions, |$s:ident| { $from_str_inner:expr } -> $parse_str_error:ty, $default:expr) => {
         #[derive(PartialEq, Debug, Clone, Eq, Hash)]
@@ -53,21 +58,10 @@ macro_rules! versioned_field {
             }
         }
 
-        impl From<$field_type> for $name {
-            fn from(t: $field_type) -> Self {
-                $name(t)
-            }
-        }
-
-        impl From<$name> for $field_type {
-            fn from(t: $name) -> Self {
-                t.0
-            }
-        }
+        versioned_field_from!($name, $field_type);
     };
 }
 
-#[macro_export]
 macro_rules! general_section {
     (
         $(#[$outer:meta])*
@@ -148,3 +142,7 @@ macro_rules! general_section {
         }
     };
 }
+
+pub(crate) use general_section;
+pub(crate) use versioned_field;
+pub(crate) use versioned_field_from;
