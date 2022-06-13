@@ -1,3 +1,5 @@
+pub mod macros;
+
 use std::num::ParseIntError;
 
 use thiserror::Error;
