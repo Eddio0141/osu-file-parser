@@ -361,12 +361,22 @@ macro_rules! versioned_field {
 
 #[macro_export]
 macro_rules! general_section {
-    // generate struct with user defined fields
-    ($(#[$outer:meta])*, $section_name:ident, $($field:ident: $field_type:ty),*) => {
+    (
+        $(#[$outer:meta])*
+        pub struct $section_name:ident {
+            $(
+                $(#[$inner:meta])*
+                pub $field:ident: $field_type:ty,
+            )*
+        }
+    ) => {
         #[derive(PartialEq, Debug, Clone, Eq, Hash)]
         $(#[$outer])*
         pub struct $section_name {
-            $(pub $field: Option<$field_type>),*
+            $(
+                $(#[$inner])*
+                pub $field: Option<$field_type>,
+            )*
         }
 
         impl $section_name {
