@@ -10,8 +10,8 @@ use rust_decimal_macros::dec;
 use strum_macros::{Display, EnumString, FromRepr};
 
 use crate::helper;
+use crate::helper::macros::*;
 use crate::parsers::get_colon_field_value_lines;
-use crate::{general_section, versioned_field};
 
 use crate::osu_file::Integer;
 
@@ -25,16 +25,16 @@ versioned_field!(AudioLeadIn, Integer, no_versions, |s| { s.parse() } -> ParseIn
 versioned_field!(AudioHash, String, no_versions, |s| { Ok(s.to_string()) } -> (), String::new());
 versioned_field!(PreviewTime, Integer, no_versions, |s| { s.parse() } -> ParseIntError, -1);
 versioned_field!(StackLeniency, Decimal, no_versions, |s| { s.parse() } -> rust_decimal::Error, dec!(0.7));
-versioned_field!(LetterboxInBreaks, bool, no_versions, |s| { helper::parse_zero_one_bool(s) } -> helper::ParseZeroOneBoolError, false);
-versioned_field!(StoryFireInFront, bool, no_versions, |s| { helper::parse_zero_one_bool(s) } -> helper::ParseZeroOneBoolError, true);
-versioned_field!(UseSkinSprites, bool, no_versions, |s| { helper::parse_zero_one_bool(s) } -> helper::ParseZeroOneBoolError, false);
-versioned_field!(AlwaysShowPlayfield, bool, no_versions, |s| { helper::parse_zero_one_bool(s) } -> helper::ParseZeroOneBoolError, false);
+versioned_field!(LetterboxInBreaks, bool, no_versions, |s| { helper::parse_zero_one_bool(s) } -> helper::ParseZeroOneBoolError, boolean, false);
+versioned_field!(StoryFireInFront, bool, no_versions, |s| { helper::parse_zero_one_bool(s) } -> helper::ParseZeroOneBoolError, boolean, true);
+versioned_field!(UseSkinSprites, bool, no_versions, |s| { helper::parse_zero_one_bool(s) } -> helper::ParseZeroOneBoolError, boolean, false);
+versioned_field!(AlwaysShowPlayfield, bool, no_versions, |s| { helper::parse_zero_one_bool(s) } -> helper::ParseZeroOneBoolError, boolean, false);
 versioned_field!(SkinPreference, String, no_versions, |s| { Ok(s.to_string()) } -> (), String::new());
-versioned_field!(EpilepsyWarning, bool, no_versions, |s| { helper::parse_zero_one_bool(s) } -> helper::ParseZeroOneBoolError, false);
+versioned_field!(EpilepsyWarning, bool, no_versions, |s| { helper::parse_zero_one_bool(s) } -> helper::ParseZeroOneBoolError, boolean, false);
 versioned_field!(CountdownOffset, Integer, no_versions, |s| { s.parse() } -> ParseIntError, 0);
-versioned_field!(SpecialStyle, bool, no_versions, |s| { helper::parse_zero_one_bool(s) } -> helper::ParseZeroOneBoolError, false);
-versioned_field!(WidescreenStoryboard, bool, no_versions, |s| { helper::parse_zero_one_bool(s) } -> helper::ParseZeroOneBoolError, false);
-versioned_field!(SamplesMatchPlaybackRate, bool, no_versions, |s| { helper::parse_zero_one_bool(s) } -> helper::ParseZeroOneBoolError, false);
+versioned_field!(SpecialStyle, bool, no_versions, |s| { helper::parse_zero_one_bool(s) } -> helper::ParseZeroOneBoolError, boolean, false);
+versioned_field!(WidescreenStoryboard, bool, no_versions, |s| { helper::parse_zero_one_bool(s) } -> helper::ParseZeroOneBoolError, boolean, false);
+versioned_field!(SamplesMatchPlaybackRate, bool, no_versions, |s| { helper::parse_zero_one_bool(s) } -> helper::ParseZeroOneBoolError, boolean, false);
 
 general_section!(
     /// A struct representing the general section of an osu file.
