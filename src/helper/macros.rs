@@ -38,6 +38,29 @@ macro_rules! versioned_field {
 
         versioned_field_from!($name, $field_type);
     };
+    ($name:ident, $field_type:ty, no_versions, |$s:ident| { $from_str_inner:expr } -> $parse_str_error:ty, |$v:ident| { $to_string_inner:expr }) => {
+        #[derive(PartialEq, Debug, Clone, Eq, Hash)]
+        pub struct $name(pub $field_type);
+
+        impl Version for $name {
+            type ParseError = $parse_str_error;
+
+            fn from_str($s: &str, _: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
+                $from_str_inner.map(|value| Some(Self(value)))
+            }
+
+            fn to_string(&self, _: usize) -> Option<String> {
+                let $v = self.0;
+                Some($to_string_inner)
+            }
+
+            fn default(_: usize) -> Option<Self> {
+                None
+            }
+        }
+
+        versioned_field_from!($name, $field_type);
+    };
     ($name:ident, $field_type:ty, no_versions, |$s:ident| { $from_str_inner:expr } -> $parse_str_error:ty, $default:expr) => {
         #[derive(PartialEq, Debug, Clone, Eq, Hash)]
         pub struct $name(pub $field_type);
