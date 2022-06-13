@@ -492,21 +492,22 @@ impl FromStr for OsuFile {
     }
 }
 
-impl Default for OsuFile {
-    fn default() -> Self {
-        Self {
-            version: LATEST_VERSION,
-            general: Some(Default::default()),
-            editor: Some(Default::default()),
-            metadata: Some(Default::default()),
-            difficulty: Some(Default::default()),
-            events: Some(Default::default()),
-            timing_points: Some(Default::default()),
-            colours: Some(Default::default()),
-            hitobjects: Some(Default::default()),
-        }
-    }
-}
+// TODO fix this
+// impl Default for OsuFile {
+//     fn default() -> Self {
+//         Self {
+//             version: LATEST_VERSION,
+//             general: Some(Default::default()),
+//             editor: Some(Default::default()),
+//             metadata: Some(Default::default()),
+//             difficulty: Some(Default::default()),
+//             events: Some(Default::default()),
+//             timing_points: Some(Default::default()),
+//             colours: Some(Default::default()),
+//             hitobjects: Some(Default::default()),
+//         }
+//     }
+// }
 
 #[derive(Debug, Error)]
 #[non_exhaustive]
