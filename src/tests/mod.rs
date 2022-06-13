@@ -20,7 +20,6 @@ use crate::osu_file::{
     timingpoints,
     timingpoints::{Effects, SampleIndex, TimingPoint, TimingPoints, Volume},
     types::Position,
-    Version,
 };
 
 #[test]
@@ -47,25 +46,25 @@ SamplesMatchPlaybackRate: 1";
     let i = General::from_str(i_str, 14).unwrap().unwrap();
 
     let g = General {
-        audio_filename: Some(PathBuf::from("test.mp3")),
-        audio_lead_in: Some(555),
-        audio_hash: Some("no.mp3".to_string()),
-        preview_time: Some(5),
+        audio_filename: Some(PathBuf::from("test.mp3").into()),
+        audio_lead_in: Some(555.into()),
+        audio_hash: Some("no.mp3".to_string().into()),
+        preview_time: Some(5.into()),
         countdown: Some(CountdownSpeed::Double),
         sample_set: Some(SampleSet::Soft),
-        stack_leniency: Some(dec!(0.9)),
+        stack_leniency: Some(dec!(0.9).into()),
         mode: Some(GameMode::Taiko),
-        letterbox_in_breaks: Some(true),
-        story_fire_in_front: Some(false),
-        use_skin_sprites: Some(true),
-        always_show_playfield: Some(false),
+        letterbox_in_breaks: Some(true.into()),
+        story_fire_in_front: Some(false.into()),
+        use_skin_sprites: Some(true.into()),
+        always_show_playfield: Some(false.into()),
         overlay_position: Some(OverlayPosition::Above),
-        skin_preference: Some("myskin".to_string()),
-        epilepsy_warning: Some(true),
-        countdown_offset: Some(120),
-        special_style: Some(true),
-        widescreen_storyboard: Some(true),
-        samples_match_playback_rate: Some(true),
+        skin_preference: Some("myskin".to_string().into()),
+        epilepsy_warning: Some(true.into()),
+        countdown_offset: Some(120.into()),
+        special_style: Some(true.into()),
+        widescreen_storyboard: Some(true.into()),
+        samples_match_playback_rate: Some(true.into()),
     };
 
     assert_eq!(i, g);
