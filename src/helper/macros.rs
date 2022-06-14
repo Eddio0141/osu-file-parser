@@ -22,7 +22,7 @@ macro_rules! versioned_field {
         #[derive(PartialEq, Debug, Clone, Eq, Hash)]
         pub struct $name(pub $field_type);
 
-        impl Version for $name {
+        impl crate::osu_file::types::Version for $name {
             type ParseError = $parse_str_error;
 
             fn from_str($s: &str, _: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
@@ -45,7 +45,7 @@ macro_rules! versioned_field {
         #[derive(PartialEq, Debug, Clone, Eq, Hash)]
         pub struct $name(pub $field_type);
 
-        impl Version for $name {
+        impl crate::osu_file::types::Version for $name {
             type ParseError = $parse_str_error;
 
             fn from_str($s: &str, _: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
@@ -67,7 +67,7 @@ macro_rules! versioned_field {
         #[derive(PartialEq, Debug, Clone, Eq, Hash)]
         pub struct $name(pub $field_type);
 
-        impl Version for $name {
+        impl crate::osu_file::types::Version for $name {
             type ParseError = $parse_str_error;
 
             fn from_str($s: &str, _: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
@@ -90,7 +90,7 @@ macro_rules! versioned_field {
         #[derive(PartialEq, Debug, Clone, Eq, Hash)]
         pub struct $name(pub $field_type);
 
-        impl Version for $name {
+        impl crate::osu_file::types::Version for $name {
             type ParseError = $parse_str_error;
 
             fn from_str($s: &str, _: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
@@ -112,7 +112,7 @@ macro_rules! versioned_field {
         #[derive(PartialEq, Debug, Clone, Eq, Hash)]
         pub struct $name(pub $field_type);
 
-        impl Version for $name {
+        impl crate::osu_file::types::Version for $name {
             type ParseError = $parse_str_error;
 
             fn from_str($s: &str, _: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
@@ -267,7 +267,7 @@ macro_rules! general_section {
                     match name {
                         $(
                             stringify!($field_type) => {
-                                section.$field = Error::new_from_result_into(<$field_type>::from_str(value, version), line_count)?;
+                                section.$field = Error::new_from_result_into(crate::osu_file::types::Version::from_str(value, version), line_count)?;
                             }
                         )*
                         _ => return Err(Error::new(ParseError::InvalidKey, line_count)),
