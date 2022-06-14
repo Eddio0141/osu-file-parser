@@ -2,11 +2,20 @@
 
 use std::{fmt::Display, num::NonZeroUsize, str::FromStr};
 
+use nom::{
+    branch::alt,
+    bytes::complete::{tag, take_while},
+    combinator::{map_opt, map_res},
+    error::context,
+    sequence::{preceded, tuple},
+    Parser,
+};
 use strum_macros::{Display, EnumString, FromRepr};
 
 use crate::{
     helper::nth_bit_state_i64,
     osu_file::{Integer, Position},
+    parsers::nothing,
 };
 
 use super::error::*;
@@ -491,55 +500,97 @@ impl FromStr for HitSample {
     type Err = HitSampleParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut s = s.split(':');
-
-        let sample_set_count = 2;
-        let (normal_set, addition_set) = {
-            let mut sample_sets = Vec::new();
-
-            for i in 0..sample_set_count {
-                let s = s.next().ok_or(HitSampleParseError::MissingProperty(i))?;
-
-                sample_sets.push(s.parse().map_err(|err| HitSampleParseError::ParseError {
-                    source: Box::new(err),
-                    value: s.to_string(),
-                })?);
-            }
-
-            (sample_sets[0], sample_sets[1])
+        let field = || take_while(|c| c != ':');
+        let field_separator = || tag(":");
+        let sample_set = || {
+            context(
+                HitSampleParseError::InvalidSampleSet.into(),
+                map_opt(map_res(field(), |v: &str| v.parse()), |v| {
+                    SampleSet::from_repr(v)
+                })
+                .map(Some),
+            )
         };
 
-        let index = s.next().ok_or(HitSampleParseError::MissingProperty(2))?;
-        let index = index
-            .parse::<usize>()
-            .map_err(|err| HitSampleParseError::ParseError {
-                source: Box::new(err),
-                value: index.to_string(),
-            })?;
-        let index = if index == 0 {
-            None
-        } else {
-            // safe to unwrap since the 0 check is done before hand
-            Some(NonZeroUsize::new(index).unwrap())
-        };
+        let (_, hitsample) = alt((
+            nothing().map(|_| HitSample::default()),
+            tag("0:0:0:0:").map(|_| HitSample::default()),
+            tuple((
+                // normal_set
+                alt((nothing().map(|_| None), sample_set())),
+                // addition_set
+                alt((
+                    preceded(field_separator(), nothing()).map(|_| None),
+                    nothing().map(|_| None),
+                    preceded(
+                        context(
+                            HitSampleParseError::MissingSeparator.into(),
+                            field_separator(),
+                        ),
+                        sample_set(),
+                    ),
+                )),
+                // index
+                alt((
+                    preceded(field_separator(), nothing()).map(|_| None),
+                    nothing().map(|_| None),
+                    preceded(
+                        context(
+                            HitSampleParseError::MissingSeparator.into(),
+                            field_separator(),
+                        ),
+                        context(
+                            HitSampleParseError::InvalidIndex.into(),
+                            map_res(field(), |v: &str| v.parse()).map(|v| {
+                                let v = if v == 0 {
+                                    None
+                                } else {
+                                    Some(NonZeroUsize::new(v).unwrap())
+                                };
+                                Some(v)
+                            }),
+                        ),
+                    ),
+                )),
+                // volume
+                alt((
+                    preceded(field_separator(), nothing()).map(|_| None),
+                    nothing().map(|_| None),
+                    preceded(
+                        context(
+                            HitSampleParseError::MissingSeparator.into(),
+                            field_separator(),
+                        ),
+                        context(
+                            HitSampleParseError::InvalidVolume.into(),
+                            map_res(field(), |v: &str| v.parse()).map(Some),
+                        ),
+                    ),
+                )),
+                // filename
+                alt((
+                    preceded(field_separator(), nothing()).map(|_| None),
+                    nothing().map(|_| None),
+                    preceded(
+                        context(
+                            HitSampleParseError::MissingSeparator.into(),
+                            field_separator(),
+                        ),
+                        field().map(Some),
+                    ),
+                )),
+            ))
+            .map(|(normal_set, addition_set, index, volume, filename)| {
+                let normal_set = normal_set.unwrap_or_default();
+                let addition_set = addition_set.unwrap_or_default();
+                let index = index.unwrap_or_default();
+                let volume = volume.unwrap_or_default();
+                let filename = filename.unwrap_or_default().to_string();
 
-        let volume = s.next().ok_or(HitSampleParseError::MissingProperty(3))?;
-        let volume = volume
-            .parse()
-            .map_err(|err| HitSampleParseError::ParseError {
-                source: Box::new(err),
-                value: volume.to_string(),
-            })?;
+                HitSample::new(normal_set, addition_set, index, volume, filename)
+            }),
+        ))(s)?;
 
-        // filename is empty if not specified
-        let filename = s.next().unwrap_or_default();
-
-        Ok(Self {
-            normal_set,
-            addition_set,
-            index,
-            volume,
-            filename: filename.to_owned(),
-        })
+        Ok(hitsample)
     }
 }
