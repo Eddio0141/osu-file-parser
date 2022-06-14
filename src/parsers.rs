@@ -4,10 +4,10 @@ use nom::{
     bytes::complete::{tag, take_till, take_while},
     character::complete::multispace0,
     character::complete::{char, space0},
-    combinator::{map_res, rest},
+    combinator::{eof, map_res, rest},
     error::{FromExternalError, ParseError},
     multi::{many0, separated_list0},
-    sequence::{terminated, tuple},
+    sequence::{preceded, terminated, tuple},
     IResult,
 };
 
@@ -92,4 +92,11 @@ where
     T: FromStr,
 {
     map_res(rest, |s: &str| s.parse())
+}
+
+pub fn nothing<'a, E>() -> impl FnMut(&'a str) -> IResult<&str, &str, E>
+where
+    E: ParseError<&'a str>,
+{
+    preceded(space0, eof)
 }
