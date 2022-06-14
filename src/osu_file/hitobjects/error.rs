@@ -10,6 +10,8 @@ use nom::error::VerboseErrorKind;
 use strum_macros::{EnumString, IntoStaticStr};
 use thiserror::Error;
 
+use crate::helper::macros::verbose_error_to_error;
+
 #[derive(Debug, Error)]
 #[error(transparent)]
 pub struct ParseError(#[from] HitObjectParseError);
@@ -143,20 +145,14 @@ impl From<nom::Err<nom::error::VerboseError<&str>>> for HitObjectParseError {
     }
 }
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, EnumString, IntoStaticStr)]
 /// Error used when there was a problem parsing a `str` into a [`hitsample`][super::types::HitSample].
 pub enum HitSampleParseError {
-    /// A property is missing.
-    #[error("Property for the index {0} of the hitsample is missing")]
-    MissingProperty(usize),
-    /// There was a problem parsing the `str` into some type.
-    #[error("There was a problem parsing the `str` \"{value}\" to a property type")]
-    ParseError {
-        #[source]
-        source: Box<dyn Error>,
-        value: String,
-    },
+    #[error("Invalid `sample_set` value")]
+    InvalidSampleSet,
 }
+
+verbose_error_to_error!(HitSampleParseError);
 
 #[derive(Debug, Error)]
 /// Error used when there was a problem parsing a `str` into a [`sampleset`][super::types::SampleSet].
