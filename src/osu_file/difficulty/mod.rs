@@ -9,12 +9,12 @@ use super::Error;
 pub use self::error::*;
 use crate::osu_file::types::Version;
 
-versioned_field!(HPDrainRate, Decimal, no_versions, |s| { s.parse() } -> rust_decimal::Error, |v| { v.to_string() });
-versioned_field!(CircleSize, Decimal, no_versions, |s| { s.parse() } -> rust_decimal::Error, |v| { v.to_string() });
-versioned_field!(OverallDifficulty, Decimal, no_versions, |s| { s.parse() } -> rust_decimal::Error, |v| { v.to_string() });
-versioned_field!(ApproachRate, Decimal, no_versions, |s| { s.parse() } -> rust_decimal::Error, |v| { v.to_string() });
-versioned_field!(SliderMultiplier, Decimal, no_versions, |s| { s.parse() } -> rust_decimal::Error, |v| { v.to_string() });
-versioned_field!(SliderTickRate, Decimal, no_versions, |s| { s.parse() } -> rust_decimal::Error, |v| { v.to_string() });
+versioned_field!(HPDrainRate, Decimal, no_versions, |s| { s.parse() } -> rust_decimal::Error,,);
+versioned_field!(CircleSize, Decimal, no_versions, |s| { s.parse() } -> rust_decimal::Error,,);
+versioned_field!(OverallDifficulty, Decimal, no_versions, |s| { s.parse() } -> rust_decimal::Error,,);
+versioned_field!(ApproachRate, Decimal, no_versions, |s| { s.parse() } -> rust_decimal::Error,,);
+versioned_field!(SliderMultiplier, Decimal, no_versions, |s| { s.parse() } -> rust_decimal::Error,,);
+versioned_field!(SliderTickRate, Decimal, no_versions, |s| { s.parse() } -> rust_decimal::Error,,);
 
 general_section!(
     /// Difficulty settings.
