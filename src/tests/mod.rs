@@ -20,6 +20,7 @@ use crate::osu_file::{
     timingpoints,
     timingpoints::{Effects, SampleIndex, TimingPoint, TimingPoints, Volume},
     types::Position,
+    Version,
 };
 
 #[test]
@@ -78,20 +79,23 @@ DistanceSpacing: 0.8
 BeatDivisor: 12
 GridSize: 8
 TimelineZoom: 2";
-    let i = Editor::from_str_v14(i_str).unwrap().unwrap();
+    let i = Editor::from_str(i_str, 14).unwrap().unwrap();
 
     let e = Editor {
-        bookmarks: Some(vec![
-            11018, 21683, 32349, 37683, 48349, 59016, 69683, 80349, 91016,
-        ]),
-        distance_spacing: Some(dec!(0.8)),
-        beat_divisor: Some(dec!(12)),
-        grid_size: Some(8),
-        timeline_zoom: Some(dec!(2)),
+        bookmarks: Some(
+            vec![
+                11018, 21683, 32349, 37683, 48349, 59016, 69683, 80349, 91016,
+            ]
+            .into(),
+        ),
+        distance_spacing: Some(dec!(0.8).into()),
+        beat_divisor: Some(dec!(12).into()),
+        grid_size: Some(8.into()),
+        timeline_zoom: Some(dec!(2).into()),
     };
 
     assert_eq!(i, e);
-    assert_eq!(i_str, i.to_string_v14().unwrap());
+    assert_eq!(i_str, i.to_string(14).unwrap());
 }
 
 #[test]
@@ -106,32 +110,35 @@ Source:beatmania IIDX 8th style
 Tags:famoss 舟木智介 tomosuke funaki 徳井志津江 videogame ハードシャンソン Tart&Toffee
 BeatmapID:3072232
 BeatmapSetID:1499093";
-    let i = Metadata::from_str_v14(i_str).unwrap().unwrap();
+    let i = Metadata::from_str(i_str, 14).unwrap().unwrap();
 
     let m = Metadata {
-        title: Some("LOVE IS ORANGE".to_string()),
-        title_unicode: Some("LOVE IS ORANGE".to_string()),
-        artist: Some("Orange Lounge".to_string()),
-        artist_unicode: Some("Orange Lounge".to_string()),
-        creator: Some("Xnery".to_string()),
-        version: Some("Bittersweet Love".to_string()),
-        source: Some("beatmania IIDX 8th style".to_string()),
-        tags: Some(vec![
-            "famoss".to_string(),
-            "舟木智介".to_string(),
-            "tomosuke".to_string(),
-            "funaki".to_string(),
-            "徳井志津江".to_string(),
-            "videogame".to_string(),
-            "ハードシャンソン".to_string(),
-            "Tart&Toffee".to_string(),
-        ]),
-        beatmap_id: Some(3072232),
-        beatmap_set_id: Some(1499093),
+        title: Some("LOVE IS ORANGE".to_string().into()),
+        title_unicode: Some("LOVE IS ORANGE".to_string().into()),
+        artist: Some("Orange Lounge".to_string().into()),
+        artist_unicode: Some("Orange Lounge".to_string().into()),
+        creator: Some("Xnery".to_string().into()),
+        version: Some("Bittersweet Love".to_string().into()),
+        source: Some("beatmania IIDX 8th style".to_string().into()),
+        tags: Some(
+            vec![
+                "famoss".to_string(),
+                "舟木智介".to_string(),
+                "tomosuke".to_string(),
+                "funaki".to_string(),
+                "徳井志津江".to_string(),
+                "videogame".to_string(),
+                "ハードシャンソン".to_string(),
+                "Tart&Toffee".to_string(),
+            ]
+            .into(),
+        ),
+        beatmap_id: Some(3072232.into()),
+        beatmap_set_id: Some(1499093.into()),
     };
 
     assert_eq!(i, m);
-    assert_eq!(i_str, i.to_string_v14().unwrap());
+    assert_eq!(i_str, i.to_string(14).unwrap());
 }
 
 #[test]
@@ -142,19 +149,19 @@ OverallDifficulty:8
 ApproachRate:5
 SliderMultiplier:1.4
 SliderTickRate:1";
-    let i = Difficulty::from_str_v14(i_str).unwrap().unwrap();
+    let i = Difficulty::from_str(i_str, 14).unwrap().unwrap();
 
     let d = Difficulty {
-        hp_drain_rate: Some(dec!(8)),
-        circle_size: Some(dec!(5)),
-        overall_difficulty: Some(dec!(8)),
-        approach_rate: Some(dec!(5)),
-        slider_multiplier: Some(dec!(1.4)),
-        slider_tickrate: Some(Decimal::ONE),
+        hp_drain_rate: Some(dec!(8).into()),
+        circle_size: Some(dec!(5).into()),
+        overall_difficulty: Some(dec!(8).into()),
+        approach_rate: Some(dec!(5).into()),
+        slider_multiplier: Some(dec!(1.4).into()),
+        slider_tickrate: Some(Decimal::ONE.into()),
     };
 
     assert_eq!(i, d);
-    assert_eq!(i_str, i.to_string_v14().unwrap());
+    assert_eq!(i_str, i.to_string(14).unwrap());
 }
 
 #[test]
@@ -162,7 +169,7 @@ fn colours_parse_v14() {
     let i_str = "Combo1 : 255,128,255
 SliderTrackOverride : 100,99,70
 SliderBorder : 120,130,140";
-    let i = Colours::from_str_v14(i_str).unwrap().unwrap();
+    let i = Colours::from_str(i_str, 14).unwrap().unwrap();
 
     let c = vec![
         Colour::Combo(
@@ -186,14 +193,14 @@ SliderBorder : 120,130,140";
     ];
 
     assert_eq!(i, Colours(c));
-    assert_eq!(i_str, i.to_string_v14().unwrap());
+    assert_eq!(i_str, i.to_string(14).unwrap());
 }
 
 #[test]
 fn timing_points_parse_v14() {
     let i_str = "10000,333.33,4,0,0,100,1,1
 12000,-25,4,3,0,100,0,1";
-    let i = TimingPoints::from_str_v14(i_str).unwrap().unwrap();
+    let i = TimingPoints::from_str(i_str, 14).unwrap().unwrap();
 
     let t = vec![
         TimingPoint::new_uninherited(
@@ -223,7 +230,7 @@ fn timing_points_parse_v14() {
     ];
 
     assert_eq!(i, TimingPoints(t));
-    assert_eq!(i_str, i.to_string_v14().unwrap());
+    assert_eq!(i_str, i.to_string(14).unwrap());
 }
 
 #[test]
@@ -232,7 +239,7 @@ fn events_parse_v14() {
 0,0,bg2.jpg,0,1
 //Break Periods
 2,100,163";
-    let i = Events::from_str_v14(i_str).unwrap().unwrap();
+    let i = Events::from_str(i_str, 14).unwrap().unwrap();
 
     let e = Events(vec![
         Event::NormalEvent {
@@ -257,7 +264,7 @@ fn events_parse_v14() {
     ]);
 
     assert_eq!(i, e);
-    assert_eq!(i_str, i.to_string_v14().unwrap());
+    assert_eq!(i_str, i.to_string(14).unwrap());
 }
 
 #[test]

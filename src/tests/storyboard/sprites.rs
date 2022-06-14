@@ -8,7 +8,7 @@ use crate::osu_file::{events::*, Version};
 fn storyboard_sprites_parse() {
     let i_str = "Sprite,Pass,Centre,\"Text\\Play2-HaveFunH.png\",320,240
 Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopForever";
-    let i = Events::from_str_v14(i_str).unwrap().unwrap();
+    let i = Events::from_str(i_str, 14).unwrap().unwrap();
 
     let s = Events(vec![
         Event::Storyboard(Object {
@@ -35,7 +35,7 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
     ]);
 
     assert_eq!(i, s);
-    assert_eq!(i_str, i.to_string_v14().unwrap());
+    assert_eq!(i_str, i.to_string(14).unwrap());
 }
 
 #[test]
