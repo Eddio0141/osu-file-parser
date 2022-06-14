@@ -35,7 +35,7 @@ versioned_field!(Bookmarks, Vec<Integer>, no_versions, |s| {
 } -> ParseError, |v| { v.iter().map(|v| v.to_string())
     .collect::<Vec<_>>().join(",") },);
 versioned_field!(DistanceSpacing, Decimal, no_versions, |s| { s.parse() } -> rust_decimal::Error,,);
-versioned_field!(BeatDivisor, Integer, no_versions, |s| { s.parse() } -> ParseIntError,,);
+versioned_field!(BeatDivisor, Decimal, no_versions, |s| { s.parse() } -> rust_decimal::Error,,);
 versioned_field!(GridSize, Integer, no_versions, |s| { s.parse() } -> ParseIntError,,);
 versioned_field!(TimelineZoom, Decimal, no_versions, |s| { s.parse() } -> rust_decimal::Error,,);
 
