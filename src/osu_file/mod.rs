@@ -94,107 +94,27 @@ impl Display for OsuFile {
             }
         }
         if let Some(editor) = &self.editor {
-            let editor = match &self.version {
-                3 => editor.to_string_v3(),
-                4 => editor.to_string_v4(),
-                5 => editor.to_string_v5(),
-                6 => editor.to_string_v6(),
-                7 => editor.to_string_v7(),
-                8 => editor.to_string_v8(),
-                9 => editor.to_string_v9(),
-                10 => editor.to_string_v10(),
-                11 => editor.to_string_v11(),
-                12 => editor.to_string_v12(),
-                13 => editor.to_string_v13(),
-                14 => editor.to_string_v14(),
-                _ => unreachable!(),
-            };
-
-            if let Some(editor) = editor {
+            if let Some(editor) = editor.to_string(self.version) {
                 sections.push(format!("[Editor]\n{editor}"));
             }
         }
         if let Some(metadata) = &self.metadata {
-            let metadata = match &self.version {
-                3 => metadata.to_string_v3(),
-                4 => metadata.to_string_v4(),
-                5 => metadata.to_string_v5(),
-                6 => metadata.to_string_v6(),
-                7 => metadata.to_string_v7(),
-                8 => metadata.to_string_v8(),
-                9 => metadata.to_string_v9(),
-                10 => metadata.to_string_v10(),
-                11 => metadata.to_string_v11(),
-                12 => metadata.to_string_v12(),
-                13 => metadata.to_string_v13(),
-                14 => metadata.to_string_v14(),
-                _ => unreachable!(),
-            };
-
-            if let Some(metadata) = metadata {
+            if let Some(metadata) = metadata.to_string(self.version) {
                 sections.push(format!("[Metadata]\n{metadata}"));
             }
         }
         if let Some(difficulty) = &self.difficulty {
-            let difficulty = match &self.version {
-                3 => difficulty.to_string_v3(),
-                4 => difficulty.to_string_v4(),
-                5 => difficulty.to_string_v5(),
-                6 => difficulty.to_string_v6(),
-                7 => difficulty.to_string_v7(),
-                8 => difficulty.to_string_v8(),
-                9 => difficulty.to_string_v9(),
-                10 => difficulty.to_string_v10(),
-                11 => difficulty.to_string_v11(),
-                12 => difficulty.to_string_v12(),
-                13 => difficulty.to_string_v13(),
-                14 => difficulty.to_string_v14(),
-                _ => unreachable!(),
-            };
-
-            if let Some(difficulty) = difficulty {
+            if let Some(difficulty) = difficulty.to_string(self.version) {
                 sections.push(format!("[Difficulty]\n{difficulty}"));
             }
         }
         if let Some(events) = &self.events {
-            let events = match &self.version {
-                3 => events.to_string_v3(),
-                4 => events.to_string_v4(),
-                5 => events.to_string_v5(),
-                6 => events.to_string_v6(),
-                7 => events.to_string_v7(),
-                8 => events.to_string_v8(),
-                9 => events.to_string_v9(),
-                10 => events.to_string_v10(),
-                11 => events.to_string_v11(),
-                12 => events.to_string_v12(),
-                13 => events.to_string_v13(),
-                14 => events.to_string_v14(),
-                _ => unreachable!(),
-            };
-
-            if let Some(events) = events {
+            if let Some(events) = events.to_string(self.version) {
                 sections.push(format!("[Events]\n{events}"));
             }
         }
         if let Some(timing_points) = &self.timing_points {
-            let timing_points = match &self.version {
-                3 => timing_points.to_string_v3(),
-                4 => timing_points.to_string_v4(),
-                5 => timing_points.to_string_v5(),
-                6 => timing_points.to_string_v6(),
-                7 => timing_points.to_string_v7(),
-                8 => timing_points.to_string_v8(),
-                9 => timing_points.to_string_v9(),
-                10 => timing_points.to_string_v10(),
-                11 => timing_points.to_string_v11(),
-                12 => timing_points.to_string_v12(),
-                13 => timing_points.to_string_v13(),
-                14 => timing_points.to_string_v14(),
-                _ => unreachable!(),
-            };
-
-            if let Some(timing_points) = timing_points {
+            if let Some(timing_points) = timing_points.to_string(self.version) {
                 let section = format!("[TimingPoints]\n{timing_points}");
 
                 // for some reason below v14, theres an extra new line at the end
@@ -206,44 +126,12 @@ impl Display for OsuFile {
             }
         }
         if let Some(colours) = &self.colours {
-            let colours = match &self.version {
-                3 => colours.to_string_v3(),
-                4 => colours.to_string_v4(),
-                5 => colours.to_string_v5(),
-                6 => colours.to_string_v6(),
-                7 => colours.to_string_v7(),
-                8 => colours.to_string_v8(),
-                9 => colours.to_string_v9(),
-                10 => colours.to_string_v10(),
-                11 => colours.to_string_v11(),
-                12 => colours.to_string_v12(),
-                13 => colours.to_string_v13(),
-                14 => colours.to_string_v14(),
-                _ => unreachable!(),
-            };
-
-            if let Some(colours) = colours {
+            if let Some(colours) = colours.to_string(self.version) {
                 sections.push(format!("[Colours]\n{colours}"));
             }
         }
         if let Some(hitobjects) = &self.hitobjects {
-            let hitobjects = match &self.version {
-                3 => hitobjects.to_string_v3(),
-                4 => hitobjects.to_string_v4(),
-                5 => hitobjects.to_string_v5(),
-                6 => hitobjects.to_string_v6(),
-                7 => hitobjects.to_string_v7(),
-                8 => hitobjects.to_string_v8(),
-                9 => hitobjects.to_string_v9(),
-                10 => hitobjects.to_string_v10(),
-                11 => hitobjects.to_string_v11(),
-                12 => hitobjects.to_string_v12(),
-                13 => hitobjects.to_string_v13(),
-                14 => hitobjects.to_string_v14(),
-                _ => unreachable!(),
-            };
-
-            if let Some(hitobjects) = hitobjects {
+            if let Some(hitobjects) = hitobjects.to_string(self.version) {
                 sections.push(format!("[HitObjects]\n{hitobjects}"));
             }
         }
@@ -332,144 +220,34 @@ impl FromStr for OsuFile {
                         Error::processing_line(General::from_str(section, version), line_number)?
                 }
                 "Editor" => {
-                    editor = Error::processing_line(
-                        match version {
-                            14 => Editor::from_str_v14(section),
-                            13 => Editor::from_str_v13(section),
-                            12 => Editor::from_str_v12(section),
-                            11 => Editor::from_str_v11(section),
-                            10 => Editor::from_str_v10(section),
-                            9 => Editor::from_str_v9(section),
-                            8 => Editor::from_str_v8(section),
-                            7 => Editor::from_str_v7(section),
-                            6 => Editor::from_str_v6(section),
-                            5 => Editor::from_str_v5(section),
-                            4 => Editor::from_str_v4(section),
-                            3 => Editor::from_str_v3(section),
-                            _ => unreachable!("version {} not implemented", version),
-                        },
-                        line_number,
-                    )?
+                    editor =
+                        Error::processing_line(Editor::from_str(section, version), line_number)?
                 }
                 "Metadata" => {
-                    metadata = Error::processing_line(
-                        match version {
-                            14 => Metadata::from_str_v14(section),
-                            13 => Metadata::from_str_v13(section),
-                            12 => Metadata::from_str_v12(section),
-                            11 => Metadata::from_str_v11(section),
-                            10 => Metadata::from_str_v10(section),
-                            9 => Metadata::from_str_v9(section),
-                            8 => Metadata::from_str_v8(section),
-                            7 => Metadata::from_str_v7(section),
-                            6 => Metadata::from_str_v6(section),
-                            5 => Metadata::from_str_v5(section),
-                            4 => Metadata::from_str_v4(section),
-                            3 => Metadata::from_str_v3(section),
-                            _ => unreachable!("version {} not implemented", version),
-                        },
-                        line_number,
-                    )?
+                    metadata =
+                        Error::processing_line(Metadata::from_str(section, version), line_number)?
                 }
                 "Difficulty" => {
-                    difficulty = Error::processing_line(
-                        match version {
-                            14 => Difficulty::from_str_v14(section),
-                            13 => Difficulty::from_str_v13(section),
-                            12 => Difficulty::from_str_v12(section),
-                            11 => Difficulty::from_str_v11(section),
-                            10 => Difficulty::from_str_v10(section),
-                            9 => Difficulty::from_str_v9(section),
-                            8 => Difficulty::from_str_v8(section),
-                            7 => Difficulty::from_str_v7(section),
-                            6 => Difficulty::from_str_v6(section),
-                            5 => Difficulty::from_str_v5(section),
-                            4 => Difficulty::from_str_v4(section),
-                            3 => Difficulty::from_str_v3(section),
-                            _ => unreachable!("version {} not implemented", version),
-                        },
-                        line_number,
-                    )?
+                    difficulty =
+                        Error::processing_line(Difficulty::from_str(section, version), line_number)?
                 }
                 "Events" => {
-                    events = Error::processing_line(
-                        match version {
-                            14 => Events::from_str_v14(section),
-                            13 => Events::from_str_v13(section),
-                            12 => Events::from_str_v12(section),
-                            11 => Events::from_str_v11(section),
-                            10 => Events::from_str_v10(section),
-                            9 => Events::from_str_v9(section),
-                            8 => Events::from_str_v8(section),
-                            7 => Events::from_str_v7(section),
-                            6 => Events::from_str_v6(section),
-                            5 => Events::from_str_v5(section),
-                            4 => Events::from_str_v4(section),
-                            3 => Events::from_str_v3(section),
-                            _ => unreachable!("version {} not implemented", version),
-                        },
-                        line_number,
-                    )?
+                    events =
+                        Error::processing_line(Events::from_str(section, version), line_number)?
                 }
                 "TimingPoints" => {
                     timing_points = Error::processing_line(
-                        match version {
-                            14 => TimingPoints::from_str_v14(section),
-                            13 => TimingPoints::from_str_v13(section),
-                            12 => TimingPoints::from_str_v12(section),
-                            11 => TimingPoints::from_str_v11(section),
-                            10 => TimingPoints::from_str_v10(section),
-                            9 => TimingPoints::from_str_v9(section),
-                            8 => TimingPoints::from_str_v8(section),
-                            7 => TimingPoints::from_str_v7(section),
-                            6 => TimingPoints::from_str_v6(section),
-                            5 => TimingPoints::from_str_v5(section),
-                            4 => TimingPoints::from_str_v4(section),
-                            3 => TimingPoints::from_str_v3(section),
-                            _ => unreachable!("version {} not implemented", version),
-                        },
+                        TimingPoints::from_str(section, version),
                         line_number,
                     )?
                 }
                 "Colours" => {
-                    colours = Error::processing_line(
-                        match version {
-                            14 => Colours::from_str_v14(section),
-                            13 => Colours::from_str_v13(section),
-                            12 => Colours::from_str_v12(section),
-                            11 => Colours::from_str_v11(section),
-                            10 => Colours::from_str_v10(section),
-                            9 => Colours::from_str_v9(section),
-                            8 => Colours::from_str_v8(section),
-                            7 => Colours::from_str_v7(section),
-                            6 => Colours::from_str_v6(section),
-                            5 => Colours::from_str_v5(section),
-                            4 => Colours::from_str_v4(section),
-                            3 => Colours::from_str_v3(section),
-                            _ => unreachable!("version {} not implemented", version),
-                        },
-                        line_number,
-                    )?
+                    colours =
+                        Error::processing_line(Colours::from_str(section, version), line_number)?
                 }
                 "HitObjects" => {
-                    hitobjects = Error::processing_line(
-                        match version {
-                            14 => HitObjects::from_str_v14(section),
-                            13 => HitObjects::from_str_v13(section),
-                            12 => HitObjects::from_str_v12(section),
-                            11 => HitObjects::from_str_v11(section),
-                            10 => HitObjects::from_str_v10(section),
-                            9 => HitObjects::from_str_v9(section),
-                            8 => HitObjects::from_str_v8(section),
-                            7 => HitObjects::from_str_v7(section),
-                            6 => HitObjects::from_str_v6(section),
-                            5 => HitObjects::from_str_v5(section),
-                            4 => HitObjects::from_str_v4(section),
-                            3 => HitObjects::from_str_v3(section),
-                            _ => unreachable!("version {} not implemented", version),
-                        },
-                        line_number,
-                    )?
+                    hitobjects =
+                        Error::processing_line(HitObjects::from_str(section, version), line_number)?
                 }
                 _ => return Err(Error::new(ParseError::UnknownSection, section_name_line)),
             }
