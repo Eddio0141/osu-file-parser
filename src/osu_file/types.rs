@@ -152,6 +152,7 @@ impl<E> From<E> for Error<E> {
     }
 }
 
+// TODO make the default function as its own trait.
 /// A type that is versioned.
 pub trait Version: Sized {
     type ParseError;
