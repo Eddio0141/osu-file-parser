@@ -1,9 +1,6 @@
 pub mod error;
 pub mod types;
 
-use std::fmt::Display;
-use std::str::FromStr;
-
 use nom::branch::alt;
 use nom::bytes::complete::is_not;
 use nom::bytes::complete::take_until;
@@ -11,6 +8,7 @@ use nom::character::complete::space0;
 use nom::character::streaming::char;
 use nom::combinator::eof;
 use nom::combinator::map_res;
+use nom::combinator::rest;
 use nom::error::context;
 use nom::sequence::preceded;
 use nom::sequence::tuple;
@@ -34,21 +32,24 @@ impl Version for HitObjects {
     type ParseError = Error<ParseError>;
 
     // TODO different versions
-    fn from_str(s: &str, _: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
+    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
         let mut hitobjects = Vec::new();
 
         for (line_index, s) in s.lines().enumerate() {
-            hitobjects.push(Error::new_from_result_into(s.parse(), line_index)?);
+            hitobjects.push(Error::new_from_result_into(
+                HitObject::from_str(s, version).map(|v| v.unwrap()),
+                line_index,
+            )?);
         }
 
         Ok(Some(HitObjects(hitobjects)))
     }
 
-    fn to_string(&self, _: usize) -> Option<String> {
+    fn to_string(&self, version: usize) -> Option<String> {
         Some(
             self.0
                 .iter()
-                .map(|h| h.to_string())
+                .map(|h| h.to_string(version).unwrap())
                 .collect::<Vec<_>>()
                 .join("\n"),
         )
@@ -151,10 +152,10 @@ impl HitObject {
     }
 }
 
-impl FromStr for HitObject {
-    type Err = HitObjectParseError;
+impl Version for HitObject {
+    type ParseError = HitObjectParseError;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
         let hitsound = context(
             HitObjectParseError::InvalidHitSound.into(),
             // TODO replace all map_res(is_not(",")) with comma_field_type
@@ -166,7 +167,9 @@ impl FromStr for HitObject {
                 context(HitObjectParseError::MissingHitSample.into(), comma()),
                 context(
                     HitObjectParseError::InvalidHitSample.into(),
-                    consume_rest_type(),
+                    map_res(rest, |s| {
+                        HitSample::from_str(s, version).map(|v| v.unwrap())
+                    }),
                 ),
             )
             .map(Some),
@@ -350,7 +353,9 @@ impl FromStr for HitObject {
                     context(HitObjectParseError::MissingHitSample.into(), char(':')),
                     context(
                         HitObjectParseError::InvalidHitSample.into(),
-                        consume_rest_type(),
+                        map_res(rest, |s| {
+                            HitSample::from_str(s, version).map(|v| v.unwrap())
+                        }),
                     ),
                 )
                 .map(Some),
@@ -380,12 +385,10 @@ impl FromStr for HitObject {
             return Err(HitObjectParseError::UnknownObjType);
         };
 
-        Ok(hitobject)
+        Ok(Some(hitobject))
     }
-}
 
-impl Display for HitObject {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn to_string(&self, version: usize) -> Option<String> {
         let mut properties: Vec<String> = vec![
             self.position.x.to_string(),
             self.position.y.to_string(),
@@ -426,29 +429,46 @@ impl Display for HitObject {
                     properties_2.push(pipe_vec_to_string(edge_sets));
                 }
                 if let Some(hitsample) = &self.hitsample {
-                    properties_2.push(hitsample.to_string());
+                    if let Some(hitsample) = hitsample.to_string(version) {
+                        properties_2.push(hitsample);
+                    }
                 }
 
-                return write!(f, "{}|{}", properties.join(","), properties_2.join(","));
+                return Some(format!(
+                    "{}|{}",
+                    properties.join(","),
+                    properties_2.join(",")
+                ));
             }
             HitObjectParams::Spinner { end_time } => properties.push(end_time.to_string()),
             HitObjectParams::OsuManiaHold { end_time } => {
                 properties.push(end_time.to_string());
 
-                let hitsample = match &self.hitsample {
-                    Some(hitsample) => format!(":{hitsample}"),
-                    None => String::new(),
+                let hitsample = if let Some(hitsample) = &self.hitsample {
+                    if let Some(hitsample) = hitsample.to_string(version) {
+                        hitsample
+                    } else {
+                        String::new()
+                    }
+                } else {
+                    String::new()
                 };
 
-                return write!(f, "{}{hitsample}", properties.join(","));
+                return Some(format!("{}{hitsample}", properties.join(",")));
             }
         }
 
         if let Some(hitsample) = &self.hitsample {
-            properties.push(hitsample.to_string());
+            if let Some(hitsample) = hitsample.to_string(version) {
+                properties.push(hitsample);
+            }
         }
 
-        write!(f, "{}", properties.join(","))
+        Some(format!("{}", properties.join(",")))
+    }
+
+    fn default(_: usize) -> Option<Self> {
+        None
     }
 }
 
