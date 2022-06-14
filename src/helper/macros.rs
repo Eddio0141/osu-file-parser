@@ -15,7 +15,9 @@ macro_rules! versioned_field_from {
 }
 
 macro_rules! versioned_field {
-    ($name:ident, $field_type:ty, no_versions, |$s:ident| { $from_str_inner:expr } -> $parse_str_error:ty, |$v:ident| { $to_string_inner:expr }, $default:expr) => {
+    // full syntax
+    // $name:ident, $field_type:ty, no_versions | (nothing), |$s:ident| $from_str_inner:block -> $parse_str_error:ty, |$v:ident| $to_string_inner:block | boolean, $default:block
+    ($name:ident, $field_type:ty, no_versions, |$s:ident| $from_str_inner:block -> $parse_str_error:ty, |$v:ident| $to_string_inner:block, $default:expr) => {
         #[derive(PartialEq, Debug, Clone, Eq, Hash)]
         pub struct $name(pub $field_type);
 
@@ -38,7 +40,7 @@ macro_rules! versioned_field {
 
         versioned_field_from!($name, $field_type);
     };
-    ($name:ident, $field_type:ty, no_versions, |$s:ident| { $from_str_inner:expr } -> $parse_str_error:ty, |$v:ident| { $to_string_inner:expr }) => {
+    ($name:ident, $field_type:ty, no_versions, |$s:ident| $from_str_inner:block -> $parse_str_error:ty, |$v:ident| $to_string_inner:block,) => {
         #[derive(PartialEq, Debug, Clone, Eq, Hash)]
         pub struct $name(pub $field_type);
 
@@ -61,7 +63,7 @@ macro_rules! versioned_field {
 
         versioned_field_from!($name, $field_type);
     };
-    ($name:ident, $field_type:ty, no_versions, |$s:ident| { $from_str_inner:expr } -> $parse_str_error:ty, $default:expr) => {
+    ($name:ident, $field_type:ty, no_versions, |$s:ident| $from_str_inner:block -> $parse_str_error:ty,,) => {
         #[derive(PartialEq, Debug, Clone, Eq, Hash)]
         pub struct $name(pub $field_type);
 
@@ -77,13 +79,13 @@ macro_rules! versioned_field {
             }
 
             fn default(_: usize) -> Option<Self> {
-                Some($default.into())
+                None
             }
         }
 
         versioned_field_from!($name, $field_type);
     };
-    ($name:ident, $field_type:ty, no_versions, |$s:ident| { $from_str_inner:expr } -> $parse_str_error:ty, boolean, $default:expr) => {
+    ($name:ident, $field_type:ty, no_versions, |$s:ident| $from_str_inner:block -> $parse_str_error:ty, boolean, $default:expr) => {
         #[derive(PartialEq, Debug, Clone, Eq, Hash)]
         pub struct $name(pub $field_type);
 
