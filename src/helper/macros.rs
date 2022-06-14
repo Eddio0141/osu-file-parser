@@ -1,3 +1,4 @@
+// TODO clean up macros
 macro_rules! versioned_field_from {
     ($name:ident, $field_type:ty) => {
         impl From<$field_type> for $name {
@@ -181,7 +182,7 @@ macro_rules! general_section {
 
                     match name {
                         $(
-                            stringify!($field) => {
+                            stringify!($field_type) => {
                                 section.$field = Error::new_from_result_into(<$field_type>::from_str(value, version), line_count)?;
                             }
                         )*
@@ -196,17 +197,101 @@ macro_rules! general_section {
             }
 
             pub fn to_string(&self, version: usize) -> Option<String> {
-                let mut s = String::new();
+                let mut v = Vec::new();
 
                 $(
                     if let Some(value) = &self.$field {
                         if let Some(value) = crate::osu_file::types::Version::to_string(value, version) {
-                            s.push_str(&format!("{}:{value}", stringify!($field)));
+                            v.push(format!("{}: {value}", stringify!($field_type)));
                         }
                     }
                 )*
 
-                Some(s)
+                Some(v.join("\n"))
+            }
+        }
+
+        impl Default for $section_name {
+            fn default() -> Self {
+                Self::new()
+            }
+        }
+    };
+    (
+        $(#[$outer:meta])*
+        pub struct $section_name:ident {
+            $(
+                $(#[$inner:meta])*
+                pub $field:ident: $field_type:ty,
+            )*
+        },
+        $parse_error:ty,
+    ) => {
+        #[derive(PartialEq, Debug, Clone, Eq, Hash)]
+        $(#[$outer])*
+        pub struct $section_name {
+            $(
+                $(#[$inner])*
+                pub $field: Option<$field_type>,
+            )*
+        }
+
+        impl $section_name {
+            /// Creates a new instance, with all fields being `None`.
+            pub fn new() -> Self {
+                $section_name {
+                    $($field: None),*
+                }
+            }
+
+            pub fn from_str(s: &str, version: usize) -> Result<Option<$section_name>, Error<$parse_error>> {
+                let mut section = $section_name::new();
+
+                let (s, fields) = get_colon_field_value_lines(s).unwrap();
+
+                if !s.trim().is_empty() {
+                    // line count from fields
+                    let line_count = { fields.iter().map(|(_, _, ws)| ws.lines().count()).sum() };
+
+                    return Err(Error::new(<$parse_error>::InvalidColonSet, line_count));
+                }
+
+                let mut line_count = 0;
+                let mut parsed_fields = Vec::new();
+
+                for (name, value, ws) in fields {
+                    if parsed_fields.contains(&name) {
+                        return Err(Error::new(ParseError::DuplicateField, line_count));
+                    }
+
+                    match name {
+                        $(
+                            stringify!($field_type) => {
+                                section.$field = Error::new_from_result_into(<$field_type>::from_str(value, version), line_count)?;
+                            }
+                        )*
+                        _ => return Err(Error::new(ParseError::InvalidKey, line_count)),
+                    }
+
+                    line_count += ws.lines().count();
+                    parsed_fields.push(name);
+                }
+
+                Ok(Some(section))
+            }
+
+            pub fn to_string(&self, version: usize) -> Option<String> {
+                let mut v = Vec::new();
+
+                $(
+                    if let Some(value) = &self.$field {
+                        if let Some(value) = crate::osu_file::types::Version::to_string(value, version) {
+                            v.push(format!("{}:{value}", stringify!($field_type)));
+                        }
+                    }
+                )*
+
+                Some(v.join("\n"))
             }
         }
 
