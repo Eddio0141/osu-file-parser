@@ -131,7 +131,7 @@ impl FromStr for Colour {
             )),
             cut(rgb()),
         )
-        .map(|rgb| Colour::SliderTrackOverride(rgb));
+        .map(Colour::SliderTrackOverride);
 
         let slider_border = preceded(
             tuple((

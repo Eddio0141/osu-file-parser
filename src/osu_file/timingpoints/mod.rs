@@ -275,7 +275,7 @@ impl FromStr for TimingPoint {
                     context(TimingPointParseError::MissingUninherited.into(), comma()),
                     context(
                         TimingPointParseError::InvalidUninherited.into(),
-                        map_res(comma_field(), |s| parse_zero_one_bool(s)),
+                        map_res(comma_field(), parse_zero_one_bool),
                     ),
                 ),
                 preceded(

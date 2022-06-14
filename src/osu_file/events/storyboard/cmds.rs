@@ -478,7 +478,7 @@ impl FromStr for Command {
                     verify(comma_field(), |s: &str| s.trim().is_empty()).map(|_| None),
                     cut(
                         context(CommandParseError::InvalidEndTime.into(), comma_field_type())
-                            .map(|end_time: Integer| Some(end_time)),
+                            .map(Some),
                     ),
                 )),
             )
@@ -488,7 +488,7 @@ impl FromStr for Command {
                 context(CommandParseError::MissingEasing.into(), comma()),
                 context(
                     CommandParseError::InvalidEasing.into(),
-                    map_opt(comma_field_type(), |s| Easing::from_repr(s)),
+                    map_opt(comma_field_type(), Easing::from_repr),
                 ),
             ))
         };

@@ -139,7 +139,7 @@ impl Display for OsuFile {
         write!(f, "{}", sections.join("\n\n"))?;
         // for some reason below v14 theres another new line at the end
         if self.version < 14 {
-            write!(f, "\n")?;
+            writeln!(f)?;
         }
 
         Ok(())

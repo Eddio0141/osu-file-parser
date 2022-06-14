@@ -236,7 +236,7 @@ impl Display for Event {
                             if let CommandProperties::Loop { commands, .. }
                             | CommandProperties::Trigger { commands, .. } = &cmd.properties
                             {
-                                if commands.len() == 0 {
+                                if commands.is_empty() {
                                     continue;
                                 }
 
@@ -356,8 +356,8 @@ impl FromStr for EventParams {
     type Err = EventParamsParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let start_time = || comma_field();
-        let file_name = || comma_field().map(|f| PathBuf::from(f));
+        let start_time = comma_field;
+        let file_name = || comma_field().map(PathBuf::from);
         let coordinates = || {
             alt((
                 eof.map(|_| None),
