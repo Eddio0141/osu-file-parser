@@ -150,6 +150,12 @@ impl From<nom::Err<nom::error::VerboseError<&str>>> for HitObjectParseError {
 pub enum HitSampleParseError {
     #[error("Invalid `sample_set` value")]
     InvalidSampleSet,
+    #[error("Invalid `index` value")]
+    InvalidIndex,
+    #[error("Invalid `volume` value")]
+    InvalidVolume,
+    #[error("Missing field separator")]
+    MissingSeparator,
 }
 
 verbose_error_to_error!(HitSampleParseError);
