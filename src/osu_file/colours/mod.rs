@@ -16,9 +16,9 @@ use crate::parsers::comma;
 
 pub use self::error::*;
 
-use super::{Error, Version};
+use super::{Error, Version, MIN_VERSION};
 
-#[derive(Clone, Debug, Default, Hash, PartialEq, Eq)]
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Colours(pub Vec<Colour>);
 
 impl Version for Colours {
@@ -26,29 +26,41 @@ impl Version for Colours {
 
     // TODO since when did colours appear in osu files?
     // TODO different versions of colours?
-    fn from_str_v3(s: &str) -> std::result::Result<Option<Self>, Self::ParseError>
-    where
-        Self: Sized,
-    {
-        let mut colours = Vec::new();
+    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
+        match version {
+            MIN_VERSION..=13 => Ok(None),
+            _ => {
+                let mut colours = Vec::new();
 
-        for (line_index, s) in s.lines().enumerate() {
-            if !s.is_empty() {
-                colours.push(Error::new_from_result_into(s.parse(), line_index)?);
+                for (line_index, s) in s.lines().enumerate() {
+                    if !s.is_empty() {
+                        colours.push(Error::new_from_result_into(s.parse(), line_index)?);
+                    }
+                }
+
+                Ok(Some(Colours(colours)))
             }
         }
-
-        Ok(Some(Colours(colours)))
     }
 
-    fn to_string_v3(&self) -> Option<String> {
-        Some(
-            self.0
-                .iter()
-                .map(|c| c.to_string())
-                .collect::<Vec<_>>()
-                .join("\n"),
-        )
+    fn to_string(&self, version: usize) -> Option<String> {
+        match version {
+            MIN_VERSION..=13 => None,
+            _ => Some(
+                self.0
+                    .iter()
+                    .map(|c| c.to_string())
+                    .collect::<Vec<_>>()
+                    .join("\n"),
+            ),
+        }
+    }
+
+    fn default(version: usize) -> Option<Self> {
+        match version {
+            MIN_VERSION..=13 => None,
+            _ => Some(Colours(Vec::new())),
+        }
     }
 }
 
