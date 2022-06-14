@@ -161,7 +161,7 @@ impl FromStr for HitObject {
             comma_field_type(),
         );
         let mut hitsample = alt((
-            preceded(space0, eof).map(|_| None),
+            nothing().map(|_| None),
             preceded(
                 context(HitObjectParseError::MissingHitSample.into(), comma()),
                 context(
@@ -345,7 +345,7 @@ impl FromStr for HitObject {
             // osu!mania hold
             // ppy has done it once again
             let hitsample = alt((
-                preceded(space0, eof).map(|_| None),
+                nothing().map(|_| None),
                 preceded(
                     context(HitObjectParseError::MissingHitSample.into(), char(':')),
                     context(
