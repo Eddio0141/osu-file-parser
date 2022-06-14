@@ -303,6 +303,29 @@ macro_rules! general_section {
     };
 }
 
+macro_rules! verbose_error_to_error {
+    ($error_type:ty) => {
+        impl From<nom::Err<nom::error::VerboseError<&str>>> for $error_type {
+            fn from(err: nom::Err<nom::error::VerboseError<&str>>) -> Self {
+                match err {
+                    nom::Err::Error(err) | nom::Err::Failure(err) => {
+                        for (_, err) in err.errors {
+                            if let nom::error::VerboseErrorKind::Context(context) = err {
+                                return <$error_type>::from_str(context).unwrap();
+                            }
+                        }
+
+                        unreachable!()
+                    }
+                    // should never happen
+                    nom::Err::Incomplete(_) => unreachable!(),
+                }
+            }
+        }
+    };
+}
+
 pub(crate) use general_section;
+pub(crate) use verbose_error_to_error;
 pub(crate) use versioned_field;
 pub(crate) use versioned_field_from;
