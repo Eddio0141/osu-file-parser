@@ -1,8 +1,9 @@
-use nom::error::VerboseErrorKind;
 use strum_macros::{EnumString, IntoStaticStr};
 use thiserror::Error;
 
 use std::{error::Error, num::ParseIntError, str::FromStr};
+
+use crate::helper::macros::verbose_error_to_error;
 
 #[derive(Debug, Error)]
 pub enum CommandPushError {
@@ -164,22 +165,7 @@ pub enum CommandParseError {
     InvalidContinuingRotation,
 }
 
-impl From<nom::Err<nom::error::VerboseError<&str>>> for CommandParseError {
-    fn from(err: nom::Err<nom::error::VerboseError<&str>>) -> Self {
-        match err {
-            nom::Err::Error(err) | nom::Err::Failure(err) => {
-                for (_, err) in err.errors {
-                    if let VerboseErrorKind::Context(context) = err {
-                        return CommandParseError::from_str(context).unwrap();
-                    }
-                }
-
-                unreachable!()
-            }
-            nom::Err::Incomplete(_) => unreachable!(),
-        }
-    }
-}
+verbose_error_to_error!(CommandParseError);
 
 #[derive(Debug, Error)]
 pub enum TriggerTypeParseError {

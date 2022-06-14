@@ -3,6 +3,8 @@ use std::{error::Error, num::ParseIntError, str::FromStr};
 use strum_macros::{EnumString, IntoStaticStr};
 use thiserror::Error;
 
+use crate::helper::macros::verbose_error_to_error;
+
 #[derive(Debug, Error)]
 #[error(transparent)]
 pub struct ParseError(#[from] TimingPointParseError);
@@ -57,23 +59,7 @@ pub enum TimingPointParseError {
     InvalidUninherited,
 }
 
-impl From<nom::Err<nom::error::VerboseError<&str>>> for TimingPointParseError {
-    fn from(err: nom::Err<nom::error::VerboseError<&str>>) -> Self {
-        match err {
-            nom::Err::Error(err) | nom::Err::Failure(err) => {
-                for (_, err) in err.errors {
-                    if let nom::error::VerboseErrorKind::Context(context) = err {
-                        return TimingPointParseError::from_str(context).unwrap();
-                    }
-                }
-
-                unreachable!()
-            }
-            // should never happen
-            nom::Err::Incomplete(_) => unreachable!(),
-        }
-    }
-}
+verbose_error_to_error!(TimingPointParseError);
 
 /// There was some problem parsing the [`SampleSet`].
 #[derive(Debug, Error, PartialEq)]
