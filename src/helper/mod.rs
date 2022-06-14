@@ -35,16 +35,3 @@ pub enum ParseZeroOneBoolError {
     #[error("Error parsing value as `true` or `false`, expected value of 0 or 1")]
     InvalidValue,
 }
-
-pub fn display_colon_fields(fields: &[(&str, &Option<String>)], space_after_colon: bool) -> String {
-    let mut fields_str_builder = Vec::with_capacity(fields.len());
-    let space_after_colon = if space_after_colon { " " } else { "" };
-
-    for (field_name, field) in fields {
-        if let Some(field) = field {
-            fields_str_builder.push(format!("{field_name}:{space_after_colon}{field}",));
-        }
-    }
-
-    fields_str_builder.join("\n")
-}
