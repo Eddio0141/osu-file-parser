@@ -6,113 +6,59 @@ use nom::{
     Parser,
 };
 
-use crate::{helper::display_colon_fields, parsers::get_colon_field_value_lines};
+use crate::parsers::get_colon_field_value_lines;
 
-use super::{Error, Integer, Version};
+use super::{Error, Integer};
+use crate::helper::macros::*;
+use crate::osu_file::types::Version;
 
 pub use self::error::*;
 
-/// A struct representing the metadata section of the .osu file.
-#[derive(Default, Clone, Hash, PartialEq, Eq, Debug)]
-pub struct Metadata {
-    /// Romanised song title.
-    pub title: Option<String>,
-    /// Song title.
-    pub title_unicode: Option<String>,
-    /// ROmanised song artist.
-    pub artist: Option<String>,
-    /// Song artist.
-    pub artist_unicode: Option<String>,
-    /// Beatmap creator.
-    pub creator: Option<String>,
-    /// Difficulty name.
-    pub version: Option<String>,
-    /// Original media the song was produced for.
-    pub source: Option<String>,
-    /// Search terms.
-    pub tags: Option<Vec<String>>,
-    /// Difficulty ID.
-    pub beatmap_id: Option<Integer>,
-    /// Beatmap ID.
-    pub beatmap_set_id: Option<Integer>,
-}
-
-impl Version for Metadata {
-    type ParseError = Error<ParseError>;
-
-    // TODO versions
-    fn from_str_v3(s: &str) -> std::result::Result<Option<Self>, Self::ParseError>
-    where
-        Self: Sized,
-    {
-        let mut metadata = Metadata::default();
-
-        let (s, fields) = get_colon_field_value_lines(s).unwrap();
-
-        if !s.trim().is_empty() {
-            // line count from fields
-            let line_count = { fields.iter().map(|(_, _, ws)| ws.lines().count()).sum() };
-
-            return Err(Error::new(ParseError::InvalidColonSet, line_count));
-        }
-
-        let mut tags = separated_list0(
+versioned_field!(Title, String, no_versions, |s| { Ok(s.to_string()) } -> (),,);
+versioned_field!(TitleUnicode, String, no_versions, |s| { Ok(s.to_string()) } -> (),,);
+versioned_field!(Artist, String, no_versions, |s| { Ok(s.to_string()) } -> (),,);
+versioned_field!(ArtistUnicode, String, no_versions, |s| { Ok(s.to_string()) } -> (),,);
+versioned_field!(Creator, String, no_versions, |s| { Ok(s.to_string()) } -> (),,);
+versioned_field!(VersionName, String, no_versions, |s| { Ok(s.to_string()) } -> (),,);
+versioned_field!(Source, String, no_versions, |s| { Ok(s.to_string()) } -> (),,);
+versioned_field!(Tags, Vec<String>, no_versions,
+    |s| {
+        let space_separated_list = separated_list0(
             tag::<_, _, nom::error::Error<_>>(" "),
             take_till(|c| c == ' '),
         )
         .map(|tags: Vec<&str>| tags.iter().map(|tag| tag.to_string()).collect());
 
-        let mut line_count = 0;
-        let mut parsed_fields = Vec::new();
+        Ok(space_separated_list.parse(s).unwrap().1)
+    } -> (),
+    |v| { v.join(" ") }, Vec::new()
+);
+versioned_field!(BeatmapID, Integer, no_versions, |s| { Ok(s.parse::<Integer>().unwrap()) } -> (),,);
+versioned_field!(BeatmapSetID, Integer, no_versions, |s| { Ok(s.parse::<Integer>().unwrap()) } -> (),,);
 
-        for (name, value, ws) in fields {
-            let new_into_int = move |err| Error::new_into(err, line_count);
-
-            if parsed_fields.contains(&name) {
-                return Err(Error::new(ParseError::DuplicateField, line_count));
-            }
-
-            match name {
-                "Title" => metadata.title = Some(value.to_owned()),
-                "TitleUnicode" => metadata.title_unicode = Some(value.to_owned()),
-                "Artist" => metadata.artist = Some(value.to_owned()),
-                "ArtistUnicode" => metadata.artist_unicode = Some(value.to_owned()),
-                "Creator" => metadata.creator = Some(value.to_owned()),
-                "Version" => metadata.version = Some(value.to_owned()),
-                "Source" => metadata.source = Some(value.to_owned()),
-                "Tags" => metadata.tags = Some(tags.parse(value).unwrap().1),
-                "BeatmapID" => metadata.beatmap_id = Some(value.parse().map_err(new_into_int)?),
-                "BeatmapSetID" => {
-                    metadata.beatmap_set_id = Some(value.parse().map_err(new_into_int)?)
-                }
-                _ => return Err(Error::new(ParseError::InvalidKey, line_count)),
-            }
-
-            line_count += ws.lines().count();
-            parsed_fields.push(name);
-        }
-
-        Ok(Some(metadata))
-    }
-
-    fn to_string_v3(&self) -> Option<String> {
-        let tags = self.tags.as_ref().map(|v| v.join(" "));
-        let beatmap_id = self.beatmap_id.map(|v| v.to_string());
-        let beatmap_set_id = self.beatmap_set_id.map(|v| v.to_string());
-
-        let fields = [
-            ("Title", &self.title),
-            ("TitleUnicode", &self.title_unicode),
-            ("Artist", &self.artist),
-            ("ArtistUnicode", &self.artist_unicode),
-            ("Creator", &self.creator),
-            ("Version", &self.version),
-            ("Source", &self.source),
-            ("Tags", &tags),
-            ("BeatmapID", &beatmap_id),
-            ("BeatmapSetID", &beatmap_set_id),
-        ];
-
-        Some(display_colon_fields(&fields, false))
-    }
-}
+general_section!(
+    /// A struct representing the metadata section of an osu file.
+    pub struct Metadata {
+        /// Romanised song title.
+        pub title: Title,
+        /// Song title.
+        pub title_unicode: TitleUnicode,
+        /// ROmanised song artist.
+        pub artist: Artist,
+        /// Song artist.
+        pub artist_unicode: ArtistUnicode,
+        /// Beatmap creator.
+        pub creator: Creator,
+        /// Difficulty name.
+        pub version: VersionName,
+        /// Original media the song was produced for.
+        pub source: Source,
+        /// Search terms.
+        pub tags: Tags,
+        /// Difficulty ID.
+        pub beatmap_id: BeatmapID,
+        /// Beatmap ID.
+        pub beatmap_set_id: BeatmapSetID,
+    },
+    ParseError
+);
