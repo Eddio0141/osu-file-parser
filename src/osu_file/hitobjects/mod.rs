@@ -454,7 +454,7 @@ impl Version for HitObject {
                     String::new()
                 };
 
-                return Some(format!("{}{hitsample}", properties.join(",")));
+                return Some(format!("{}:{hitsample}", properties.join(",")));
             }
         }
 
