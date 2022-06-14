@@ -53,5 +53,5 @@ general_section!(
         /// Scale factor for the objecct timeline.
         pub timeline_zoom: TimelineZoom,
     },
-    ParseError,
+    ParseError
 );

@@ -32,5 +32,5 @@ general_section!(
         /// Amount of slider ticks per beat.
         pub slider_tickrate: SliderTickRate,
     },
-    ParseError
+    ParseError,
 );

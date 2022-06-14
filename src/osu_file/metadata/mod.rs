@@ -60,5 +60,5 @@ general_section!(
         /// Beatmap ID.
         pub beatmap_set_id: BeatmapSetID,
     },
-    ParseError
+    ParseError,
 );
