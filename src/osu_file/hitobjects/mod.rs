@@ -34,10 +34,7 @@ impl Version for HitObjects {
     type ParseError = Error<ParseError>;
 
     // TODO different versions
-    fn from_str_v3(s: &str) -> std::result::Result<Option<Self>, Self::ParseError>
-    where
-        Self: Sized,
-    {
+    fn from_str(s: &str, _: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
         let mut hitobjects = Vec::new();
 
         for (line_index, s) in s.lines().enumerate() {
@@ -47,7 +44,7 @@ impl Version for HitObjects {
         Ok(Some(HitObjects(hitobjects)))
     }
 
-    fn to_string_v3(&self) -> Option<String> {
+    fn to_string(&self, _: usize) -> Option<String> {
         Some(
             self.0
                 .iter()
@@ -55,6 +52,10 @@ impl Version for HitObjects {
                 .collect::<Vec<_>>()
                 .join("\n"),
         )
+    }
+
+    fn default(_: usize) -> Option<Self> {
+        Some(HitObjects(Vec::new()))
     }
 }
 

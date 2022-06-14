@@ -23,7 +23,7 @@ versioned_field!(VersionName, String, no_versions, |s| { Ok(s.to_string()) } -> 
 versioned_field!(Source, String, no_versions, |s| { Ok(s.to_string()) } -> (),,);
 versioned_field!(Tags, Vec<String>, no_versions,
     |s| {
-        let space_separated_list = separated_list0(
+        let mut space_separated_list = separated_list0(
             tag::<_, _, nom::error::Error<_>>(" "),
             take_till(|c| c == ' '),
         )
