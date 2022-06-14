@@ -20,7 +20,7 @@ use crate::{osu_file::events::storyboard::sprites, parsers::*};
 
 use self::storyboard::{cmds::CommandProperties, error::ObjectParseError, sprites::Object};
 
-use super::{types::Error, Integer, Position, Version};
+use super::{types::Error, Integer, Position, Version, MIN_VERSION};
 
 pub use self::error::*;
 
@@ -31,111 +31,127 @@ impl Version for Events {
     type ParseError = Error<ParseError>;
 
     // TODO check versions
-    fn from_str_v3(s: &str) -> std::result::Result<Option<Self>, Self::ParseError>
-    where
-        Self: Sized,
-    {
-        let mut events = Events::default();
+    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
+        match version {
+            MIN_VERSION..=13 => Ok(None),
+            _ => {
+                let mut events = Events(Vec::new());
 
-        let mut comment = preceded::<_, _, _, nom::error::Error<_>, _, _>(tag("//"), rest);
+                let mut comment = preceded::<_, _, _, nom::error::Error<_>, _, _>(tag("//"), rest);
 
-        for (line_index, line) in s.lines().enumerate() {
-            if !line.trim().is_empty() {
-                if let Ok((_, comment)) = comment(line) {
-                    events.0.push(Event::Comment(comment.to_string()));
-                } else {
-                    let indent = take_while::<_, _, nom::error::Error<_>>(|c| c == ' ' || c == '_');
+                for (line_index, line) in s.lines().enumerate() {
+                    if !line.trim().is_empty() {
+                        if let Ok((_, comment)) = comment(line) {
+                            events.0.push(Event::Comment(comment.to_string()));
+                        } else {
+                            let indent =
+                                take_while::<_, _, nom::error::Error<_>>(|c| c == ' ' || c == '_');
 
-                    let indent = indent(line).unwrap().1.len();
+                            let indent = indent(line).unwrap().1.len();
 
-                    // its a storyboard command
-                    if indent > 0 {
-                        match events.0.last_mut() {
-                            Some(Event::Storyboard(sprite)) => Error::new_from_result_into(
-                                sprite.try_push_cmd(
-                                    Error::new_from_result_into(line.parse(), line_index)?,
-                                    indent,
-                                ),
-                                line_index,
-                            )?,
-                            _ => {
-                                return Err(Error::new(
-                                    ParseError::StoryboardCmdWithNoSprite,
-                                    line_index,
-                                ))
-                            }
-                        }
-                    } else {
-                        // is it a storyboard object?
-
-                        match line.parse() {
-                            Ok(object) => {
-                                events.0.push(Event::Storyboard(object));
-                            }
-                            Err(err) => {
-                                if let ObjectParseError::UnknownObjectType(_) = err {
-                                    let (_, (_, _, start_time, _)) = tuple((
-                                        comma_field(),
-                                        context("missing_start_time", comma()),
-                                        context("invalid_end_time", comma_field_type()),
-                                        rest,
-                                    ))(
-                                        line
-                                    )
-                                    .finish()
-                                    .map_err(|err: nom::error::VerboseError<_>| {
-                                        for (_, err) in err.errors {
-                                            if let nom::error::VerboseErrorKind::Context(context) =
-                                                err
-                                            {
-                                                let err = match context {
-                                                    "missing_start_time" => {
-                                                        ParseError::MissingStartTime
-                                                    }
-                                                    "invalid_end_time" => {
-                                                        ParseError::ParseStartTime
-                                                    }
-                                                    _ => unreachable!(),
-                                                };
-
-                                                return Error::new(err, line_index);
-                                            }
-                                        }
-
-                                        unimplemented!("I somehow forgot to implement a context");
-                                    })?;
-
-                                    events.0.push(Event::NormalEvent {
-                                        start_time,
-                                        event_params: Error::new_from_result_into(
-                                            line.parse(),
-                                            line_index,
-                                        )?,
-                                    })
-                                } else {
-                                    return Err(Error::new(
-                                        ParseError::StoryboardObjectParseError(err),
+                            // its a storyboard command
+                            if indent > 0 {
+                                match events.0.last_mut() {
+                                    Some(Event::Storyboard(sprite)) => Error::new_from_result_into(
+                                        sprite.try_push_cmd(
+                                            Error::new_from_result_into(line.parse(), line_index)?,
+                                            indent,
+                                        ),
                                         line_index,
-                                    ));
+                                    )?,
+                                    _ => {
+                                        return Err(Error::new(
+                                            ParseError::StoryboardCmdWithNoSprite,
+                                            line_index,
+                                        ))
+                                    }
+                                }
+                            } else {
+                                // is it a storyboard object?
+
+                                match line.parse() {
+                                    Ok(object) => {
+                                        events.0.push(Event::Storyboard(object));
+                                    }
+                                    Err(err) => {
+                                        if let ObjectParseError::UnknownObjectType(_) = err {
+                                            let (_, (_, _, start_time, _)) = tuple((
+                                                comma_field(),
+                                                context("missing_start_time", comma()),
+                                                context("invalid_end_time", comma_field_type()),
+                                                rest,
+                                            ))(
+                                                line
+                                            )
+                                            .finish()
+                                            .map_err(|err: nom::error::VerboseError<_>| {
+                                                for (_, err) in err.errors {
+                                                    if let nom::error::VerboseErrorKind::Context(
+                                                        context,
+                                                    ) = err
+                                                    {
+                                                        let err = match context {
+                                                            "missing_start_time" => {
+                                                                ParseError::MissingStartTime
+                                                            }
+                                                            "invalid_end_time" => {
+                                                                ParseError::ParseStartTime
+                                                            }
+                                                            _ => unreachable!(),
+                                                        };
+
+                                                        return Error::new(err, line_index);
+                                                    }
+                                                }
+
+                                                unimplemented!(
+                                                    "I somehow forgot to implement a context"
+                                                );
+                                            })?;
+
+                                            events.0.push(Event::NormalEvent {
+                                                start_time,
+                                                event_params: Error::new_from_result_into(
+                                                    line.parse(),
+                                                    line_index,
+                                                )?,
+                                            })
+                                        } else {
+                                            return Err(Error::new(
+                                                ParseError::StoryboardObjectParseError(err),
+                                                line_index,
+                                            ));
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
                 }
+
+                Ok(Some(events))
             }
         }
-
-        Ok(Some(events))
     }
 
-    fn to_string_v3(&self) -> Option<String> {
-        Some(
-            self.0
-                .iter()
-                .map(|i| i.to_string())
-                .collect::<Vec<_>>()
-                .join("\n"),
-        )
+    fn to_string(&self, version: usize) -> Option<String> {
+        match version {
+            MIN_VERSION..=13 => None,
+            _ => Some(
+                self.0
+                    .iter()
+                    .map(|i| i.to_string())
+                    .collect::<Vec<_>>()
+                    .join("\n"),
+            ),
+        }
+    }
+
+    fn default(version: usize) -> Option<Self> {
+        match version {
+            MIN_VERSION..=13 => None,
+            _ => Some(Events(Vec::new())),
+        }
     }
 }
 
