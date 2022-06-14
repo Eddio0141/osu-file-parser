@@ -170,7 +170,7 @@ impl Version for SampleSet {
     fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
         match version {
             3..=4 => Ok(None),
-            4..=13 => Ok(Some(s.parse()?)),
+            5..=13 => Ok(Some(s.parse()?)),
             _ => {
                 let mut sample_set = s.parse()?;
 
