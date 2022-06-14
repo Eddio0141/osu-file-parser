@@ -14,7 +14,7 @@ use strum_macros::{Display, EnumString, FromRepr};
 
 use crate::{
     helper::nth_bit_state_i64,
-    osu_file::{Integer, Position},
+    osu_file::{Integer, Position, Version, MIN_VERSION},
     parsers::nothing,
 };
 
@@ -398,23 +398,6 @@ pub struct HitSample {
     filename: String,
 }
 
-impl Display for HitSample {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let index = match self.index {
-            Some(index) => index.into(),
-            None => 0,
-        };
-        let volume: Integer = self.volume.into();
-        let filename = &self.filename;
-
-        write!(
-            f,
-            "{}:{}:{index}:{volume}:{filename}",
-            self.normal_set, self.addition_set
-        )
-    }
-}
-
 impl HitSample {
     pub fn new(
         normal_set: SampleSet,
@@ -496,10 +479,11 @@ impl HitSample {
     }
 }
 
-impl FromStr for HitSample {
-    type Err = HitSampleParseError;
+impl Version for HitSample {
+    type ParseError = HitSampleParseError;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
+        // TODO does the 4th and 5th field exist from v12 onwards?
         let field = || take_while(|c| c != ':');
         let field_separator = || tag(":");
         let sample_set = || {
@@ -513,8 +497,8 @@ impl FromStr for HitSample {
         };
 
         let (_, hitsample) = alt((
-            nothing().map(|_| HitSample::default()),
-            tag("0:0:0:0:").map(|_| HitSample::default()),
+            nothing().map(|_| <HitSample as Version>::default(version).unwrap()),
+            tag("0:0:0:0:").map(|_| <HitSample as Version>::default(version).unwrap()),
             tuple((
                 // normal_set
                 alt((nothing().map(|_| None), sample_set())),
@@ -591,6 +575,28 @@ impl FromStr for HitSample {
             }),
         ))(s)?;
 
-        Ok(hitsample)
+        Ok(Some(hitsample))
+    }
+
+    fn to_string(&self, version: usize) -> Option<String> {
+        let index = match self.index {
+            Some(index) => index.into(),
+            None => 0,
+        };
+        let volume: Integer = self.volume.into();
+        let filename = &self.filename;
+
+        match version {
+            MIN_VERSION..=9 => None,
+            10..=11 => Some(format!("{}:{}:{index}", self.normal_set, self.addition_set)),
+            _ => Some(format!(
+                "{}:{}:{index}:{volume}:{filename}",
+                self.normal_set, self.addition_set
+            )),
+        }
+    }
+
+    fn default(_: usize) -> Option<Self> {
+        Some(<Self as Default>::default())
     }
 }
