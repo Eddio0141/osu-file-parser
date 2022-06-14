@@ -18,3 +18,9 @@ pub enum ParseError {
     #[error("The key doesn't exist in `General`")]
     InvalidKey,
 }
+
+impl From<()> for ParseError {
+    fn from(_: ()) -> Self {
+        unreachable!()
+    }
+}
