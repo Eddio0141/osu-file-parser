@@ -143,7 +143,7 @@ impl FromStr for Colour {
             )),
             cut(rgb()),
         )
-        .map(|rgb| Colour::SliderBorder(rgb));
+        .map(Colour::SliderBorder);
 
         let (_, colour) = alt((
             combo,

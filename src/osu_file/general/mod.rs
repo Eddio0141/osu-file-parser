@@ -210,10 +210,8 @@ impl Version for GameMode {
     type ParseError = ParseGameModeError;
 
     // TODO check what gamemodes exist in versions
-    fn default(version: usize) -> Option<Self> {
-        match version {
-            _ => Some(Self::Osu),
-        }
+    fn default(_: usize) -> Option<Self> {
+        Some(Self::Osu)
     }
 
     fn from_str(s: &str, _: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
