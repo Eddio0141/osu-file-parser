@@ -29,7 +29,7 @@ macro_rules! versioned_field {
             }
 
             fn to_string(&self, _: usize) -> Option<String> {
-                let $v = self.0;
+                let $v = &self.0;
                 Some($to_string_inner)
             }
 
@@ -74,7 +74,7 @@ macro_rules! versioned_field {
             }
 
             fn to_string(&self, _: usize) -> Option<String> {
-                let $v = self.0;
+                let $v = &self.0;
                 Some($to_string_inner)
             }
 
@@ -199,8 +199,8 @@ macro_rules! general_section {
                 let mut s = String::new();
 
                 $(
-                    if let Some(value) = self.$field {
-                        if let Some(value) = crate::osu_file::types::Version::to_string(&value, version) {
+                    if let Some(value) = &self.$field {
+                        if let Some(value) = crate::osu_file::types::Version::to_string(value, version) {
                             s.push_str(&format!("{}:{value}", stringify!($field)));
                         }
                     }
