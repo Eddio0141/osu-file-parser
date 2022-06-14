@@ -10,7 +10,6 @@ use crate::parsers::get_colon_field_value_lines;
 
 use super::{Error, Integer};
 use crate::helper::macros::*;
-use crate::osu_file::types::Version;
 
 pub use self::error::*;
 
@@ -19,7 +18,7 @@ versioned_field!(TitleUnicode, String, no_versions, |s| { Ok(s.to_string()) } ->
 versioned_field!(Artist, String, no_versions, |s| { Ok(s.to_string()) } -> (),,);
 versioned_field!(ArtistUnicode, String, no_versions, |s| { Ok(s.to_string()) } -> (),,);
 versioned_field!(Creator, String, no_versions, |s| { Ok(s.to_string()) } -> (),,);
-versioned_field!(VersionName, String, no_versions, |s| { Ok(s.to_string()) } -> (),,);
+versioned_field!(Version, String, no_versions, |s| { Ok(s.to_string()) } -> (),,);
 versioned_field!(Source, String, no_versions, |s| { Ok(s.to_string()) } -> (),,);
 versioned_field!(Tags, Vec<String>, no_versions,
     |s| {
@@ -50,7 +49,7 @@ general_section!(
         /// Beatmap creator.
         pub creator: Creator,
         /// Difficulty name.
-        pub version: VersionName,
+        pub version: Version,
         /// Original media the song was produced for.
         pub source: Source,
         /// Search terms.

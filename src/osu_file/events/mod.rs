@@ -33,7 +33,7 @@ impl Version for Events {
     // TODO check versions
     fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
         match version {
-            MIN_VERSION..=13 => Ok(None),
+            MIN_VERSION => Ok(None),
             _ => {
                 let mut events = Events(Vec::new());
 
@@ -136,7 +136,7 @@ impl Version for Events {
 
     fn to_string(&self, version: usize) -> Option<String> {
         match version {
-            MIN_VERSION..=13 => None,
+            MIN_VERSION => None,
             _ => Some(
                 self.0
                     .iter()

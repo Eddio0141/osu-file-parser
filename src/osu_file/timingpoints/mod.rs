@@ -29,7 +29,7 @@ impl Version for TimingPoints {
     // TODO versions
     fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
         match version {
-            MIN_VERSION..=13 => Ok(None),
+            MIN_VERSION => Ok(None),
             _ => {
                 let mut timing_points = Vec::new();
 
@@ -46,7 +46,7 @@ impl Version for TimingPoints {
 
     fn to_string(&self, version: usize) -> Option<String> {
         match version {
-            MIN_VERSION..=13 => None,
+            MIN_VERSION => None,
             // TODO add this as trait extension to Vec with Display impl
             _ => Some(
                 self.0

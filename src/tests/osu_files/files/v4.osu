@@ -17,8 +17,8 @@ Version:Hard
 HPDrainRate:6
 CircleSize:5
 OverallDifficulty:5
-SliderMultiplier: 1.6
-SliderTickRate: 2
+SliderMultiplier:1.6
+SliderTickRate:2
 
 [Events]
 2,49515,57326

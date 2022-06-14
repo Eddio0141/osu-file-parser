@@ -50,7 +50,7 @@ general_section!(
         pub preview_time: PreviewTime,
         /// Speed of the countdown before the first hit object.
         /// - Defaults to `Normal`.
-        pub countdown: CountdownSpeed,
+        pub countdown: Countdown,
         /// Sample set that will be used if timing points do not override it.
         /// - Defaults to `Normal`.
         pub sample_set: SampleSet,
@@ -59,7 +59,7 @@ general_section!(
         pub stack_leniency: StackLeniency,
         /// Game mode.
         /// - Defaults to `osu`.
-        pub mode: GameMode,
+        pub mode: Mode,
         /// Whether or not breaks have a letterboxing effect.
         /// - Defaults to `false`.
         pub letterbox_in_breaks: LetterboxInBreaks,
@@ -99,7 +99,7 @@ general_section!(
 /// Speed of the countdown before the first hitobject.
 #[derive(PartialEq, Eq, Debug, Clone, Copy, Hash, FromRepr)]
 #[non_exhaustive]
-pub enum CountdownSpeed {
+pub enum Countdown {
     /// No countdown.
     NoCountdown,
     /// Normal speed.
@@ -111,13 +111,13 @@ pub enum CountdownSpeed {
 }
 
 // TODO investigate versions
-impl Version for CountdownSpeed {
+impl Version for Countdown {
     type ParseError = ParseCountdownSpeedError;
 
     fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
         match version {
-            MIN_VERSION..=13 => Ok(None),
-            _ => CountdownSpeed::from_repr(s.parse()?)
+            MIN_VERSION..=5 => Ok(None),
+            _ => Countdown::from_repr(s.parse()?)
                 .ok_or(ParseCountdownSpeedError::UnknownType)
                 .map(Some),
         }
@@ -125,7 +125,7 @@ impl Version for CountdownSpeed {
 
     fn to_string(&self, version: usize) -> Option<String> {
         match version {
-            MIN_VERSION..=13 => None,
+            MIN_VERSION..=5 => None,
             _ => Some((*self as usize).to_string()),
         }
     }
@@ -195,7 +195,7 @@ impl Version for SampleSet {
 /// Game mode of the .osu file
 #[derive(PartialEq, Eq, Debug, Clone, Copy, Hash, FromRepr)]
 #[non_exhaustive]
-pub enum GameMode {
+pub enum Mode {
     /// Osu! gamemode.
     Osu,
     /// Osu!Taiko gamemode.
@@ -206,7 +206,7 @@ pub enum GameMode {
     Mania,
 }
 
-impl Version for GameMode {
+impl Version for Mode {
     type ParseError = ParseGameModeError;
 
     // TODO check what gamemodes exist in versions
@@ -216,7 +216,7 @@ impl Version for GameMode {
 
     fn from_str(s: &str, _: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
         Ok(Some(
-            GameMode::from_repr(s.parse()?).ok_or(ParseGameModeError::UnknownType)?,
+            Mode::from_repr(s.parse()?).ok_or(ParseGameModeError::UnknownType)?,
         ))
     }
 

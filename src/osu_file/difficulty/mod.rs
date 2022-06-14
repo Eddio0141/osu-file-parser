@@ -7,7 +7,6 @@ use crate::{helper::macros::*, parsers::get_colon_field_value_lines};
 use super::Error;
 
 pub use self::error::*;
-use crate::osu_file::types::Version;
 
 versioned_field!(HPDrainRate, Decimal, no_versions, |s| { s.parse() } -> rust_decimal::Error,,);
 versioned_field!(CircleSize, Decimal, no_versions, |s| { s.parse() } -> rust_decimal::Error,,);
