@@ -209,6 +209,12 @@ macro_rules! general_section {
                 Some(s)
             }
         }
+
+        impl Default for $section_name {
+            fn default() -> Self {
+                Self::new()
+            }
+        }
     };
 }
 

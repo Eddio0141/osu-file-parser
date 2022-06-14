@@ -64,7 +64,6 @@ pub struct OsuFile {
 
 impl OsuFile {
     /// New `OsuFile` with no data.
-    /// - Difference from `Default` is that all fields are `None` instead of Some(`Default`).
     pub fn new() -> Self {
         Self {
             version: LATEST_VERSION,
@@ -77,6 +76,12 @@ impl OsuFile {
             colours: None,
             hitobjects: None,
         }
+    }
+}
+
+impl Default for OsuFile {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
