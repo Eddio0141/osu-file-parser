@@ -10,7 +10,7 @@ use osu_file_parser::osu_file::{
         Event,
     },
     hitobjects::HitObject,
-    OsuFile, Position,
+    OsuFile, Position, Version,
 };
 
 fn storyboard_cmds_parse(c: &mut Criterion) {
@@ -193,43 +193,60 @@ fn hitobject_parse(c: &mut Criterion) {
 
     group.bench_function("hitcircle", |b| {
         b.iter(|| {
-            black_box(hitcircle_str).parse::<HitObject>().unwrap();
+            HitObject::from_str(black_box(hitcircle_str), 14)
+                .unwrap()
+                .unwrap();
         })
     });
     group.bench_function("slider", |b| {
         b.iter(|| {
-            black_box(slider_str).parse::<HitObject>().unwrap();
+            HitObject::from_str(black_box(slider_str), 14)
+                .unwrap()
+                .unwrap();
         })
     });
     group.bench_function("spinner", |b| {
         b.iter(|| {
-            black_box(spinner_str).parse::<HitObject>().unwrap();
+            HitObject::from_str(black_box(spinner_str), 14)
+                .unwrap()
+                .unwrap();
         })
     });
     group.bench_function("osu_mania_hold", |b| {
         b.iter(|| {
-            black_box(osu_mania_hold_str).parse::<HitObject>().unwrap();
+            HitObject::from_str(black_box(osu_mania_hold_str), 14)
+                .unwrap()
+                .unwrap();
         })
     });
 }
 
 fn hitobject_to_string(c: &mut Criterion) {
-    let hitcircle = HitObject::from_str("221,350,9780,1,0,0:0:0:0:").unwrap();
-    let slider =
-        HitObject::from_str("31,85,3049,2,0,B|129:55|123:136|228:86,1,172.51,2|0,3:2|0:2,0:2:0:0:")
-            .unwrap();
-    let spinner = HitObject::from_str("256,192,33598,12,0,431279,0:0:0:0:").unwrap();
-    let osu_mania_hold = HitObject::from_str("51,192,350,128,2,849:0:0:0:0:").unwrap();
+    let hitcircle = HitObject::from_str("221,350,9780,1,0,0:0:0:0:", 14)
+        .unwrap()
+        .unwrap();
+    let slider = HitObject::from_str(
+        "31,85,3049,2,0,B|129:55|123:136|228:86,1,172.51,2|0,3:2|0:2,0:2:0:0:",
+        14,
+    )
+    .unwrap()
+    .unwrap();
+    let spinner = HitObject::from_str("256,192,33598,12,0,431279,0:0:0:0:", 14)
+        .unwrap()
+        .unwrap();
+    let osu_mania_hold = HitObject::from_str("51,192,350,128,2,849:0:0:0:0:", 14)
+        .unwrap()
+        .unwrap();
 
     let mut group = c.benchmark_group("hitobjects_to_string");
 
     group.bench_function("hitcircle", |b| {
-        b.iter(|| black_box(&hitcircle).to_string())
+        b.iter(|| black_box(&hitcircle).to_string(14))
     });
-    group.bench_function("slider", |b| b.iter(|| black_box(&slider).to_string()));
-    group.bench_function("spinner", |b| b.iter(|| black_box(&spinner).to_string()));
+    group.bench_function("slider", |b| b.iter(|| black_box(&slider).to_string(14)));
+    group.bench_function("spinner", |b| b.iter(|| black_box(&spinner).to_string(14)));
     group.bench_function("osu_mania_hold", |b| {
-        b.iter(|| black_box(&osu_mania_hold).to_string())
+        b.iter(|| black_box(&osu_mania_hold).to_string(14))
     });
 }
 
