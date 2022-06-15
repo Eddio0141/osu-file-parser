@@ -27,6 +27,7 @@ SliderTickRate:2
 [TimingPoints]
 118,500.004999999999
 
+
 [HitObjects]
 96,64,8118,5,4,
 176,64,8618,1,0,
