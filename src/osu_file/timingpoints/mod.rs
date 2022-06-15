@@ -251,7 +251,7 @@ impl Version for TimingPoint {
     fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
         let (
             _,
-            (time, beat_length, (meter, sample_set, sample_index, volume, uninherited, effects)),
+            (time, beat_length, (meter, sample_set, sample_index, (volume, uninherited, effects))),
         ) = tuple((
             context(
                 TimingPointParseError::InvalidTime.into(),
@@ -280,12 +280,11 @@ impl Version for TimingPoint {
                     ))
                     .map(|_| {
                         (
+                            // TODO default values?
                             4,
                             SampleSet::Normal,
                             SampleIndex::Index(NonZeroUsize::new(1).unwrap()),
-                            Volume::try_from(100).unwrap(),
-                            true,
-                            Effects::from(0),
+                            (Volume::try_from(100).unwrap(), true, Effects::from(0)),
                         )
                     }),
                 tuple((
@@ -310,32 +309,49 @@ impl Version for TimingPoint {
                             comma_field_type(),
                         ),
                     ),
-                    preceded(
-                        context(TimingPointParseError::MissingVolume.into(), comma()),
-                        context(
-                            TimingPointParseError::InvalidVolume.into(),
-                            comma_field_type(),
-                        ),
-                    ),
-                    preceded(
-                        context(TimingPointParseError::MissingUninherited.into(), comma()),
-                        context(
-                            TimingPointParseError::InvalidUninherited.into(),
-                            map_res(comma_field(), parse_zero_one_bool),
-                        ),
-                    ),
-                    preceded(
-                        context(TimingPointParseError::MissingEffects.into(), comma()),
-                        context(
-                            TimingPointParseError::InvalidEffects.into(),
-                            consume_rest_type(),
-                        ),
-                    ),
+                    alt((
+                        nothing()
+                            .and(context(
+                                TimingPointParseError::InvalidSampleIndex.into(),
+                                cut(verify(success(0), |_| version == 4)),
+                            ))
+                            .map(|_| {
+                                (
+                                    // TODO default values?
+                                    Volume::try_from(100).unwrap(),
+                                    true,
+                                    Effects::from(0),
+                                )
+                            }),
+                        tuple((
+                            preceded(
+                                context(TimingPointParseError::MissingVolume.into(), comma()),
+                                context(
+                                    TimingPointParseError::InvalidVolume.into(),
+                                    comma_field_type(),
+                                ),
+                            ),
+                            preceded(
+                                context(TimingPointParseError::MissingUninherited.into(), comma()),
+                                context(
+                                    TimingPointParseError::InvalidUninherited.into(),
+                                    map_res(comma_field(), parse_zero_one_bool),
+                                ),
+                            ),
+                            preceded(
+                                context(TimingPointParseError::MissingEffects.into(), comma()),
+                                context(
+                                    TimingPointParseError::InvalidEffects.into(),
+                                    consume_rest_type(),
+                                ),
+                            ),
+                        )),
+                    )),
                 )),
             )),
         ))(s)?;
 
-        dbg!(
+        (
             time,
             beat_length,
             meter,
@@ -343,7 +359,7 @@ impl Version for TimingPoint {
             sample_index,
             volume,
             uninherited,
-            effects
+            effects,
         );
 
         Ok(Some(TimingPoint {
@@ -373,6 +389,8 @@ impl Version for TimingPoint {
             fields.push(self.meter.to_string());
             fields.push(self.sample_set.to_string());
             fields.push(self.sample_index.to_string());
+        }
+        if version > 4 {
             fields.push(self.volume.to_string());
             // TODO check all bool types to be integer
             fields.push((self.uninherited as u8).to_string());
