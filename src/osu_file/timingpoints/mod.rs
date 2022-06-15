@@ -16,7 +16,7 @@ use crate::{
     parsers::*,
 };
 
-use super::{Error, Integer, Version, MIN_VERSION};
+use super::{Error, Integer, Version};
 
 pub use self::error::*;
 
@@ -27,42 +27,31 @@ impl Version for TimingPoints {
     type ParseError = Error<ParseError>;
 
     // TODO versions
-    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
-        match version {
-            MIN_VERSION => Ok(None),
-            _ => {
-                let mut timing_points = Vec::new();
+    fn from_str(s: &str, _: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
+        let mut timing_points = Vec::new();
 
-                for (line_index, s) in s.lines().enumerate() {
-                    if !s.is_empty() {
-                        timing_points.push(Error::new_from_result_into(s.parse(), line_index)?);
-                    }
-                }
-
-                Ok(Some(TimingPoints(timing_points)))
+        for (line_index, s) in s.lines().enumerate() {
+            if !s.is_empty() {
+                timing_points.push(Error::new_from_result_into(s.parse(), line_index)?);
             }
         }
+
+        Ok(Some(TimingPoints(timing_points)))
     }
 
-    fn to_string(&self, version: usize) -> Option<String> {
-        match version {
-            MIN_VERSION => None,
-            // TODO add this as trait extension to Vec with Display impl
-            _ => Some(
-                self.0
-                    .iter()
-                    .map(|p| p.to_string())
-                    .collect::<Vec<_>>()
-                    .join("\n"),
-            ),
-        }
+    fn to_string(&self, _: usize) -> Option<String> {
+        // TODO add this as trait extension to Vec with Display impl
+        Some(
+            self.0
+                .iter()
+                .map(|p| p.to_string())
+                .collect::<Vec<_>>()
+                .join("\n"),
+        )
     }
 
-    fn default(version: usize) -> Option<Self> {
-        match version {
-            MIN_VERSION..=13 => None,
-            _ => Some(TimingPoints(Vec::new())),
-        }
+    fn default(_: usize) -> Option<Self> {
+        Some(TimingPoints(Vec::new()))
     }
 }
 
