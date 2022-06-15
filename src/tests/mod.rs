@@ -48,7 +48,7 @@ SamplesMatchPlaybackRate: 1";
     let g = General {
         audio_filename: Some(PathBuf::from("test.mp3").into()),
         audio_lead_in: Some(555.into()),
-        audio_hash: Some("no.mp3".to_string().into()),
+        audio_hash: None,
         preview_time: Some(5.into()),
         countdown: Some(Countdown::Double),
         sample_set: Some(SampleSet::Soft),
