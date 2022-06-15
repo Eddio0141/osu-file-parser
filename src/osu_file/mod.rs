@@ -122,8 +122,8 @@ impl Display for OsuFile {
             if let Some(timing_points) = timing_points.to_string(self.version) {
                 let section = format!("[TimingPoints]\n{timing_points}");
 
-                // for some reason below v14, theres an extra new line at the end
-                if self.version < 14 {
+                // for some reason theres an extra new line at the end in some versions
+                if self.version == 3 || (5..=13).contains(&self.version) {
                     sections.push(format!("{section}\n"));
                 } else {
                     sections.push(section);
