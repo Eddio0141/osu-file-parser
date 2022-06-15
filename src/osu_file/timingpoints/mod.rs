@@ -3,7 +3,8 @@ pub mod error;
 use std::{fmt::Display, num::NonZeroUsize, str::FromStr};
 
 use nom::{
-    combinator::map_res,
+    branch::alt,
+    combinator::{cut, map_res, success, verify},
     error::context,
     sequence::{preceded, tuple},
     Parser,
@@ -248,69 +249,102 @@ impl Version for TimingPoint {
     type ParseError = TimingPointParseError;
 
     fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
-        let (_, (time, beat_length, meter, sample_set, sample_index, volume, uninherited, effects)) =
-            tuple((
+        let (
+            _,
+            (time, beat_length, (meter, sample_set, sample_index, volume, uninherited, effects)),
+        ) = tuple((
+            context(
+                TimingPointParseError::InvalidTime.into(),
+                comma_field_type(),
+            )
+            .map(|t| {
+                if (3..=4).contains(&version) {
+                    t + OLD_VERSION_TIME_OFFSET
+                } else {
+                    t
+                }
+            }),
+            preceded(
+                context(TimingPointParseError::MissingBeatLength.into(), comma()),
                 context(
-                    TimingPointParseError::InvalidTime.into(),
+                    TimingPointParseError::InvalidBeatLength.into(),
                     comma_field_type(),
-                )
-                .map(|t| {
-                    if (3..=4).contains(&version) {
-                        t + OLD_VERSION_TIME_OFFSET
-                    } else {
-                        t
-                    }
-                }),
-                preceded(
-                    context(TimingPointParseError::MissingBeatLength.into(), comma()),
-                    context(
+                ),
+            ),
+            // in v3, rest of the fields doesn't exist
+            alt((
+                nothing()
+                    .and(context(
                         TimingPointParseError::InvalidBeatLength.into(),
-                        comma_field_type(),
+                        cut(verify(success(0), |_| version == 3)),
+                    ))
+                    .map(|_| {
+                        (
+                            4,
+                            SampleSet::Normal,
+                            SampleIndex::Index(NonZeroUsize::new(1).unwrap()),
+                            Volume::try_from(100).unwrap(),
+                            true,
+                            Effects::from(0),
+                        )
+                    }),
+                tuple((
+                    preceded(
+                        context(TimingPointParseError::MissingMeter.into(), comma()),
+                        context(
+                            TimingPointParseError::InvalidMeter.into(),
+                            comma_field_type(),
+                        ),
                     ),
-                ),
-                preceded(
-                    context(TimingPointParseError::MissingMeter.into(), comma()),
-                    context(
-                        TimingPointParseError::InvalidMeter.into(),
-                        comma_field_type(),
+                    preceded(
+                        context(TimingPointParseError::MissingSampleSet.into(), comma()),
+                        context(
+                            TimingPointParseError::InvalidSampleSet.into(),
+                            comma_field_type(),
+                        ),
                     ),
-                ),
-                preceded(
-                    context(TimingPointParseError::MissingSampleSet.into(), comma()),
-                    context(
-                        TimingPointParseError::InvalidSampleSet.into(),
-                        comma_field_type(),
+                    preceded(
+                        context(TimingPointParseError::MissingSampleIndex.into(), comma()),
+                        context(
+                            TimingPointParseError::InvalidSampleIndex.into(),
+                            comma_field_type(),
+                        ),
                     ),
-                ),
-                preceded(
-                    context(TimingPointParseError::MissingSampleIndex.into(), comma()),
-                    context(
-                        TimingPointParseError::InvalidSampleIndex.into(),
-                        comma_field_type(),
+                    preceded(
+                        context(TimingPointParseError::MissingVolume.into(), comma()),
+                        context(
+                            TimingPointParseError::InvalidVolume.into(),
+                            comma_field_type(),
+                        ),
                     ),
-                ),
-                preceded(
-                    context(TimingPointParseError::MissingVolume.into(), comma()),
-                    context(
-                        TimingPointParseError::InvalidVolume.into(),
-                        comma_field_type(),
+                    preceded(
+                        context(TimingPointParseError::MissingUninherited.into(), comma()),
+                        context(
+                            TimingPointParseError::InvalidUninherited.into(),
+                            map_res(comma_field(), parse_zero_one_bool),
+                        ),
                     ),
-                ),
-                preceded(
-                    context(TimingPointParseError::MissingUninherited.into(), comma()),
-                    context(
-                        TimingPointParseError::InvalidUninherited.into(),
-                        map_res(comma_field(), parse_zero_one_bool),
+                    preceded(
+                        context(TimingPointParseError::MissingEffects.into(), comma()),
+                        context(
+                            TimingPointParseError::InvalidEffects.into(),
+                            consume_rest_type(),
+                        ),
                     ),
-                ),
-                preceded(
-                    context(TimingPointParseError::MissingEffects.into(), comma()),
-                    context(
-                        TimingPointParseError::InvalidEffects.into(),
-                        consume_rest_type(),
-                    ),
-                ),
-            ))(s)?;
+                )),
+            )),
+        ))(s)?;
+
+        dbg!(
+            time,
+            beat_length,
+            meter,
+            sample_set,
+            sample_index,
+            volume,
+            uninherited,
+            effects
+        );
 
         Ok(Some(TimingPoint {
             time,
@@ -325,7 +359,7 @@ impl Version for TimingPoint {
     }
 
     fn to_string(&self, version: usize) -> Option<String> {
-        let fields = vec![
+        let mut fields = vec![
             if (3..=4).contains(&version) {
                 self.time - OLD_VERSION_TIME_OFFSET
             } else {
@@ -333,14 +367,17 @@ impl Version for TimingPoint {
             }
             .to_string(),
             self.beat_length.to_string(),
-            self.meter.to_string(),
-            self.sample_set.to_string(),
-            self.sample_index.to_string(),
-            self.volume.to_string(),
-            // TODO check all bool types to be integer
-            (self.uninherited as u8).to_string(),
-            self.effects.to_string(),
         ];
+
+        if version > 3 {
+            fields.push(self.meter.to_string());
+            fields.push(self.sample_set.to_string());
+            fields.push(self.sample_index.to_string());
+            fields.push(self.volume.to_string());
+            // TODO check all bool types to be integer
+            fields.push((self.uninherited as u8).to_string());
+            fields.push(self.effects.to_string());
+        }
 
         Some(format!("{}", fields.join(",")))
     }
