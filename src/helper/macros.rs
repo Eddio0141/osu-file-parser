@@ -41,6 +41,29 @@ macro_rules! versioned_field {
 
         versioned_field_from!($name, $field_type);
     };
+    ($name:ident, $field_type:ty, no_versions, |$s:ident| $from_str_inner:block -> $parse_str_error:ty, |$v:ident, $version_to_string:ident| $to_string_inner:block, |$version_default:ident| $default:block) => {
+        #[derive(PartialEq, Debug, Clone, Eq, Hash)]
+        pub struct $name(pub $field_type);
+
+        impl crate::osu_file::types::Version for $name {
+            type ParseError = $parse_str_error;
+
+            fn from_str($s: &str, _: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
+                $from_str_inner.map(|value| Some(Self(value)))
+            }
+
+            fn to_string(&self, $version_to_string: usize) -> Option<String> {
+                let $v = &self.0;
+                $to_string_inner
+            }
+
+            fn default($version_default: usize) -> Option<Self> {
+                $default.map(|v| v.into())
+            }
+        }
+
+        versioned_field_from!($name, $field_type);
+    };
     ($name:ident, $field_type:ty, no_versions, |$s:ident| $from_str_inner:block -> $parse_str_error:ty,, $default:expr) => {
         #[derive(PartialEq, Debug, Clone, Eq, Hash)]
         pub struct $name(pub $field_type);
