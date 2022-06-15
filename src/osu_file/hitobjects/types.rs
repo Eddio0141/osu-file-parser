@@ -393,6 +393,7 @@ pub enum CurveType {
 pub struct HitSample {
     normal_set: SampleSet,
     addition_set: SampleSet,
+    // TODO make this into own type
     index: Option<NonZeroUsize>,
     volume: Volume,
     filename: String,
