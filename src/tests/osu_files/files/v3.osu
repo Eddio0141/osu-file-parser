@@ -14,8 +14,8 @@ Version:Normal
 HPDrainRate:6
 CircleSize:4
 OverallDifficulty:6
-SliderMultiplier: 1.4
-SliderTickRate: 2
+SliderMultiplier:1.4
+SliderTickRate:2
 
 [Events]
 2,34350,47100
