@@ -2,17 +2,12 @@ pub mod error;
 pub mod types;
 
 use nom::branch::alt;
-use nom::bytes::complete::is_not;
-use nom::bytes::complete::take_until;
-use nom::character::complete::space0;
+use nom::bytes::complete::*;
 use nom::character::streaming::char;
-use nom::combinator::eof;
-use nom::combinator::map_res;
-use nom::combinator::rest;
+use nom::combinator::*;
 use nom::error::context;
-use nom::sequence::preceded;
-use nom::sequence::tuple;
-use nom::Parser;
+use nom::sequence::*;
+use nom::*;
 use rust_decimal::Decimal;
 
 use self::types::*;
@@ -160,7 +155,6 @@ impl Version for HitObject {
     fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
         let hitsound = context(
             HitObjectParseError::InvalidHitSound.into(),
-            // TODO replace all map_res(is_not(",")) with comma_field_type
             comma_field_type(),
         );
         let mut hitsample = alt((
@@ -258,7 +252,12 @@ impl Version for HitObject {
                     context(HitObjectParseError::MissingCurvePoint.into(), pipe),
                     context(
                         HitObjectParseError::InvalidCurvePoint.into(),
-                        pipe_vec_map(),
+                        pipe_vec_map().map(|mut v| {
+                            if version == 3 && v.len() > 0 {
+                                v.remove(0);
+                            }
+                            v
+                        }),
                     ),
                 ),
                 preceded(
@@ -276,17 +275,14 @@ impl Version for HitObject {
                     ),
                 ),
                 alt((
-                    preceded(
-                        space0,
-                        eof.map(|_| (Vec::new(), Vec::new(), None, true, true)),
-                    ),
+                    nothing().map(|_| (Vec::new(), Vec::new(), None, true, true)),
                     tuple((
                         preceded(
                             context(HitObjectParseError::MissingEdgeSound.into(), comma()),
                             context(HitObjectParseError::InvalidEdgeSound.into(), pipe_vec_map()),
                         ),
                         alt((
-                            preceded(space0, eof.map(|_| (Vec::new(), None, true))),
+                            nothing().map(|_| (Vec::new(), None, true)),
                             tuple((
                                 preceded(
                                     context(HitObjectParseError::MissingEdgeSet.into(), comma()),
@@ -441,7 +437,15 @@ impl Version for HitObject {
                 properties.push(curve_type.to_string());
 
                 let mut properties_2 = vec![
-                    pipe_vec_to_string(curve_points),
+                    {
+                        if version == 3 {
+                            let mut curve_points = curve_points.clone();
+                            curve_points.insert(0, CurvePoint(self.position.clone()));
+                            pipe_vec_to_string(&curve_points)
+                        } else {
+                            pipe_vec_to_string(curve_points)
+                        }
+                    },
                     slides.to_string(),
                     length.to_string(),
                 ];
