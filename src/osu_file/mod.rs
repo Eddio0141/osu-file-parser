@@ -123,7 +123,7 @@ impl Display for OsuFile {
                 let section = format!("[TimingPoints]\n{timing_points}");
 
                 // for some reason theres an extra new line at the end in some versions
-                if self.version == 3 || (5..=13).contains(&self.version) {
+                if self.version == 3 || (6..=13).contains(&self.version) {
                     sections.push(format!("{section}\n"));
                 } else {
                     sections.push(section);

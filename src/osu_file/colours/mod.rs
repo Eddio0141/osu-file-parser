@@ -28,7 +28,7 @@ impl Version for Colours {
     // TODO different versions of colours?
     fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
         match version {
-            MIN_VERSION..=5 => Ok(None),
+            MIN_VERSION..=4 => Ok(None),
             _ => {
                 let mut colours = Vec::new();
 
@@ -45,7 +45,7 @@ impl Version for Colours {
 
     fn to_string(&self, version: usize) -> Option<String> {
         match version {
-            MIN_VERSION..=5 => None,
+            MIN_VERSION..=4 => None,
             _ => Some(
                 self.0
                     .iter()
@@ -58,7 +58,7 @@ impl Version for Colours {
 
     fn default(version: usize) -> Option<Self> {
         match version {
-            MIN_VERSION..=13 => None,
+            MIN_VERSION..=4 => None,
             _ => Some(Colours(Vec::new())),
         }
     }

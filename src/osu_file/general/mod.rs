@@ -119,7 +119,7 @@ impl Version for Countdown {
 
     fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
         match version {
-            MIN_VERSION..=5 => Ok(None),
+            MIN_VERSION..=4 => Ok(None),
             _ => Countdown::from_repr(s.parse()?)
                 .ok_or(ParseCountdownSpeedError::UnknownType)
                 .map(Some),
@@ -128,13 +128,16 @@ impl Version for Countdown {
 
     fn to_string(&self, version: usize) -> Option<String> {
         match version {
-            MIN_VERSION..=5 => None,
+            MIN_VERSION..=4 => None,
             _ => Some((*self as usize).to_string()),
         }
     }
 
-    fn default(_: usize) -> Option<Self> {
-        Some(Self::Normal)
+    fn default(version: usize) -> Option<Self> {
+        match version {
+            MIN_VERSION..=4 => None,
+            _ => Some(Countdown::Normal),
+        }
     }
 }
 
