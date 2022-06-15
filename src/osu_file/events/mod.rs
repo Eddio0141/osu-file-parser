@@ -12,7 +12,7 @@ use nom::{
     bytes::complete::{tag, take_while},
     combinator::{cut, eof, fail, rest},
     error::context,
-    sequence::{preceded, tuple},
+    sequence::{preceded, terminated, tuple},
     Finish, Parser,
 };
 
@@ -179,18 +179,24 @@ impl Display for Event {
                 };
 
                 match event_params {
-                    // background by default doesn't print the shorthand for some reason
                     EventParams::Background(background) => format!(
                         "0,{start_time},{}{}",
                         background.filename.to_string_lossy(),
                         position_str(&background.position),
                     ),
                     EventParams::Video(video) => format!(
-                        "1,{start_time},{}{}",
+                        "{},{start_time},{}{}",
+                        if video.short_hand { "1" } else { "Video" },
                         video.filename.to_string_lossy(),
                         position_str(&video.position),
                     ),
-                    EventParams::Break(_break) => format!("2,{start_time},{}", _break.end_time),
+                    EventParams::Break(_break) => {
+                        format!(
+                            "{},{start_time},{}",
+                            if _break.short_hand { "2" } else { "Break" },
+                            _break.end_time
+                        )
+                    }
                     EventParams::ColourTransformation(transformation) => format!(
                         "3,{start_time},{},{},{}",
                         transformation.red, transformation.green, transformation.blue
@@ -330,11 +336,32 @@ impl Background {
 pub struct Video {
     pub filename: PathBuf,
     pub position: Option<Position>,
+    short_hand: bool,
+}
+
+impl Video {
+    pub fn new(filename: PathBuf, position: Option<Position>) -> Self {
+        Self {
+            filename,
+            position,
+            short_hand: true,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Break {
     pub end_time: Integer,
+    short_hand: bool,
+}
+
+impl Break {
+    pub fn new(end_time: Integer) -> Self {
+        Self {
+            end_time,
+            short_hand: true,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
@@ -396,33 +423,44 @@ impl FromStr for EventParams {
             cut(file_name_and_coordinates()),
         )
         .map(|(filename, position)| EventParams::Background(Background { filename, position }));
-        let video = preceded(
-            tuple((
-                alt((tag("1"), tag("Video"))),
+        let video = tuple((
+            terminated(
+                alt((tag("1").map(|_| true), tag("Video").map(|_| false))),
                 cut(tuple((
                     context(EventParamsParseError::MissingStartTime.into(), comma()),
                     start_time(),
                     context(EventParamsParseError::MissingFileName.into(), comma()),
                 ))),
-            )),
+            ),
             cut(file_name_and_coordinates()),
-        )
-        .map(|(filename, position)| EventParams::Video(Video { filename, position }));
-        let break_ = preceded(
-            tuple((
-                alt((tag("2"), tag("Break"))),
+        ))
+        .map(|(short_hand, (filename, position))| {
+            EventParams::Video(Video {
+                filename,
+                position,
+                short_hand,
+            })
+        });
+        let break_ = tuple((
+            terminated(
+                alt((tag("2").map(|_| true), tag("Break").map(|_| false))),
                 cut(tuple((
                     context(EventParamsParseError::MissingStartTime.into(), comma()),
                     start_time(),
                     context(EventParamsParseError::MissingEndTime.into(), comma()),
                 ))),
-            )),
+            ),
             cut(context(
                 EventParamsParseError::InvalidEndTime.into(),
                 end_time,
             )),
-        )
-        .map(|end_time| EventParams::Break(Break { end_time }));
+        ))
+        .map(|(short_hand, end_time)| {
+            EventParams::Break(Break {
+                end_time,
+                short_hand,
+            })
+        });
         let colour_transformation = preceded(
             tuple((
                 tag("3"),
