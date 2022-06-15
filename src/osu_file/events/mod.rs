@@ -1,11 +1,7 @@
 pub mod error;
 pub mod storyboard;
 
-use std::{
-    fmt::Display,
-    path::{Path, PathBuf},
-    str::FromStr,
-};
+use std::path::{Path, PathBuf};
 
 use nom::{
     branch::alt,
@@ -104,8 +100,11 @@ impl Version for Events {
                                         unimplemented!("I somehow forgot to implement a context");
                                     })?;
 
-                                    let event_params =
-                                        Error::new_from_result_into(line.parse(), line_index)?;
+                                    let event_params = Error::new_from_result_into(
+                                        EventParams::from_str(line, version),
+                                        line_index,
+                                    )?
+                                    .unwrap();
 
                                     events.0.push(Event::NormalEvent {
                                         // TODO does start_time has the version offset in storyboard?
@@ -135,36 +134,55 @@ impl Version for Events {
     }
 
     fn to_string(&self, version: usize) -> Option<String> {
-        Some(
-            self.0
-                .iter()
-                .map(|i| {
-                    if let Event::NormalEvent {
-                        start_time,
-                        event_params,
-                    } = i
-                    {
-                        if matches!(event_params, EventParams::Background(_)) {
-                            i.to_string()
-                        } else {
-                            // TODO check out whats going on in v5, seems inconsistent
-                            if (3..=4).contains(&version) {
-                                Event::NormalEvent {
-                                    start_time: *start_time - OLD_VERSION_TIME_OFFSET,
-                                    event_params: event_params.to_owned(),
-                                }
-                                .to_string()
-                            } else {
-                                i.to_string()
-                            }
-                        }
+        let s = self
+            .0
+            .iter()
+            .map(|i| {
+                if let Event::NormalEvent {
+                    start_time,
+                    event_params,
+                } = i
+                {
+                    if matches!(event_params, EventParams::Background(_)) {
+                        i.to_string(version)
                     } else {
-                        i.to_string()
+                        // TODO check out whats going on in v5, seems inconsistent
+                        if (3..=4).contains(&version) {
+                            Event::NormalEvent {
+                                start_time: *start_time,
+                                event_params: {
+                                    let mut event_params = event_params.clone();
+                                    if let EventParams::Break(b) = &mut event_params {
+                                        b.end_time -= OLD_VERSION_TIME_OFFSET
+                                    }
+                                    event_params
+                                },
+                            }
+                            .to_string(version)
+                        } else {
+                            i.to_string(version)
+                        }
                     }
-                })
-                .collect::<Vec<_>>()
-                .join("\n"),
-        )
+                } else {
+                    i.to_string(version)
+                }
+            })
+            .collect::<Vec<_>>();
+
+        if let Some(v) = s.get(0) {
+            if v.is_some() {
+                Some(
+                    s.into_iter()
+                        .map(|v| v.unwrap())
+                        .collect::<Vec<_>>()
+                        .join("\n"),
+                )
+            } else {
+                None
+            }
+        } else {
+            Some(String::new())
+        }
     }
 
     fn default(_: usize) -> Option<Self> {
@@ -182,8 +200,14 @@ pub enum Event {
     Storyboard(Object),
 }
 
-impl Display for Event {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl Version for Event {
+    type ParseError = ();
+
+    fn from_str(_: &str, _: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
+        Ok(None)
+    }
+
+    fn to_string(&self, version: usize) -> Option<String> {
         let event_str = match self {
             Event::Comment(comment) => format!("//{comment}"),
             Event::NormalEvent {
@@ -194,6 +218,12 @@ impl Display for Event {
                     Some(position) => format!(",{},{}", position.x, position.y),
                     None => String::new(),
                 };
+                let mut start_time = start_time.clone();
+
+                if (3..=4).contains(&version) && !matches!(event_params, EventParams::Background(_))
+                {
+                    start_time -= OLD_VERSION_TIME_OFFSET;
+                }
 
                 match event_params {
                     EventParams::Background(background) => format!(
@@ -330,7 +360,11 @@ impl Display for Event {
             }
         };
 
-        write!(f, "{event_str}")
+        Some(event_str)
+    }
+
+    fn default(_: usize) -> Option<Self> {
+        None
     }
 }
 
@@ -396,10 +430,10 @@ pub enum EventParams {
     ColourTransformation(ColourTransformation),
 }
 
-impl FromStr for EventParams {
-    type Err = EventParamsParseError;
+impl Version for EventParams {
+    type ParseError = EventParamsParseError;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
         let start_time = comma_field;
         let file_name = || comma_field().map(PathBuf::from);
         let coordinates = || {
@@ -426,7 +460,13 @@ impl FromStr for EventParams {
             .map(|position| position.map(|(x, y)| Position { x, y }))
         };
         let file_name_and_coordinates = || tuple((file_name(), coordinates()));
-        let end_time = consume_rest_type();
+        let end_time = consume_rest_type().map(|end_time| {
+            if (3..=4).contains(&version) {
+                end_time + OLD_VERSION_TIME_OFFSET
+            } else {
+                end_time
+            }
+        });
 
         let background = preceded(
             tuple((
@@ -517,6 +557,14 @@ impl FromStr for EventParams {
             context(EventParamsParseError::UnknownEventType.into(), fail),
         ))(s)?;
 
-        Ok(result.1)
+        Ok(Some(result.1))
+    }
+
+    fn to_string(&self, _: usize) -> Option<String> {
+        None
+    }
+
+    fn default(_: usize) -> Option<Self> {
+        None
     }
 }
