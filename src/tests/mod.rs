@@ -27,7 +27,6 @@ use crate::osu_file::{
 fn general_parse_v14() {
     let i_str = "AudioFilename: test.mp3
 AudioLeadIn: 555
-AudioHash: no.mp3
 PreviewTime: 5
 Countdown: 3
 SampleSet: Soft
