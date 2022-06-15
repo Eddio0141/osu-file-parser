@@ -15,7 +15,7 @@ use crate::osu_file::{
     difficulty::Difficulty,
     editor::Editor,
     events::{Background, Break, Event, EventParams, Events},
-    general::{Countdown, Mode, General, OverlayPosition, SampleSet},
+    general::{Countdown, General, Mode, OverlayPosition, SampleSet},
     metadata::Metadata,
     timingpoints,
     timingpoints::{Effects, SampleIndex, TimingPoint, TimingPoints, Volume},
@@ -259,7 +259,7 @@ fn events_parse_v14() {
         Event::Comment("Break Periods".to_string()),
         Event::NormalEvent {
             start_time: 100,
-            event_params: EventParams::Break(Break { end_time: 163 }),
+            event_params: EventParams::Break(Break::new(163)),
         },
     ]);
 
