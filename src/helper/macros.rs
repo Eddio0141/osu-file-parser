@@ -132,6 +132,7 @@ macro_rules! versioned_field {
     };
 }
 
+// TODO do we store the space after the colon?
 macro_rules! general_section {
     (
         $(#[$outer:meta])*
