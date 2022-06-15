@@ -464,7 +464,16 @@ impl Version for HitObject {
             }
         }
 
-        Some(format!("{}", properties.join(",")))
+        let s = format!("{}", properties.join(","));
+
+        // v3 for some reason has a trailing comma for hitcircles
+        let s = if version == 3 && matches!(self.obj_params, HitObjectParams::HitCircle) {
+            format!("{s},")
+        } else {
+            s
+        };
+
+        Some(s)
     }
 
     fn default(_: usize) -> Option<Self> {
