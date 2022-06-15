@@ -165,15 +165,15 @@ impl Version for SampleSet {
     // TODO investigate versions
     fn default(version: usize) -> Option<Self> {
         match version {
-            3..=4 => None,
+            3 => None,
             _ => Some(Self::Normal),
         }
     }
 
     fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
         match version {
-            3..=4 => Ok(None),
-            5..=13 => Ok(Some(s.parse()?)),
+            3 => Ok(None),
+            4..=13 => Ok(Some(s.parse()?)),
             _ => {
                 let mut sample_set = s.parse()?;
 
@@ -188,7 +188,7 @@ impl Version for SampleSet {
 
     fn to_string(&self, version: usize) -> Option<String> {
         match version {
-            3..=4 => None,
+            3 => None,
             // I dont think we have to revert to None
             _ => Some(ToString::to_string(&self)),
         }
