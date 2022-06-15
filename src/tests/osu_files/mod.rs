@@ -13,7 +13,8 @@ fn v3_file() {
 fn v3_to_v14_file() {
     let v3 = include_str!("./files/v3.osu").replace("\r\n", "\n");
     let v3_v14 = include_str!("./files/v3_v14.osu").replace("\r\n", "\n");
-    let osu_file = v3.parse::<OsuFile>().unwrap();
+    let mut osu_file = v3.parse::<OsuFile>().unwrap();
+    osu_file.version = 14;
 
     assert_eq!(v3_v14, osu_file.to_string());
 }
