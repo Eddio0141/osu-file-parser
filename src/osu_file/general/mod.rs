@@ -22,7 +22,10 @@ use super::{types::Error, Version};
 
 versioned_field!(AudioFilename, PathBuf, no_versions, |s| { Ok(PathBuf::from(s)) } -> (), |v| { v.display().to_string() }, PathBuf::from(""));
 versioned_field!(AudioLeadIn, Integer, no_versions, |s| { s.parse() } -> ParseIntError,, 0);
-versioned_field!(AudioHash, String, no_versions, |s| { Ok(s.to_string()) } -> (),, String::new());
+versioned_field!(AudioHash, String, no_versions, |s| { Ok(s.to_string()) } -> (),
+    |v, version| { if version > 13 { None } else { Some(v.to_string()) } },
+    |version| { if version > 13 { None } else { Some(String::new())}
+});
 versioned_field!(PreviewTime, Integer, no_versions, |s| { s.parse() } -> ParseIntError,, -1);
 versioned_field!(StackLeniency, Decimal, no_versions, |s| { s.parse() } -> rust_decimal::Error,, dec!(0.7));
 versioned_field!(LetterboxInBreaks, bool, no_versions, |s| { helper::parse_zero_one_bool(s) } -> helper::ParseZeroOneBoolError, boolean, false);
