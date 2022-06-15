@@ -156,6 +156,7 @@ macro_rules! versioned_field {
 }
 
 // TODO do we store the space after the colon?
+// TODO merge with versioned_field
 macro_rules! general_section {
     (
         $(#[$outer:meta])*
