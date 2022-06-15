@@ -6,6 +6,7 @@ use nom::{
     combinator::map_res,
     error::context,
     sequence::{preceded, tuple},
+    Parser,
 };
 use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
@@ -27,27 +28,53 @@ impl Version for TimingPoints {
     type ParseError = Error<ParseError>;
 
     // TODO versions
-    fn from_str(s: &str, _: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
+    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
         let mut timing_points = Vec::new();
 
         for (line_index, s) in s.lines().enumerate() {
             if !s.is_empty() {
-                timing_points.push(Error::new_from_result_into(s.parse(), line_index)?);
+                timing_points.push(Error::new_from_result_into(
+                    TimingPoint::from_str(s, version),
+                    line_index,
+                )?);
             }
         }
 
-        Ok(Some(TimingPoints(timing_points)))
+        if let Some(s) = timing_points.get(0) {
+            if s.is_some() {
+                Ok(Some(TimingPoints(
+                    timing_points.iter().map(|v| v.unwrap()).collect::<Vec<_>>(),
+                )))
+            } else {
+                Ok(None)
+            }
+        } else {
+            Ok(Some(TimingPoints(Vec::new())))
+        }
     }
 
-    fn to_string(&self, _: usize) -> Option<String> {
+    fn to_string(&self, version: usize) -> Option<String> {
         // TODO add this as trait extension to Vec with Display impl
-        Some(
-            self.0
-                .iter()
-                .map(|p| p.to_string())
-                .collect::<Vec<_>>()
-                .join("\n"),
-        )
+        let s = self
+            .0
+            .iter()
+            .map(|p| p.to_string(version))
+            .collect::<Vec<_>>();
+
+        if let Some(v) = s.get(0) {
+            if v.is_some() {
+                Some(
+                    s.into_iter()
+                        .map(|v| v.unwrap())
+                        .collect::<Vec<_>>()
+                        .join("\n"),
+                )
+            } else {
+                None
+            }
+        } else {
+            Some(String::new())
+        }
     }
 
     fn default(_: usize) -> Option<Self> {
@@ -215,16 +242,25 @@ impl TimingPoint {
     }
 }
 
-impl FromStr for TimingPoint {
-    type Err = TimingPointParseError;
+const OLD_VERSION_TIME_OFFSET: Decimal = dec!(24);
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+impl Version for TimingPoint {
+    type ParseError = TimingPointParseError;
+
+    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
         let (_, (time, beat_length, meter, sample_set, sample_index, volume, uninherited, effects)) =
             tuple((
                 context(
                     TimingPointParseError::InvalidTime.into(),
                     comma_field_type(),
-                ),
+                )
+                .map(|t| {
+                    if (3..=4).contains(&version) {
+                        t + OLD_VERSION_TIME_OFFSET
+                    } else {
+                        t
+                    }
+                }),
                 preceded(
                     context(TimingPointParseError::MissingBeatLength.into(), comma()),
                     context(
@@ -276,7 +312,7 @@ impl FromStr for TimingPoint {
                 ),
             ))(s)?;
 
-        Ok(TimingPoint {
+        Ok(Some(TimingPoint {
             time,
             beat_length,
             meter,
@@ -285,14 +321,17 @@ impl FromStr for TimingPoint {
             volume,
             uninherited,
             effects,
-        })
+        }))
     }
-}
 
-impl Display for TimingPoint {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn to_string(&self, version: usize) -> Option<String> {
         let fields = vec![
-            self.time.to_string(),
+            if (3..=4).contains(&version) {
+                self.time - OLD_VERSION_TIME_OFFSET
+            } else {
+                self.time
+            }
+            .to_string(),
             self.beat_length.to_string(),
             self.meter.to_string(),
             self.sample_set.to_string(),
@@ -303,7 +342,17 @@ impl Display for TimingPoint {
             self.effects.to_string(),
         ];
 
-        write!(f, "{}", fields.join(","))
+        Some(format!("{}", fields.join(",")))
+    }
+
+    fn default(version: usize) -> Option<Self> {
+        let mut default = <Self as Default>::default();
+
+        if (3..=4).contains(&version) {
+            default.time -= OLD_VERSION_TIME_OFFSET;
+        }
+
+        Some(default)
     }
 }
 

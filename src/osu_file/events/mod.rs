@@ -27,11 +27,13 @@ pub use self::error::*;
 #[derive(Default, Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Events(pub Vec<Event>);
 
+const OLD_VERSION_TIME_OFFSET: Integer = 24;
+
 impl Version for Events {
     type ParseError = Error<ParseError>;
 
     // TODO check versions
-    fn from_str(s: &str, _: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
+    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
         let mut events = Events(Vec::new());
 
         let mut comment = preceded::<_, _, _, nom::error::Error<_>, _, _>(tag("//"), rest);
@@ -102,12 +104,19 @@ impl Version for Events {
                                         unimplemented!("I somehow forgot to implement a context");
                                     })?;
 
+                                    let event_params =
+                                        Error::new_from_result_into(line.parse(), line_index)?;
+
                                     events.0.push(Event::NormalEvent {
-                                        start_time,
-                                        event_params: Error::new_from_result_into(
-                                            line.parse(),
-                                            line_index,
-                                        )?,
+                                        // TODO does start_time has the version offset in storyboard?
+                                        start_time: if (3..=4).contains(&version)
+                                            && !matches!(event_params, EventParams::Background(_))
+                                        {
+                                            start_time + OLD_VERSION_TIME_OFFSET
+                                        } else {
+                                            start_time
+                                        },
+                                        event_params,
                                     })
                                 } else {
                                     return Err(Error::new(
@@ -125,11 +134,34 @@ impl Version for Events {
         Ok(Some(events))
     }
 
-    fn to_string(&self, _: usize) -> Option<String> {
+    fn to_string(&self, version: usize) -> Option<String> {
         Some(
             self.0
                 .iter()
-                .map(|i| i.to_string())
+                .map(|i| {
+                    if let Event::NormalEvent {
+                        start_time,
+                        event_params,
+                    } = i
+                    {
+                        if matches!(event_params, EventParams::Background(_)) {
+                            i.to_string()
+                        } else {
+                            // TODO check out whats going on in v5, seems inconsistent
+                            if (3..=4).contains(&version) {
+                                Event::NormalEvent {
+                                    start_time: *start_time - OLD_VERSION_TIME_OFFSET,
+                                    event_params: event_params.to_owned(),
+                                }
+                                .to_string()
+                            } else {
+                                i.to_string()
+                            }
+                        }
+                    } else {
+                        i.to_string()
+                    }
+                })
                 .collect::<Vec<_>>()
                 .join("\n"),
         )

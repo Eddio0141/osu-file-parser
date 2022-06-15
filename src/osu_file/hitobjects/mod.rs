@@ -152,6 +152,8 @@ impl HitObject {
     }
 }
 
+const OLD_VERSION_TIME_OFFSET: Integer = 24;
+
 impl Version for HitObject {
     type ParseError = HitObjectParseError;
 
@@ -187,7 +189,15 @@ impl Version for HitObject {
             preceded(
                 context(HitObjectParseError::MissingTime.into(), comma()),
                 context(HitObjectParseError::InvalidTime.into(), comma_field_type()),
-            ),
+            )
+            // version 3 has a slight time delay of 24ms
+            .map(|t| {
+                if (3..=4).contains(&version) {
+                    t + OLD_VERSION_TIME_OFFSET
+                } else {
+                    t
+                }
+            }),
             preceded(
                 context(HitObjectParseError::MissingObjType.into(), comma()),
                 context(
@@ -331,7 +341,14 @@ impl Version for HitObject {
                         HitObjectParseError::InvalidEndTime.into(),
                         comma_field_type(),
                     ),
-                ),
+                )
+                .map(|t| {
+                    if (3..=4).contains(&version) {
+                        t + OLD_VERSION_TIME_OFFSET
+                    } else {
+                        t
+                    }
+                }),
                 hitsample,
             ))(s)?;
 
@@ -363,7 +380,14 @@ impl Version for HitObject {
             let end_time = context(
                 HitObjectParseError::InvalidEndTime.into(),
                 map_res(take_until(":"), |s: &str| s.parse()),
-            );
+            )
+            .map(|v| {
+                if version == 3 {
+                    v + OLD_VERSION_TIME_OFFSET
+                } else {
+                    v
+                }
+            });
             let (_, (end_time, hitsample)) = tuple((
                 preceded(
                     context(HitObjectParseError::MissingEndTime.into(), comma()),
@@ -392,7 +416,12 @@ impl Version for HitObject {
         let mut properties: Vec<String> = vec![
             self.position.x.to_string(),
             self.position.y.to_string(),
-            self.time.to_string(),
+            if (3..=4).contains(&version) {
+                self.time - OLD_VERSION_TIME_OFFSET
+            } else {
+                self.time
+            }
+            .to_string(),
             self.type_to_string(),
             self.hitsound.to_string(),
         ];
@@ -440,9 +469,23 @@ impl Version for HitObject {
                     properties_2.join(",")
                 ));
             }
-            HitObjectParams::Spinner { end_time } => properties.push(end_time.to_string()),
+            HitObjectParams::Spinner { end_time } => properties.push(
+                if (3..=4).contains(&version) {
+                    end_time - OLD_VERSION_TIME_OFFSET
+                } else {
+                    *end_time
+                }
+                .to_string(),
+            ),
             HitObjectParams::OsuManiaHold { end_time } => {
-                properties.push(end_time.to_string());
+                properties.push(
+                    if (3..=4).contains(&version) {
+                        end_time - OLD_VERSION_TIME_OFFSET
+                    } else {
+                        *end_time
+                    }
+                    .to_string(),
+                );
 
                 let hitsample = if let Some(hitsample) = &self.hitsample {
                     if let Some(hitsample) = hitsample.to_string(version) {
