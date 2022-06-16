@@ -375,6 +375,12 @@ impl VersionedFromString for TimingPoint {
     }
 }
 
+impl VersionedToString for &TimingPoint {
+    fn to_string(&self, version: usize) -> Option<String> {
+        self.to_owned().to_string(version)
+    }
+}
+
 impl VersionedToString for TimingPoint {
     fn to_string(&self, version: usize) -> Option<String> {
         let mut fields = vec![

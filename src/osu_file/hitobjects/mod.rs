@@ -57,7 +57,7 @@ impl VersionedDefault for HitObjects {
     }
 }
 
-/// An interface that represents a hitobject.
+/// A struct that represents a hitobject.
 ///
 /// All hitobjects will have the properties: `x`, `y`, `time`, `type`, `hitsound`, `hitsample`.
 ///
@@ -408,6 +408,12 @@ impl VersionedFromString for HitObject {
         };
 
         Ok(Some(hitobject))
+    }
+}
+
+impl VersionedToString for &HitObject {
+    fn to_string(&self, version: usize) -> Option<String> {
+        self.to_owned().to_string(version)
     }
 }
 
