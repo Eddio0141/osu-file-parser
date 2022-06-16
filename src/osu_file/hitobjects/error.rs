@@ -20,6 +20,7 @@ pub struct ParseError(#[from] HitObjectParseError);
 pub struct ComboSkipCountTooHigh(pub u8);
 
 #[derive(Debug, Error)]
+#[non_exhaustive]
 /// Error used when there was a problem parsing a `str` having a `F:S` format.
 pub enum ColonSetParseError {
     /// When the first item is missing.
@@ -41,6 +42,7 @@ pub enum ColonSetParseError {
 }
 
 #[derive(Debug, Error, EnumString, IntoStaticStr)]
+#[non_exhaustive]
 /// Error used when there was a problem parsing a `str` into a [`hitobject`][super::HitObjectWrapper].
 pub enum HitObjectParseError {
     /// Invalid `hit_sound` value.
@@ -129,6 +131,7 @@ pub enum HitObjectParseError {
 verbose_error_to_error!(HitObjectParseError);
 
 #[derive(Debug, Error, EnumString, IntoStaticStr)]
+#[non_exhaustive]
 /// Error used when there was a problem parsing a `str` into a [`hitsample`][super::types::HitSample].
 pub enum HitSampleParseError {
     #[error("Invalid `sample_set` value")]
@@ -144,6 +147,7 @@ pub enum HitSampleParseError {
 verbose_error_to_error!(HitSampleParseError);
 
 #[derive(Debug, Error)]
+#[non_exhaustive]
 /// Error used when there was a problem parsing a `str` into a [`sampleset`][super::types::SampleSet].
 pub enum SampleSetParseError {
     /// The `str` had a value higher than 3.
@@ -155,6 +159,7 @@ pub enum SampleSetParseError {
 }
 
 #[derive(Debug, Error)]
+#[non_exhaustive]
 /// Error used when the user tried to set [`volume`][super::types::Volume]'s field as something invalid.
 pub enum VolumeSetError {
     /// The volume was too high, being higher than `100`.
@@ -168,6 +173,7 @@ pub enum VolumeSetError {
 }
 
 #[derive(Debug, Error)]
+#[non_exhaustive]
 /// Error used when there was a problem parsing a `volume` from a `str`.
 pub enum VolumeParseError {
     /// The volume was too high, being higher than `100`.

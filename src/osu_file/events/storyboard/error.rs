@@ -6,12 +6,14 @@ use std::{num::ParseIntError, str::FromStr};
 use crate::helper::macros::verbose_error_to_error;
 
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum CommandPushError {
     #[error("Invalid indentation, expected {0}, got {1}")]
     InvalidIndentation(usize, usize),
 }
 
 #[derive(Debug, Error, IntoStaticStr, EnumString)]
+#[non_exhaustive]
 pub enum ObjectParseError {
     #[error("Unknown object type")]
     UnknownObjectType,
@@ -54,6 +56,7 @@ verbose_error_to_error!(ObjectParseError);
 pub struct FilePathNotRelative;
 
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum EasingParseError {
     #[error(transparent)]
     ValueParseError(#[from] ParseIntError),
@@ -62,6 +65,7 @@ pub enum EasingParseError {
 }
 
 #[derive(Debug, Error, EnumString, IntoStaticStr)]
+#[non_exhaustive]
 pub enum CommandParseError {
     /// Unknown command type
     #[error("Unknown command type")]
@@ -191,6 +195,7 @@ pub enum CommandParseError {
 verbose_error_to_error!(CommandParseError);
 
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum TriggerTypeParseError {
     #[error("There are too many `HitSound` fields: {0}")]
     TooManyHitSoundFields(usize),
@@ -206,6 +211,7 @@ pub enum TriggerTypeParseError {
 }
 
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum ContinuingRGBSetError {
     #[error("continuing fields index out of bounds")]
     IndexOutOfBounds,
@@ -214,6 +220,7 @@ pub enum ContinuingRGBSetError {
 }
 
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum InvalidColourFieldOption {
     #[error("continuing fields green field is none without it being the last item in the continuing fields")]
     Green,
@@ -222,6 +229,7 @@ pub enum InvalidColourFieldOption {
 }
 
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum ContinuingSetError {
     #[error("continuing fields index out of bounds")]
     IndexOutOfBounds,

@@ -192,6 +192,7 @@ impl Version for Events {
 }
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Event {
     Comment(String),
     NormalEvent {
@@ -424,6 +425,8 @@ pub struct ColourTransformation {
 }
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
+#[non_exhaustive]
+// TODO no output for v14 on colour transformation
 pub enum EventParams {
     Background(Background),
     Video(Video),

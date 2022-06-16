@@ -18,6 +18,7 @@ use super::error::*;
 
 // TODO investivage if integer form is valid
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, Display, FromRepr, EnumString)]
+#[non_exhaustive]
 pub enum Layer {
     Background,
     Fail,
@@ -284,12 +285,14 @@ impl Sprite {
 }
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum ObjectType {
     Sprite(Sprite),
     Animation(Animation),
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, Display, FromRepr, EnumString)]
+#[non_exhaustive]
 pub enum Origin {
     TopLeft,
     Centre,
@@ -304,6 +307,7 @@ pub enum Origin {
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, Display, EnumString)]
+#[non_exhaustive]
 pub enum LoopType {
     LoopForever,
     LoopOnce,

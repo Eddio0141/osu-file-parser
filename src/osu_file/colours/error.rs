@@ -11,6 +11,7 @@ pub struct ParseError(#[from] ColourParseError);
 
 /// Error used when there was a problem parsing a `str` as a `Colour`.
 #[derive(Debug, Error, EnumString, IntoStaticStr)]
+#[non_exhaustive]
 pub enum ColourParseError {
     /// Invalid additive combo count.
     #[error("Invalid additive combo count")]

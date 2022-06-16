@@ -9,6 +9,7 @@ use super::error::*;
 // TODO check field types to be something that makes sense
 // and also for nonzerousize
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum TriggerType {
     HitSound {
         sample_set: Option<SampleSet>,
@@ -134,6 +135,7 @@ impl Display for TriggerType {
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, EnumString, Display)]
+#[non_exhaustive]
 pub enum SampleSet {
     All,
     Normal,
@@ -142,6 +144,7 @@ pub enum SampleSet {
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, EnumString, Display)]
+#[non_exhaustive]
 pub enum Addition {
     Whistle,
     Finish,
@@ -149,6 +152,7 @@ pub enum Addition {
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, FromRepr)]
+#[non_exhaustive]
 pub enum Easing {
     Linear,
     EasingOut,
@@ -188,6 +192,7 @@ pub enum Easing {
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, IntoStaticStr, EnumString, Display)]
+#[non_exhaustive]
 pub enum Parameter {
     #[strum(serialize = "H")]
     ImageFlipHorizontal,

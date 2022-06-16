@@ -67,6 +67,7 @@ impl Version for Colours {
 // TODO check of combo can be i32
 /// Struct representing a single `colour` component in the `Colours` section.
 #[derive(Clone, Copy, Hash, PartialEq, Eq, Debug)]
+#[non_exhaustive]
 pub enum Colour {
     /// Additive combo colours.
     Combo(u32, Rgb),

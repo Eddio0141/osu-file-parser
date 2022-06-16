@@ -151,6 +151,7 @@ impl Display for CurvePoint {
 
 /// Used for `normal_set` and `addition_set` for the `[hitobject]`[super::HitObject].
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, FromRepr)]
+#[non_exhaustive]
 pub enum SampleSet {
     /// No custom sample set.
     NoCustomSampleSet,
@@ -371,6 +372,7 @@ impl From<u8> for HitSound {
 }
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug, Hash, EnumString, Display)]
+#[non_exhaustive]
 /// Type of curve used to construct the [`slider`][super::Slider].
 pub enum CurveType {
     /// Bézier curve.

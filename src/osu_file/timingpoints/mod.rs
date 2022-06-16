@@ -537,6 +537,7 @@ impl Display for Effects {
 
 /// Custom sample index for hitobjects.
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum SampleIndex {
     /// Osu!'s default hitsounds.
     OsuDefaultHitsounds,

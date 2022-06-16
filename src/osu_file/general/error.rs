@@ -5,6 +5,7 @@ use thiserror::Error;
 use crate::helper::ParseZeroOneBoolError;
 
 #[derive(Debug, Error)]
+#[non_exhaustive]
 /// Error used when there was a problem parsing the `General` section.
 pub enum ParseError {
     /// A Field in `General` failed to parse as a `Integer`.
@@ -47,6 +48,7 @@ impl From<()> for ParseError {
 
 /// Error used when there's an error parsing the string as enum.
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum ParseGameModeError {
     /// Error when the `GameMode` is not a valid enum.
     #[error("Unknown `GameMode`")]
@@ -58,6 +60,7 @@ pub enum ParseGameModeError {
 
 /// Error used when there's an error parsing the string as enum
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum ParseCountdownSpeedError {
     /// The integer value is an unknown `CountdownSpeed` type.
     #[error("The integer value is an unknown `CountdownSpeed` type")]

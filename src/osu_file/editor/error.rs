@@ -3,6 +3,7 @@ use std::num::ParseIntError;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
+#[non_exhaustive]
 /// Error used when there was a problem parsing the `Editor` section.
 pub enum ParseError {
     /// A Field in `Editor` failed to parse as a `Integer`.

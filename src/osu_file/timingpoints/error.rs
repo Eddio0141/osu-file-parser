@@ -11,6 +11,7 @@ pub struct ParseError(#[from] TimingPointParseError);
 
 /// Error used when there was a problem parsing the [`TimingPoint`].
 #[derive(Debug, Error, EnumString, IntoStaticStr)]
+#[non_exhaustive]
 pub enum TimingPointParseError {
     /// Invalid `time` value.
     #[error("Invalid `time` value")]
@@ -63,6 +64,7 @@ verbose_error_to_error!(TimingPointParseError);
 
 /// There was some problem parsing the [`SampleSet`].
 #[derive(Debug, Error, PartialEq)]
+#[non_exhaustive]
 pub enum SampleSetParseError {
     /// The value failed to parse from a `str`.
     #[error("There was a problem parsing {value} as an `Integer`")]
@@ -96,6 +98,7 @@ pub struct SampleIndexParseError {
 
 /// Error for when there was a problem setting / parsing the volume.
 #[derive(Debug, Error, PartialEq)]
+#[non_exhaustive]
 pub enum VolumeError {
     /// Error when volume is out of range of the 0 ~ 100 range.
     #[error("The volume was too high, expected 0 ~ 100, got {0}")]
