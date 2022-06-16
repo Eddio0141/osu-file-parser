@@ -1,4 +1,5 @@
 pub mod macros;
+pub mod trait_ext;
 
 use std::num::ParseIntError;
 
