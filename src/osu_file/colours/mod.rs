@@ -25,8 +25,6 @@ pub struct Colours(pub Vec<Colour>);
 impl VersionedFromString for Colours {
     type ParseError = Error<ParseError>;
 
-    // TODO since when did colours appear in osu files?
-    // TODO different versions of colours?
     fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
         match version {
             MIN_VERSION..=4 => Ok(None),

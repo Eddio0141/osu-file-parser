@@ -30,7 +30,6 @@ const OLD_VERSION_TIME_OFFSET: Integer = 24;
 impl VersionedFromString for Events {
     type ParseError = Error<ParseError>;
 
-    // TODO check versions
     fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
         let mut events = Events(Vec::new());
 
@@ -418,7 +417,6 @@ pub struct ColourTransformation {
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 #[non_exhaustive]
-// TODO no output for v14 on colour transformation
 pub enum EventParams {
     Background(Background),
     Video(Video),

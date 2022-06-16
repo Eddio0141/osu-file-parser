@@ -297,7 +297,6 @@ impl FromStr for OsuFile {
 /// Error for when there's a problem parsing an .osu file.
 pub enum ParseError {
     /// File version is invalid.
-    // TODO redesign this error
     #[error("Invalid file version, expected versions from {MIN_VERSION} ~ {LATEST_VERSION}")]
     InvalidFileVersion,
     /// File version is defined wrong.

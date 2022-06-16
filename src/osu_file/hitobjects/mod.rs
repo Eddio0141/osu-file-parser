@@ -30,7 +30,6 @@ pub struct HitObjects(pub Vec<HitObject>);
 impl VersionedFromString for HitObjects {
     type ParseError = Error<ParseError>;
 
-    // TODO different versions
     fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
         let mut hitobjects = Vec::new();
 

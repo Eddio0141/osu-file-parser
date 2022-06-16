@@ -29,7 +29,6 @@ pub struct TimingPoints(pub Vec<TimingPoint>);
 impl VersionedFromString for TimingPoints {
     type ParseError = Error<ParseError>;
 
-    // TODO versions
     fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
         let mut timing_points = Vec::new();
 
