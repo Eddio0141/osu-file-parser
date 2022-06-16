@@ -43,7 +43,7 @@ pub enum ColonSetParseError {
 
 #[derive(Debug, Error, EnumString, IntoStaticStr)]
 #[non_exhaustive]
-/// Error used when there was a problem parsing a `str` into a [`hitobject`][super::HitObjectWrapper].
+/// Error used when there was a problem parsing a `str` into a [`HitObject`][super::HitObject].
 pub enum HitObjectParseError {
     /// Invalid `hit_sound` value.
     #[error("Invalid `hit_sound` value")]

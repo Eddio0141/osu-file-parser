@@ -1,4 +1,4 @@
-//! Module defining misc types used for different hitobjects, such as [CurveType] used for [Slider][super::Slider] curve types.
+//! Module defining misc types used for different hitobjects, such as [CurveType] used for [`Slider`][super::SlideParams] curve types.
 
 use std::{fmt::Display, num::NonZeroUsize, str::FromStr};
 
@@ -108,7 +108,7 @@ impl Display for EdgeSet {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
-/// Anchor point used to construct the [`slider`][super::Slider].
+/// Anchor point used to construct the [`slider`][super::SlideParams].
 pub struct CurvePoint(pub Position);
 
 impl FromStr for CurvePoint {
@@ -373,7 +373,7 @@ impl From<u8> for HitSound {
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug, Hash, EnumString, Display)]
 #[non_exhaustive]
-/// Type of curve used to construct the [`slider`][super::Slider].
+/// Type of curve used to construct the [`Slider`][super::SlideParams].
 pub enum CurveType {
     /// Bézier curve.
     #[strum(serialize = "B")]

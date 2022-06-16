@@ -59,8 +59,8 @@ impl Version for HitObjects {
 ///
 /// All hitobjects will have the properties: `x`, `y`, `time`, `type`, `hitsound`, `hitsample`.
 ///
-/// The `type` property is a `u8` integer with each bit flags containing some information, which are split into the functions:
-/// [hitobject_type][Self::obj_type], [new_combo][Self::new_combo], [combo_skip_count][Self::combo_skip_count]
+/// The `type` property is a `u8` integer with each bit flags containing some information, which are split into the functions and enums:
+/// [hitobject_type][Self::obj_params], [new_combo][Self::new_combo], [combo_skip_count][Self::combo_skip_count]
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct HitObject {
