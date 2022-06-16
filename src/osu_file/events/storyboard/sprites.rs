@@ -97,7 +97,7 @@ impl FromStr for Object {
                 context(ObjectParseError::MissingOrigin.into(), comma()),
                 context(
                     ObjectParseError::InvalidOrigin.into(),
-                    map_opt(comma_field_type(), |v| Origin::from_repr(v)),
+                    map_opt(comma_field_type(), Origin::from_repr),
                 ),
             )
         };

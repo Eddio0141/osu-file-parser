@@ -220,7 +220,7 @@ impl Version for Event {
                     Some(position) => format!(",{},{}", position.x, position.y),
                     None => String::new(),
                 };
-                let mut start_time = start_time.clone();
+                let mut start_time = *start_time;
 
                 if (3..=4).contains(&version) && !matches!(event_params, EventParams::Background(_))
                 {

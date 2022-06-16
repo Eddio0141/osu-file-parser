@@ -377,17 +377,6 @@ impl Version for TimingPoint {
             )),
         ))(s)?;
 
-        (
-            time,
-            beat_length,
-            meter,
-            sample_set,
-            sample_index,
-            volume,
-            uninherited,
-            effects,
-        );
-
         Ok(Some(TimingPoint {
             time,
             beat_length,
@@ -425,7 +414,7 @@ impl Version for TimingPoint {
             fields.push(self.effects.to_string());
         }
 
-        Some(format!("{}", fields.join(",")))
+        Some(fields.join(","))
     }
 
     fn default(version: usize) -> Option<Self> {
