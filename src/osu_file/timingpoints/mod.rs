@@ -14,6 +14,7 @@ use rust_decimal_macros::dec;
 use strum_macros::FromRepr;
 
 use crate::{
+    helper::trait_ext::MapStringNewLineVersion,
     helper::{nth_bit_state_i64, parse_zero_one_bool},
     parsers::*,
 };
@@ -55,27 +56,7 @@ impl Version for TimingPoints {
     }
 
     fn to_string(&self, version: usize) -> Option<String> {
-        // TODO add this as trait extension to Vec with Display impl
-        let s = self
-            .0
-            .iter()
-            .map(|p| p.to_string(version))
-            .collect::<Vec<_>>();
-
-        if let Some(v) = s.get(0) {
-            if v.is_some() {
-                Some(
-                    s.into_iter()
-                        .map(|v| v.unwrap())
-                        .collect::<Vec<_>>()
-                        .join("\n"),
-                )
-            } else {
-                None
-            }
-        } else {
-            Some(String::new())
-        }
+        self.0.iter().map_string_new_line(version)
     }
 
     fn default(_: usize) -> Option<Self> {

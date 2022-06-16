@@ -169,20 +169,9 @@ impl Version for Events {
             })
             .collect::<Vec<_>>();
 
-        if let Some(v) = s.get(0) {
-            if v.is_some() {
-                Some(
-                    s.into_iter()
-                        .map(|v| v.unwrap())
-                        .collect::<Vec<_>>()
-                        .join("\n"),
-                )
-            } else {
-                None
-            }
-        } else {
-            Some(String::new())
-        }
+        let s = Option::<Vec<String>>::from_iter(s.into_iter());
+
+        s.map(|v| v.join("\n"))
     }
 
     fn default(_: usize) -> Option<Self> {

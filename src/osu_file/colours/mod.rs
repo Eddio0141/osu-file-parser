@@ -17,6 +17,7 @@ use crate::parsers::comma;
 pub use self::error::*;
 
 use super::{Error, Version, MIN_VERSION};
+use crate::helper::trait_ext::*;
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Colours(pub Vec<Colour>);
@@ -46,13 +47,7 @@ impl Version for Colours {
     fn to_string(&self, version: usize) -> Option<String> {
         match version {
             MIN_VERSION..=4 => None,
-            _ => Some(
-                self.0
-                    .iter()
-                    .map(|c| c.to_string())
-                    .collect::<Vec<_>>()
-                    .join("\n"),
-            ),
+            _ => Some(self.0.iter().map_string_new_line()),
         }
     }
 

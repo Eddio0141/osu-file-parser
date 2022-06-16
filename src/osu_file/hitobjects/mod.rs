@@ -15,6 +15,7 @@ use super::Error;
 use super::Integer;
 use super::Position;
 use super::Version;
+use crate::helper::trait_ext::MapStringNewLineVersion;
 use crate::helper::*;
 use crate::parsers::*;
 
@@ -41,13 +42,7 @@ impl Version for HitObjects {
     }
 
     fn to_string(&self, version: usize) -> Option<String> {
-        Some(
-            self.0
-                .iter()
-                .map(|h| h.to_string(version).unwrap())
-                .collect::<Vec<_>>()
-                .join("\n"),
-        )
+        self.0.iter().map_string_new_line(version)
     }
 
     fn default(_: usize) -> Option<Self> {
