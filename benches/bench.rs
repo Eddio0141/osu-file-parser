@@ -179,7 +179,7 @@ fn storyboard_loop_cmd_to_string(c: &mut Criterion) {
     });
 
     c.bench_function("storyboard_loop_cmd_to_string", |b| {
-        b.iter(|| black_box(&event).to_string())
+        b.iter(|| black_box(&event).to_string(14))
     });
 }
 
