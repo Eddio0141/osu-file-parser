@@ -152,14 +152,16 @@ impl<E> From<E> for Error<E> {
     }
 }
 
-// TODO make the default function as its own trait.
-/// A type that is versioned.
-pub trait Version: Sized {
+pub trait VersionedToString {
+    fn to_string(&self, version: usize) -> Option<String>;
+}
+
+pub trait VersionedFromString: Sized {
     type ParseError;
 
     fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError>;
+}
 
-    fn to_string(&self, version: usize) -> Option<String>;
-
+pub trait VersionedDefault: Sized {
     fn default(version: usize) -> Option<Self>;
 }

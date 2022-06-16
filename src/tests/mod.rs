@@ -20,7 +20,7 @@ use crate::osu_file::{
     timingpoints,
     timingpoints::{Effects, SampleIndex, TimingPoint, TimingPoints, Volume},
     types::Position,
-    Version,
+    VersionedFromString, VersionedToString,
 };
 
 #[test]

@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use crate::osu_file::Version;
+use crate::osu_file::VersionedToString;
 
 pub trait MapStringNewLine {
     fn map_string_new_line<T>(&mut self) -> String
@@ -19,7 +19,7 @@ pub trait MapStringNewLineVersion {
     fn map_string_new_line<T>(&mut self, version: usize) -> Option<String>
     where
         Self: Iterator<Item = T>,
-        T: Version,
+        T: VersionedToString,
     {
         let v = self
             .into_iter()
@@ -55,5 +55,5 @@ where
 }
 
 impl<T: Display> MapStringNewLine for std::slice::Iter<'_, T> {}
-impl<T: Version> MapStringNewLineVersion for std::slice::Iter<'_, T> {}
-impl<T: Version> MapStringNewLineVersion for std::vec::IntoIter<T> {}
+impl<T: VersionedToString> MapStringNewLineVersion for std::slice::Iter<'_, T> {}
+impl<T: VersionedToString> MapStringNewLineVersion for std::vec::IntoIter<T> {}

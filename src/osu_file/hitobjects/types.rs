@@ -12,11 +12,7 @@ use nom::{
 };
 use strum_macros::{Display, EnumString, FromRepr};
 
-use crate::{
-    helper::nth_bit_state_i64,
-    osu_file::{Integer, Position, Version, MIN_VERSION},
-    parsers::nothing,
-};
+use crate::{helper::nth_bit_state_i64, osu_file::*, parsers::nothing};
 
 use super::error::*;
 
@@ -482,7 +478,7 @@ impl HitSample {
     }
 }
 
-impl Version for HitSample {
+impl VersionedFromString for HitSample {
     type ParseError = HitSampleParseError;
 
     fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
@@ -500,8 +496,8 @@ impl Version for HitSample {
         };
 
         let (_, hitsample) = alt((
-            nothing().map(|_| <HitSample as Version>::default(version).unwrap()),
-            tag("0:0:0:0:").map(|_| <HitSample as Version>::default(version).unwrap()),
+            nothing().map(|_| <HitSample as VersionedDefault>::default(version).unwrap()),
+            tag("0:0:0:0:").map(|_| <HitSample as VersionedDefault>::default(version).unwrap()),
             tuple((
                 // normal_set
                 alt((nothing().map(|_| None), sample_set())),
@@ -580,7 +576,9 @@ impl Version for HitSample {
 
         Ok(Some(hitsample))
     }
+}
 
+impl VersionedToString for HitSample {
     fn to_string(&self, version: usize) -> Option<String> {
         let index = match self.index {
             Some(index) => index.into(),
@@ -598,7 +596,9 @@ impl Version for HitSample {
             )),
         }
     }
+}
 
+impl VersionedDefault for HitSample {
     fn default(_: usize) -> Option<Self> {
         Some(<Self as Default>::default())
     }

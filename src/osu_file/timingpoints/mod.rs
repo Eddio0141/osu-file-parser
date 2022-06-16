@@ -19,14 +19,14 @@ use crate::{
     parsers::*,
 };
 
-use super::{Error, Integer, Version};
+use super::{Error, Integer, VersionedDefault, VersionedFromString, VersionedToString};
 
 pub use self::error::*;
 
 #[derive(Clone, Debug, Default, Hash, PartialEq, Eq)]
 pub struct TimingPoints(pub Vec<TimingPoint>);
 
-impl Version for TimingPoints {
+impl VersionedFromString for TimingPoints {
     type ParseError = Error<ParseError>;
 
     // TODO versions
@@ -54,11 +54,15 @@ impl Version for TimingPoints {
             Ok(Some(TimingPoints(Vec::new())))
         }
     }
+}
 
+impl VersionedToString for TimingPoints {
     fn to_string(&self, version: usize) -> Option<String> {
         self.0.iter().map_string_new_line(version)
     }
+}
 
+impl VersionedDefault for TimingPoints {
     fn default(_: usize) -> Option<Self> {
         Some(TimingPoints(Vec::new()))
     }
@@ -226,7 +230,7 @@ impl TimingPoint {
 
 const OLD_VERSION_TIME_OFFSET: Decimal = dec!(24);
 
-impl Version for TimingPoint {
+impl VersionedFromString for TimingPoint {
     type ParseError = TimingPointParseError;
 
     fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
@@ -369,7 +373,9 @@ impl Version for TimingPoint {
             effects,
         }))
     }
+}
 
+impl VersionedToString for TimingPoint {
     fn to_string(&self, version: usize) -> Option<String> {
         let mut fields = vec![
             if (3..=4).contains(&version) {
@@ -397,7 +403,9 @@ impl Version for TimingPoint {
 
         Some(fields.join(","))
     }
+}
 
+impl VersionedDefault for TimingPoint {
     fn default(version: usize) -> Option<Self> {
         let mut default = <Self as Default>::default();
 

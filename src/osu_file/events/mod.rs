@@ -16,7 +16,9 @@ use crate::{osu_file::events::storyboard::sprites, parsers::*};
 
 use self::storyboard::{cmds::CommandProperties, error::ObjectParseError, sprites::Object};
 
-use super::{types::Error, Integer, Position, Version};
+use super::{
+    types::Error, Integer, Position, VersionedDefault, VersionedFromString, VersionedToString,
+};
 
 pub use self::error::*;
 
@@ -25,7 +27,7 @@ pub struct Events(pub Vec<Event>);
 
 const OLD_VERSION_TIME_OFFSET: Integer = 24;
 
-impl Version for Events {
+impl VersionedFromString for Events {
     type ParseError = Error<ParseError>;
 
     // TODO check versions
@@ -133,7 +135,9 @@ impl Version for Events {
 
         Ok(Some(events))
     }
+}
 
+impl VersionedToString for Events {
     fn to_string(&self, version: usize) -> Option<String> {
         let s = self
             .0
@@ -174,7 +178,9 @@ impl Version for Events {
 
         s.map(|v| v.join("\n"))
     }
+}
 
+impl VersionedDefault for Events {
     fn default(_: usize) -> Option<Self> {
         Some(Events(Vec::new()))
     }
@@ -191,13 +197,7 @@ pub enum Event {
     Storyboard(Object),
 }
 
-impl Version for Event {
-    type ParseError = ();
-
-    fn from_str(_: &str, _: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
-        Ok(None)
-    }
-
+impl VersionedToString for Event {
     fn to_string(&self, version: usize) -> Option<String> {
         let event_str = match self {
             Event::Comment(comment) => format!("//{comment}"),
@@ -353,10 +353,6 @@ impl Version for Event {
 
         Some(event_str)
     }
-
-    fn default(_: usize) -> Option<Self> {
-        None
-    }
 }
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
@@ -423,7 +419,7 @@ pub enum EventParams {
     ColourTransformation(ColourTransformation),
 }
 
-impl Version for EventParams {
+impl VersionedFromString for EventParams {
     type ParseError = EventParamsParseError;
 
     fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
@@ -551,13 +547,5 @@ impl Version for EventParams {
         ))(s)?;
 
         Ok(Some(result.1))
-    }
-
-    fn to_string(&self, _: usize) -> Option<String> {
-        None
-    }
-
-    fn default(_: usize) -> Option<Self> {
-        None
     }
 }

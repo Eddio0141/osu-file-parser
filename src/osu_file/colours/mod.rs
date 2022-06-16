@@ -16,13 +16,13 @@ use crate::parsers::comma;
 
 pub use self::error::*;
 
-use super::{Error, Version, MIN_VERSION};
+use super::{Error, VersionedDefault, VersionedFromString, VersionedToString, MIN_VERSION};
 use crate::helper::trait_ext::*;
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Colours(pub Vec<Colour>);
 
-impl Version for Colours {
+impl VersionedFromString for Colours {
     type ParseError = Error<ParseError>;
 
     // TODO since when did colours appear in osu files?
@@ -43,14 +43,18 @@ impl Version for Colours {
             }
         }
     }
+}
 
+impl VersionedToString for Colours {
     fn to_string(&self, version: usize) -> Option<String> {
         match version {
             MIN_VERSION..=4 => None,
             _ => Some(self.0.iter().map_string_new_line()),
         }
     }
+}
 
+impl VersionedDefault for Colours {
     fn default(version: usize) -> Option<Self> {
         match version {
             MIN_VERSION..=4 => None,

@@ -10,7 +10,7 @@ use crate::osu_file::events::storyboard::sprites::*;
 use crate::osu_file::events::storyboard::types::*;
 use crate::osu_file::events::*;
 use crate::osu_file::types::Position;
-use crate::osu_file::Version;
+use crate::osu_file::{VersionedFromString, VersionedToString};
 
 use pretty_assertions::assert_eq;
 

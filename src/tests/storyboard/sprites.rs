@@ -2,7 +2,7 @@ use std::path::Path;
 
 use crate::osu_file::events::storyboard::sprites::*;
 use crate::osu_file::types::Position;
-use crate::osu_file::{events::*, Version};
+use crate::osu_file::{events::*, VersionedFromString, VersionedToString};
 
 #[test]
 fn storyboard_sprites_parse() {

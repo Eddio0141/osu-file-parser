@@ -22,18 +22,22 @@ macro_rules! versioned_field {
         #[derive(PartialEq, Debug, Clone, Eq, Hash)]
         pub struct $name(pub $field_type);
 
-        impl crate::osu_file::types::Version for $name {
+        impl crate::osu_file::types::VersionedFromString for $name {
             type ParseError = $parse_str_error;
 
             fn from_str($s: &str, _: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
                 $from_str_inner.map(|value| Some(Self(value)))
             }
+        }
 
+        impl crate::osu_file::types::VersionedToString for $name {
             fn to_string(&self, _: usize) -> Option<String> {
                 let $v = &self.0;
                 Some($to_string_inner)
             }
+        }
 
+        impl crate::osu_file::types::VersionedDefault for $name {
             fn default(_: usize) -> Option<Self> {
                 Some($default.into())
             }
@@ -45,18 +49,22 @@ macro_rules! versioned_field {
         #[derive(PartialEq, Debug, Clone, Eq, Hash)]
         pub struct $name(pub $field_type);
 
-        impl crate::osu_file::types::Version for $name {
+        impl crate::osu_file::types::VersionedFromString for $name {
             type ParseError = $parse_str_error;
 
             fn from_str($s: &str, _: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
                 $from_str_inner.map(|value| Some(Self(value)))
             }
+        }
 
+        impl crate::osu_file::types::VersionedToString for $name {
             fn to_string(&self, $version_to_string: usize) -> Option<String> {
                 let $v = &self.0;
                 $to_string_inner
             }
+        }
 
+        impl crate::osu_file::types::VersionedDefault for $name {
             fn default($version_default: usize) -> Option<Self> {
                 $default.map(|v| v.into())
             }
@@ -68,17 +76,21 @@ macro_rules! versioned_field {
         #[derive(PartialEq, Debug, Clone, Eq, Hash)]
         pub struct $name(pub $field_type);
 
-        impl crate::osu_file::types::Version for $name {
+        impl crate::osu_file::types::VersionedFromString for $name {
             type ParseError = $parse_str_error;
 
             fn from_str($s: &str, _: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
                 $from_str_inner.map(|value| Some(Self(value)))
             }
+        }
 
+        impl crate::osu_file::types::VersionedToString for $name {
             fn to_string(&self, _: usize) -> Option<String> {
                 Some(self.0.to_string())
             }
+        }
 
+        impl crate::osu_file::types::VersionedDefault for $name {
             fn default(_: usize) -> Option<Self> {
                 Some($default.into())
             }
@@ -90,20 +102,18 @@ macro_rules! versioned_field {
         #[derive(PartialEq, Debug, Clone, Eq, Hash)]
         pub struct $name(pub $field_type);
 
-        impl crate::osu_file::types::Version for $name {
+        impl crate::osu_file::types::VersionedFromString for $name {
             type ParseError = $parse_str_error;
 
             fn from_str($s: &str, _: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
                 $from_str_inner.map(|value| Some(Self(value)))
             }
+        }
 
+        impl crate::osu_file::types::VersionedToString for $name {
             fn to_string(&self, _: usize) -> Option<String> {
                 let $v = &self.0;
                 Some($to_string_inner)
-            }
-
-            fn default(_: usize) -> Option<Self> {
-                None
             }
         }
 
@@ -113,19 +123,17 @@ macro_rules! versioned_field {
         #[derive(PartialEq, Debug, Clone, Eq, Hash)]
         pub struct $name(pub $field_type);
 
-        impl crate::osu_file::types::Version for $name {
+        impl crate::osu_file::types::VersionedFromString for $name {
             type ParseError = $parse_str_error;
 
             fn from_str($s: &str, _: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
                 $from_str_inner.map(|value| Some(Self(value)))
             }
+        }
 
+        impl crate::osu_file::types::VersionedToString for $name {
             fn to_string(&self, _: usize) -> Option<String> {
                 Some(self.0.to_string())
-            }
-
-            fn default(_: usize) -> Option<Self> {
-                None
             }
         }
 
@@ -135,17 +143,21 @@ macro_rules! versioned_field {
         #[derive(PartialEq, Debug, Clone, Eq, Hash)]
         pub struct $name(pub $field_type);
 
-        impl crate::osu_file::types::Version for $name {
+        impl crate::osu_file::types::VersionedFromString for $name {
             type ParseError = $parse_str_error;
 
             fn from_str($s: &str, _: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
                 $from_str_inner.map(|value| Some(Self(value)))
             }
+        }
 
+        impl crate::osu_file::types::VersionedToString for $name {
             fn to_string(&self, _: usize) -> Option<String> {
                 Some((self.0 as u8).to_string())
             }
+        }
 
+        impl crate::osu_file::types::VersionedDefault for $name {
             fn default(_: usize) -> Option<Self> {
                 Some($default.into())
             }
@@ -226,7 +238,7 @@ macro_rules! general_section {
 
                 $(
                     if let Some(value) = &self.$field {
-                        if let Some(value) = crate::osu_file::types::Version::to_string(value, version) {
+                        if let Some(value) = crate::osu_file::types::VersionedToString::to_string(value, version) {
                             v.push(format!("{}: {value}", stringify!($field_type)));
                         }
                     }
@@ -292,7 +304,7 @@ macro_rules! general_section {
                     match name {
                         $(
                             stringify!($field_type) => {
-                                section.$field = Error::new_from_result_into(crate::osu_file::types::Version::from_str(value, version), line_count)?;
+                                section.$field = Error::new_from_result_into(crate::osu_file::types::VersionedFromString::from_str(value, version), line_count)?;
                             }
                         )*
                         _ => return Err(Error::new(ParseError::InvalidKey, line_count)),
@@ -310,7 +322,7 @@ macro_rules! general_section {
 
                 $(
                     if let Some(value) = &self.$field {
-                        if let Some(value) = crate::osu_file::types::Version::to_string(value, version) {
+                        if let Some(value) = crate::osu_file::types::VersionedToString::to_string(value, version) {
                             v.push(format!("{}:{value}", stringify!($field_type)));
                         }
                     }

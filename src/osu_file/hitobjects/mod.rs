@@ -11,20 +11,23 @@ use nom::*;
 use rust_decimal::Decimal;
 
 use self::types::*;
-use super::Error;
-use super::Integer;
-use super::Position;
-use super::Version;
 use crate::helper::trait_ext::MapStringNewLineVersion;
 use crate::helper::*;
 use crate::parsers::*;
 
 pub use self::error::*;
 
+use super::Error;
+use super::Integer;
+use super::Position;
+use super::VersionedDefault;
+use super::VersionedFromString;
+use super::VersionedToString;
+
 #[derive(Clone, Debug, Default, Hash, PartialEq, Eq)]
 pub struct HitObjects(pub Vec<HitObject>);
 
-impl Version for HitObjects {
+impl VersionedFromString for HitObjects {
     type ParseError = Error<ParseError>;
 
     // TODO different versions
@@ -40,11 +43,15 @@ impl Version for HitObjects {
 
         Ok(Some(HitObjects(hitobjects)))
     }
+}
 
+impl VersionedToString for HitObjects {
     fn to_string(&self, version: usize) -> Option<String> {
         self.0.iter().map_string_new_line(version)
     }
+}
 
+impl VersionedDefault for HitObjects {
     fn default(_: usize) -> Option<Self> {
         Some(HitObjects(Vec::new()))
     }
@@ -144,7 +151,7 @@ impl HitObject {
 
 const OLD_VERSION_TIME_OFFSET: Integer = 24;
 
-impl Version for HitObject {
+impl VersionedFromString for HitObject {
     type ParseError = HitObjectParseError;
 
     fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
@@ -402,7 +409,9 @@ impl Version for HitObject {
 
         Ok(Some(hitobject))
     }
+}
 
+impl VersionedToString for HitObject {
     fn to_string(&self, version: usize) -> Option<String> {
         let mut properties: Vec<String> = vec![
             self.position.x.to_string(),
@@ -516,10 +525,6 @@ impl Version for HitObject {
         };
 
         Some(s)
-    }
-
-    fn default(_: usize) -> Option<Self> {
-        None
     }
 }
 
