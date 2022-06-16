@@ -174,9 +174,14 @@ impl VersionedToString for Events {
             })
             .collect::<Vec<_>>();
 
-        let s = Option::<Vec<String>>::from_iter(s.into_iter());
-
-        s.map(|v| v.join("\n"))
+        // BUG making Vec<Option<String>> into Option<Vec<String>> will lose the Some values
+        // solution, filter out the None values
+        Some(
+            s.into_iter()
+                .filter_map(|i| i)
+                .collect::<Vec<_>>()
+                .join("\n"),
+        )
     }
 }
 
@@ -199,8 +204,8 @@ pub enum Event {
 
 impl VersionedToString for Event {
     fn to_string(&self, version: usize) -> Option<String> {
-        let event_str = match self {
-            Event::Comment(comment) => format!("//{comment}"),
+        match self {
+            Event::Comment(comment) => Some(format!("//{comment}")),
             Event::NormalEvent {
                 start_time,
                 event_params,
@@ -217,28 +222,32 @@ impl VersionedToString for Event {
                 }
 
                 match event_params {
-                    EventParams::Background(background) => format!(
+                    EventParams::Background(background) => Some(format!(
                         "0,{start_time},{}{}",
                         background.filename.to_string_lossy(),
                         position_str(&background.position),
-                    ),
-                    EventParams::Video(video) => format!(
+                    )),
+                    EventParams::Video(video) => Some(format!(
                         "{},{start_time},{}{}",
                         if video.short_hand { "1" } else { "Video" },
                         video.filename.to_string_lossy(),
                         position_str(&video.position),
-                    ),
-                    EventParams::Break(_break) => {
-                        format!(
-                            "{},{start_time},{}",
-                            if _break.short_hand { "2" } else { "Break" },
-                            _break.end_time
-                        )
+                    )),
+                    EventParams::Break(_break) => Some(format!(
+                        "{},{start_time},{}",
+                        if _break.short_hand { "2" } else { "Break" },
+                        _break.end_time
+                    )),
+                    EventParams::ColourTransformation(transformation) => {
+                        if version < 14 {
+                            Some(format!(
+                                "3,{start_time},{},{},{}",
+                                transformation.red, transformation.green, transformation.blue
+                            ))
+                        } else {
+                            None
+                        }
                     }
-                    EventParams::ColourTransformation(transformation) => format!(
-                        "3,{start_time},{},{},{}",
-                        transformation.red, transformation.green, transformation.blue
-                    ),
                 }
             }
             Event::Storyboard(object) => {
@@ -345,13 +354,11 @@ impl VersionedToString for Event {
                 };
 
                 match cmds {
-                    Some(cmds) => format!("{object_str}\n{cmds}"),
-                    None => object_str,
+                    Some(cmds) => Some(format!("{object_str}\n{cmds}")),
+                    None => Some(object_str),
                 }
             }
-        };
-
-        Some(event_str)
+        }
     }
 }
 
