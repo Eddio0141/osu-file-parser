@@ -7,8 +7,9 @@ use crate::helper::macros::verbose_error_to_error;
 
 use super::storyboard::error::*;
 
-/// Errors used when there was a problem parsing an [`Event`] from a `str`.
+/// Errors used when there was a problem parsing an [`Event`][super::Event] from a `str`.
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum ParseError {
     /// When the line isn't in a `key: value` format.
     #[error("Invalid colon set, expected format of `key: value`")]
@@ -37,6 +38,7 @@ pub enum ParseError {
 }
 
 #[derive(Debug, Error, EnumString, IntoStaticStr)]
+#[non_exhaustive]
 pub enum EventParamsParseError {
     #[error("Missing the `start_time` field")]
     MissingStartTime,

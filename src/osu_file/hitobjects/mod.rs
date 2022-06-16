@@ -54,8 +54,8 @@ impl Version for HitObjects {
 ///
 /// All hitobjects will have the properties: `x`, `y`, `time`, `type`, `hitsound`, `hitsample`.
 ///
-/// The `type` property is a `u8` integer with each bit flags containing some information, which are split into the functions:
-/// [hitobject_type][Self::obj_type], [new_combo][Self::new_combo], [combo_skip_count][Self::combo_skip_count]
+/// The `type` property is a `u8` integer with each bit flags containing some information, which are split into the functions and enums:
+/// [hitobject_type][Self::obj_params], [new_combo][Self::new_combo], [combo_skip_count][Self::combo_skip_count]
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct HitObject {
@@ -248,7 +248,7 @@ impl Version for HitObject {
                     context(
                         HitObjectParseError::InvalidCurvePoint.into(),
                         pipe_vec_map().map(|mut v| {
-                            if version == 3 && v.len() > 0 {
+                            if version == 3 && !v.is_empty() {
                                 v.remove(0);
                             }
                             v
@@ -435,7 +435,7 @@ impl Version for HitObject {
                     {
                         if version == 3 {
                             let mut curve_points = curve_points.clone();
-                            curve_points.insert(0, CurvePoint(self.position.clone()));
+                            curve_points.insert(0, CurvePoint(self.position));
                             pipe_vec_to_string(&curve_points)
                         } else {
                             pipe_vec_to_string(curve_points)
@@ -506,7 +506,7 @@ impl Version for HitObject {
             }
         }
 
-        let s = format!("{}", properties.join(","));
+        let s = properties.join(",");
 
         // v3 for some reason has a trailing comma for hitcircles
         let s = if version == 3 && matches!(self.obj_params, HitObjectParams::HitCircle) {

@@ -172,7 +172,6 @@ impl Display for Command {
     }
 }
 
-// TODO make most enums non-exhaustive
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum CommandProperties {

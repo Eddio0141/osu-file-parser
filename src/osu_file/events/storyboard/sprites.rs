@@ -1,17 +1,24 @@
-use std::error::Error;
 use std::fmt::Display;
 use std::path::{Path, PathBuf};
-use std::str::{FromStr, Split};
+use std::str::FromStr;
 
+use nom::branch::alt;
+use nom::bytes::complete::tag;
+use nom::combinator::{cut, fail, map_opt};
+use nom::error::context;
+use nom::sequence::{preceded, tuple};
+use nom::Parser;
 use strum_macros::{Display, EnumString, FromRepr};
 
 use crate::osu_file::Position;
+use crate::parsers::{comma, comma_field, comma_field_type, consume_rest_type, nothing};
 
 use super::cmds::*;
 use super::error::*;
 
 // TODO investivage if integer form is valid
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, Display, FromRepr, EnumString)]
+#[non_exhaustive]
 pub enum Layer {
     Background,
     Fail,
@@ -79,44 +86,99 @@ impl FromStr for Object {
     type Err = ObjectParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut s = s.split(',');
-
-        let object_type = s
-            .next()
-            .ok_or(ObjectParseError::MissingField("object_type"))?;
-        // I don't parse until the object_type is valid
-        let position = |s: &mut Split<char>| {
-            Ok(Position {
-                x: parse_object_field(s, "x")?,
-                y: parse_object_field(s, "y")?,
-            })
+        let layer = || {
+            preceded(
+                context(ObjectParseError::MissingLayer.into(), comma()),
+                context(ObjectParseError::InvalidLayer.into(), comma_field_type()),
+            )
         };
+        let origin = || {
+            preceded(
+                context(ObjectParseError::MissingOrigin.into(), comma()),
+                context(
+                    ObjectParseError::InvalidOrigin.into(),
+                    map_opt(comma_field_type(), Origin::from_repr),
+                ),
+            )
+        };
+        let file_path = || {
+            preceded(
+                context(ObjectParseError::MissingFilePath.into(), comma()),
+                comma_field(),
+            )
+            .map(|p| p.into())
+        };
+        let position = || {
+            tuple((
+                preceded(
+                    context(ObjectParseError::MissingPositionX.into(), comma()),
+                    context(
+                        ObjectParseError::InvalidPositionX.into(),
+                        comma_field_type(),
+                    ),
+                ),
+                preceded(
+                    context(ObjectParseError::MissingPositionY.into(), comma()),
+                    context(
+                        ObjectParseError::InvalidPositionY.into(),
+                        comma_field_type(),
+                    ),
+                ),
+            ))
+            .map(|(x, y)| Position { x, y })
+        };
+        let frame_count = preceded(
+            context(ObjectParseError::MissingFrameCount.into(), comma()),
+            context(
+                ObjectParseError::InvalidFrameCount.into(),
+                comma_field_type(),
+            ),
+        );
+        let frame_delay = preceded(
+            context(ObjectParseError::MissingFrameDelay.into(), comma()),
+            context(
+                ObjectParseError::InvalidFrameDelay.into(),
+                comma_field_type(),
+            ),
+        );
+        let loop_type = alt((
+            preceded(
+                context(ObjectParseError::MissingLoopType.into(), comma()),
+                context(
+                    ObjectParseError::InvalidLoopType.into(),
+                    consume_rest_type(),
+                ),
+            ),
+            nothing().map(|_| LoopType::default()),
+        ));
 
-        match object_type {
-            "Sprite" => {
-                let layer = parse_object_field(&mut s, "layer")?;
-                let origin = parse_object_field(&mut s, "origin")?;
-                let filepath = parse_object_field(&mut s, "filepath")?;
-                let position = position(&mut s)?;
-
-                Ok(Object {
-                    layer,
-                    origin,
-                    position,
-                    object_type: ObjectType::Sprite(Sprite { filepath }),
-                    commands: Vec::new(),
-                })
-            }
-            "Animation" => {
-                let layer = parse_object_field(&mut s, "layer")?;
-                let origin = parse_object_field(&mut s, "origin")?;
-                let filepath = parse_object_field(&mut s, "filepath")?;
-                let position = position(&mut s)?;
-                let frame_count = parse_object_field(&mut s, "frameCount")?;
-                let frame_delay = parse_object_field(&mut s, "frameDelay")?;
-                let loop_type = parse_object_field(&mut s, "loopType")?;
-
-                Ok(Object {
+        let (_, object) = alt((
+            preceded(
+                tag("Sprite"),
+                cut(tuple((layer(), origin(), file_path(), position()))).map(
+                    |(layer, origin, filepath, position)| Object {
+                        layer,
+                        origin,
+                        position,
+                        object_type: ObjectType::Sprite(Sprite { filepath }),
+                        commands: Vec::new(),
+                    },
+                ),
+            ),
+            preceded(
+                tag("Animation"),
+                cut(tuple((
+                    layer(),
+                    origin(),
+                    file_path(),
+                    position(),
+                    frame_count,
+                    frame_delay,
+                    loop_type,
+                ))),
+            )
+            .map(
+                |(layer, origin, filepath, position, frame_count, frame_delay, loop_type)| Object {
                     layer,
                     origin,
                     position,
@@ -127,27 +189,13 @@ impl FromStr for Object {
                         filepath,
                     }),
                     commands: Vec::new(),
-                })
-            }
-            _ => Err(ObjectParseError::UnknownObjectType(object_type.to_string())),
-        }
-    }
-}
+                },
+            ),
+            context(ObjectParseError::UnknownObjectType.into(), fail),
+        ))(s)?;
 
-fn parse_object_field<T>(
-    s: &mut Split<char>,
-    field_name: &'static str,
-) -> Result<T, ObjectParseError>
-where
-    T: FromStr,
-    <T as FromStr>::Err: 'static + Error,
-{
-    let s = s.next().ok_or(ObjectParseError::MissingField(field_name))?;
-    s.parse().map_err(|err| ObjectParseError::FieldParseError {
-        source: Box::new(err),
-        field_name,
-        value: s.to_string(),
-    })
+        Ok(object)
+    }
 }
 
 impl Display for Object {
@@ -237,12 +285,14 @@ impl Sprite {
 }
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum ObjectType {
     Sprite(Sprite),
     Animation(Animation),
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, Display, FromRepr, EnumString)]
+#[non_exhaustive]
 pub enum Origin {
     TopLeft,
     Centre,
@@ -257,6 +307,7 @@ pub enum Origin {
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, Display, EnumString)]
+#[non_exhaustive]
 pub enum LoopType {
     LoopForever,
     LoopOnce,

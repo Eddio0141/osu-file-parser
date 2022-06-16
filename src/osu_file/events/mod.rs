@@ -68,7 +68,8 @@ impl Version for Events {
                                 events.0.push(Event::Storyboard(object));
                             }
                             Err(err) => {
-                                if let ObjectParseError::UnknownObjectType(_) = err {
+                                if let ObjectParseError::UnknownObjectType = err {
+                                    // TODO clean this trash up
                                     let (_, (_, _, start_time, _)) = tuple((
                                         comma_field(),
                                         context("missing_start_time", comma()),
@@ -180,6 +181,7 @@ impl Version for Events {
 }
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Event {
     Comment(String),
     NormalEvent {
@@ -207,7 +209,7 @@ impl Version for Event {
                     Some(position) => format!(",{},{}", position.x, position.y),
                     None => String::new(),
                 };
-                let mut start_time = start_time.clone();
+                let mut start_time = *start_time;
 
                 if (3..=4).contains(&version) && !matches!(event_params, EventParams::Background(_))
                 {
@@ -412,6 +414,8 @@ pub struct ColourTransformation {
 }
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
+#[non_exhaustive]
+// TODO no output for v14 on colour transformation
 pub enum EventParams {
     Background(Background),
     Video(Video),

@@ -1,36 +1,62 @@
 use strum_macros::{EnumString, IntoStaticStr};
 use thiserror::Error;
 
-use std::{error::Error, num::ParseIntError, str::FromStr};
+use std::{num::ParseIntError, str::FromStr};
 
 use crate::helper::macros::verbose_error_to_error;
 
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum CommandPushError {
     #[error("Invalid indentation, expected {0}, got {1}")]
     InvalidIndentation(usize, usize),
 }
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, IntoStaticStr, EnumString)]
+#[non_exhaustive]
 pub enum ObjectParseError {
-    #[error("Unknown object type {0}")]
-    UnknownObjectType(String),
-    #[error("The object is missing the field {0}")]
-    MissingField(&'static str),
-    #[error("The field {field_name} failed to parse from a `str` to a type")]
-    FieldParseError {
-        #[source]
-        source: Box<dyn Error>,
-        field_name: &'static str,
-        value: String,
-    },
+    #[error("Unknown object type")]
+    UnknownObjectType,
+    #[error("Missing layer field")]
+    MissingLayer,
+    #[error("Invalid layer value")]
+    InvalidLayer,
+    #[error("Missing origin field")]
+    MissingOrigin,
+    #[error("Invalid origin value")]
+    InvalidOrigin,
+    #[error("Missing file path field")]
+    MissingFilePath,
+    #[error("Missing position x field")]
+    MissingPositionX,
+    #[error("Invalid position x value")]
+    InvalidPositionX,
+    #[error("Missing position y field")]
+    MissingPositionY,
+    #[error("Invalid position y value")]
+    InvalidPositionY,
+    #[error("Missing frame count field")]
+    MissingFrameCount,
+    #[error("Invalid frame count value")]
+    InvalidFrameCount,
+    #[error("Missing frame delay field")]
+    MissingFrameDelay,
+    #[error("Invalid frame delay value")]
+    InvalidFrameDelay,
+    #[error("Missing loop type field")]
+    MissingLoopType,
+    #[error("Invalid loop type value")]
+    InvalidLoopType,
 }
+
+verbose_error_to_error!(ObjectParseError);
 
 #[derive(Debug, Error)]
 #[error("The filepath needs to be a path relative to where the .osu file is, not a full path such as `C:\\folder\\image.png`")]
 pub struct FilePathNotRelative;
 
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum EasingParseError {
     #[error(transparent)]
     ValueParseError(#[from] ParseIntError),
@@ -39,6 +65,7 @@ pub enum EasingParseError {
 }
 
 #[derive(Debug, Error, EnumString, IntoStaticStr)]
+#[non_exhaustive]
 pub enum CommandParseError {
     /// Unknown command type
     #[error("Unknown command type")]
@@ -168,6 +195,7 @@ pub enum CommandParseError {
 verbose_error_to_error!(CommandParseError);
 
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum TriggerTypeParseError {
     #[error("There are too many `HitSound` fields: {0}")]
     TooManyHitSoundFields(usize),
@@ -183,6 +211,7 @@ pub enum TriggerTypeParseError {
 }
 
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum ContinuingRGBSetError {
     #[error("continuing fields index out of bounds")]
     IndexOutOfBounds,
@@ -191,6 +220,7 @@ pub enum ContinuingRGBSetError {
 }
 
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum InvalidColourFieldOption {
     #[error("continuing fields green field is none without it being the last item in the continuing fields")]
     Green,
@@ -199,6 +229,7 @@ pub enum InvalidColourFieldOption {
 }
 
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum ContinuingSetError {
     #[error("continuing fields index out of bounds")]
     IndexOutOfBounds,

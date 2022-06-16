@@ -9,8 +9,9 @@ use crate::helper::macros::verbose_error_to_error;
 #[error(transparent)]
 pub struct ParseError(#[from] TimingPointParseError);
 
-/// Error used when there was a problem parsing the [`TimingPoint`].
+/// Error used when there was a problem parsing the [`TimingPoint`][super::TimingPoint].
 #[derive(Debug, Error, EnumString, IntoStaticStr)]
+#[non_exhaustive]
 pub enum TimingPointParseError {
     /// Invalid `time` value.
     #[error("Invalid `time` value")]
@@ -61,8 +62,9 @@ pub enum TimingPointParseError {
 
 verbose_error_to_error!(TimingPointParseError);
 
-/// There was some problem parsing the [`SampleSet`].
+/// There was some problem parsing the [`SampleSet`][super::SampleSet].
 #[derive(Debug, Error, PartialEq)]
+#[non_exhaustive]
 pub enum SampleSetParseError {
     /// The value failed to parse from a `str`.
     #[error("There was a problem parsing {value} as an `Integer`")]
@@ -76,7 +78,7 @@ pub enum SampleSetParseError {
     UnknownSampleSet(usize),
 }
 
-/// There was a problem parsing `str` as [`Effects`].
+/// There was a problem parsing `str` as [`Effects`][super::Effects].
 #[derive(Debug, Error)]
 #[error("There was a problem parsing {value} as an `Integer`")]
 pub struct EffectsParseError {
@@ -85,7 +87,7 @@ pub struct EffectsParseError {
     pub value: String,
 }
 
-/// Error used when `str` failed to parse as [`SampleIndex`].
+/// Error used when `str` failed to parse as [`SampleIndex`][super::SampleIndex].
 #[derive(Debug, Error)]
 #[error("There was a problem parsing {value} as an usize for `SampleIndex`")]
 pub struct SampleIndexParseError {
@@ -96,11 +98,12 @@ pub struct SampleIndexParseError {
 
 /// Error for when there was a problem setting / parsing the volume.
 #[derive(Debug, Error, PartialEq)]
+#[non_exhaustive]
 pub enum VolumeError {
     /// Error when volume is out of range of the 0 ~ 100 range.
     #[error("The volume was too high, expected 0 ~ 100, got {0}")]
     VolumeTooHigh(u8),
-    /// There was a problem parsing the `str` as [`Volume`].
+    /// There was a problem parsing the `str` as [`Volume`][super::Volume].
     #[error("There was a problem parsing a `str` as [`Volume`]")]
     VolumeParseError {
         #[source]
