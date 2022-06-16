@@ -113,7 +113,6 @@ pub enum Countdown {
     Double,
 }
 
-// TODO investigate versions
 impl VersionedFromString for Countdown {
     type ParseError = ParseCountdownSpeedError;
 
@@ -167,7 +166,6 @@ impl Default for SampleSet {
 }
 
 impl VersionedFromString for SampleSet {
-    // TODO investigate versions
     type ParseError = strum::ParseError;
 
     fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
@@ -224,10 +222,15 @@ impl VersionedFromString for Mode {
     type ParseError = ParseGameModeError;
 
     // TODO check what gamemodes exist in versions
-    fn from_str(s: &str, _: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
-        Ok(Some(
-            Mode::from_repr(s.parse()?).ok_or(ParseGameModeError::UnknownType)?,
-        ))
+    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
+        let mode = Mode::from_repr(s.parse()?).ok_or(ParseGameModeError::UnknownType)?;
+
+        let mode = match version {
+            3..=13 if mode != Mode::Osu && mode != Mode::Mania => None,
+            _ => Some(mode),
+        };
+
+        Ok(mode)
     }
 }
 
@@ -263,8 +266,6 @@ impl Default for OverlayPosition {
 
 impl VersionedFromString for OverlayPosition {
     type ParseError = strum::ParseError;
-
-    // TODO investigate versions
 
     fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
         match version {
