@@ -4,7 +4,7 @@ use std::str::FromStr;
 
 use nom::branch::alt;
 use nom::bytes::complete::tag;
-use nom::combinator::{cut, fail, map_opt};
+use nom::combinator::{cut, fail};
 use nom::error::context;
 use nom::sequence::{preceded, tuple};
 use nom::Parser;
@@ -95,10 +95,7 @@ impl FromStr for Object {
         let origin = || {
             preceded(
                 context(ObjectParseError::MissingOrigin.into(), comma()),
-                context(
-                    ObjectParseError::InvalidOrigin.into(),
-                    map_opt(comma_field_type(), Origin::from_repr),
-                ),
+                context(ObjectParseError::InvalidOrigin.into(), comma_field_type()),
             )
         };
         let file_path = || {
