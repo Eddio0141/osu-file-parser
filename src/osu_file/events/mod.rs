@@ -68,7 +68,8 @@ impl Version for Events {
                                 events.0.push(Event::Storyboard(object));
                             }
                             Err(err) => {
-                                if let ObjectParseError::UnknownObjectType(_) = err {
+                                if let ObjectParseError::UnknownObjectType = err {
+                                    // TODO clean this trash up
                                     let (_, (_, _, start_time, _)) = tuple((
                                         comma_field(),
                                         context("missing_start_time", comma()),
