@@ -138,49 +138,40 @@ impl VersionedFromString for Events {
 
 impl VersionedToString for Events {
     fn to_string(&self, version: usize) -> Option<String> {
-        let s = self
-            .0
-            .iter()
-            .map(|i| {
-                if let Event::NormalEvent {
-                    start_time,
-                    event_params,
-                } = i
-                {
-                    if matches!(event_params, EventParams::Background(_)) {
-                        i.to_string(version)
-                    } else {
-                        // TODO check out whats going on in v5, seems inconsistent
-                        if (3..=4).contains(&version) {
-                            Event::NormalEvent {
-                                start_time: *start_time,
-                                event_params: {
-                                    let mut event_params = event_params.clone();
-                                    if let EventParams::Break(b) = &mut event_params {
-                                        b.end_time -= OLD_VERSION_TIME_OFFSET
-                                    }
-                                    event_params
-                                },
-                            }
-                            .to_string(version)
-                        } else {
-                            i.to_string(version)
-                        }
-                    }
-                } else {
+        let s = self.0.iter().map(|i| {
+            if let Event::NormalEvent {
+                start_time,
+                event_params,
+            } = i
+            {
+                if matches!(event_params, EventParams::Background(_)) {
                     i.to_string(version)
+                } else {
+                    // TODO check out whats going on in v5, seems inconsistent
+                    if (3..=4).contains(&version) {
+                        Event::NormalEvent {
+                            start_time: *start_time,
+                            event_params: {
+                                let mut event_params = event_params.clone();
+                                if let EventParams::Break(b) = &mut event_params {
+                                    b.end_time -= OLD_VERSION_TIME_OFFSET
+                                }
+                                event_params
+                            },
+                        }
+                        .to_string(version)
+                    } else {
+                        i.to_string(version)
+                    }
                 }
-            })
-            .collect::<Vec<_>>();
+            } else {
+                i.to_string(version)
+            }
+        });
 
         // BUG making Vec<Option<String>> into Option<Vec<String>> will lose the Some values
         // solution, filter out the None values
-        Some(
-            s.into_iter()
-                .filter_map(|i| i)
-                .collect::<Vec<_>>()
-                .join("\n"),
-        )
+        Some(s.into_iter().flatten().collect::<Vec<_>>().join("\n"))
     }
 }
 
