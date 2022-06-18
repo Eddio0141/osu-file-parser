@@ -39,6 +39,19 @@ pub enum ParseError {
 
 #[derive(Debug, Error, EnumString, IntoStaticStr)]
 #[non_exhaustive]
+pub enum OsbParseError {
+    /// Missing the `[Events] header`.
+    #[error("Missing the `[Events]` header")]
+    MissingEventsHeader,
+    #[error(transparent)]
+    #[strum(disabled)]
+    ParseError(#[from] crate::osu_file::types::Error<ParseError>),
+}
+
+verbose_error_to_error!(OsbParseError);
+
+#[derive(Debug, Error, EnumString, IntoStaticStr)]
+#[non_exhaustive]
 pub enum EventParamsParseError {
     #[error("Missing the `start_time` field")]
     MissingStartTime,
