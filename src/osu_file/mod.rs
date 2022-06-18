@@ -172,13 +172,11 @@ impl FromStr for OsuFile {
                 let err = if s.starts_with('\n') || s.starts_with("\r\n") {
                     ParseError::FileVersionInWrongLine
                 } else if let nom::Err::Error(err) = err {
-                    // TODO fix this mess
+                    // can find out error by checking the error type
                     match err.code {
                         nom::error::ErrorKind::Tag => ParseError::FileVersionDefinedWrong,
                         nom::error::ErrorKind::MapRes => ParseError::InvalidFileVersion,
-                        _ => {
-                            unreachable!("Not possible to have the error kind {:#?}", err.code)
-                        }
+                        _ => unreachable!("Not possible to have the error kind {:#?}", err.code),
                     }
                 } else {
                     unreachable!("Not possible to reach when the errors are already handled");
