@@ -87,8 +87,6 @@ impl Default for OsuFile {
 
 impl Display for OsuFile {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        // TODO .osb file too
-
         let mut sections = Vec::with_capacity(9);
 
         sections.push(format!("osu file format v{}", self.version));
