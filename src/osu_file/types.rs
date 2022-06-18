@@ -29,6 +29,12 @@ pub struct Error<E> {
     error: E,
 }
 
+impl<E: std::error::Error + 'static> std::error::Error for Error<E> {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        Some(&self.error)
+    }
+}
+
 impl<E> Error<E> {
     /// Returns a pretty error message with the affected line and the error.
     /// - Expensive than showing line number and error with the `Display` trait, as this iterates over the lines of the file input string.
