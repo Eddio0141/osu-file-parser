@@ -233,6 +233,13 @@ impl VersionedFromString for TimingPoint {
     type ParseError = TimingPointParseError;
 
     fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
+        let meter_fallback = 4;
+        let sample_set_fallback = SampleSet::Normal;
+        let sample_index_fallback = 1.try_into().unwrap();
+        let volume_fallback = Volume::try_from(100).unwrap();
+        let uninherited_fallback = true;
+        let effects_fallback = Effects::from(0);
+
         let (
             _,
             (
@@ -268,12 +275,11 @@ impl VersionedFromString for TimingPoint {
                     ))
                     .map(|_| {
                         (
-                            // TODO default values?
                             // TODO consume rest instead of handling like this
-                            4,
-                            SampleSet::Normal,
-                            SampleIndex::Index(NonZeroUsize::new(1).unwrap()),
-                            (Volume::try_from(100).unwrap(), (true, Effects::from(0))),
+                            meter_fallback,
+                            sample_set_fallback,
+                            sample_index_fallback,
+                            (volume_fallback, (uninherited_fallback, effects_fallback)),
                         )
                     }),
                 tuple((
@@ -304,13 +310,7 @@ impl VersionedFromString for TimingPoint {
                                 TimingPointParseError::InvalidSampleIndex.into(),
                                 cut(verify(success(0), |_| version == 4)),
                             ))
-                            .map(|_| {
-                                (
-                                    // TODO default values?
-                                    Volume::try_from(100).unwrap(),
-                                    (true, Effects::from(0)),
-                                )
-                            }),
+                            .map(|_| (volume_fallback, (uninherited_fallback, effects_fallback))),
                         tuple((
                             preceded(
                                 context(TimingPointParseError::MissingVolume.into(), comma()),
@@ -325,13 +325,7 @@ impl VersionedFromString for TimingPoint {
                                         TimingPointParseError::InvalidVolume.into(),
                                         cut(verify(success(0), |_| version == 5)),
                                     ))
-                                    .map(|_| {
-                                        (
-                                            // TODO default values?
-                                            true,
-                                            Effects::from(0),
-                                        )
-                                    }),
+                                    .map(|_| (uninherited_fallback, effects_fallback)),
                                 tuple((
                                     preceded(
                                         context(
