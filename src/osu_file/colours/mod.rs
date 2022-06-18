@@ -61,13 +61,12 @@ impl VersionedDefault for Colours {
     }
 }
 
-// TODO check of combo can be i32
 /// Struct representing a single `colour` component in the `Colours` section.
 #[derive(Clone, Copy, Hash, PartialEq, Eq, Debug)]
 #[non_exhaustive]
 pub enum Colour {
     /// Additive combo colours.
-    Combo(u32, Rgb),
+    Combo(i32, Rgb),
     /// Additive slider track colour.
     SliderTrackOverride(Rgb),
     /// Slider border colour.
@@ -80,10 +79,10 @@ impl FromStr for Colour {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let separator = || tuple((space0, tag(":"), space0));
         let combo_type = tag("Combo");
-        let combo_count = map_res(digit1, |s: &str| s.parse::<u32>());
+        let combo_count = map_res(digit1, |s: &str| s.parse());
         let slider_track_override_type = tag("SliderTrackOverride");
         let slider_border_type = tag("SliderBorder");
-        let byte = || map_res(digit1, |s: &str| s.parse::<u8>());
+        let byte = || map_res(digit1, |s: &str| s.parse());
         let rgb = || {
             tuple((
                 preceded(space0, context(ColourParseError::InvalidRed.into(), byte())),
