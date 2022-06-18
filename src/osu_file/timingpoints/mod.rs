@@ -244,8 +244,7 @@ impl VersionedFromString for TimingPoint {
             _,
             (
                 time,
-                beat_length,
-                (meter, sample_set, sample_index, (volume, (uninherited, effects))),
+                (beat_length, meter, sample_set, (sample_index, (volume, uninherited, effects))),
             ),
         ) = tuple((
             context(
@@ -261,98 +260,146 @@ impl VersionedFromString for TimingPoint {
             }),
             preceded(
                 context(TimingPointParseError::MissingBeatLength.into(), comma()),
-                context(
-                    TimingPointParseError::InvalidBeatLength.into(),
-                    comma_field_type(),
-                ),
-            ),
-            // in v3, rest of the fields doesn't exist
-            alt((
-                nothing()
-                    .and(context(
-                        TimingPointParseError::InvalidBeatLength.into(),
-                        cut(verify(success(0), |_| version == 3)),
-                    ))
-                    .map(|_| {
+                alt((
+                    preceded(
+                        verify(success(0), |_| version == 3),
+                        context(
+                            TimingPointParseError::InvalidBeatLength.into(),
+                            cut(consume_rest_type()),
+                        ),
+                    )
+                    .map(|beat_length| {
                         (
-                            // TODO consume rest instead of handling like this
+                            beat_length,
                             meter_fallback,
                             sample_set_fallback,
-                            sample_index_fallback,
-                            (volume_fallback, (uninherited_fallback, effects_fallback)),
+                            (
+                                sample_index_fallback,
+                                (volume_fallback, uninherited_fallback, effects_fallback),
+                            ),
                         )
                     }),
-                tuple((
-                    preceded(
-                        context(TimingPointParseError::MissingMeter.into(), comma()),
+                    tuple((
                         context(
-                            TimingPointParseError::InvalidMeter.into(),
+                            TimingPointParseError::InvalidBeatLength.into(),
                             comma_field_type(),
                         ),
-                    ),
-                    preceded(
-                        context(TimingPointParseError::MissingSampleSet.into(), comma()),
-                        context(
-                            TimingPointParseError::InvalidSampleSet.into(),
-                            comma_field_type(),
-                        ),
-                    ),
-                    preceded(
-                        context(TimingPointParseError::MissingSampleIndex.into(), comma()),
-                        context(
-                            TimingPointParseError::InvalidSampleIndex.into(),
-                            comma_field_type(),
-                        ),
-                    ),
-                    alt((
-                        nothing()
-                            .and(context(
-                                TimingPointParseError::InvalidSampleIndex.into(),
-                                cut(verify(success(0), |_| version == 4)),
-                            ))
-                            .map(|_| (volume_fallback, (uninherited_fallback, effects_fallback))),
-                        tuple((
-                            preceded(
-                                context(TimingPointParseError::MissingVolume.into(), comma()),
-                                context(
-                                    TimingPointParseError::InvalidVolume.into(),
-                                    comma_field_type(),
-                                ),
+                        preceded(
+                            context(TimingPointParseError::MissingMeter.into(), comma()),
+                            context(
+                                TimingPointParseError::InvalidMeter.into(),
+                                comma_field_type(),
                             ),
+                        ),
+                        preceded(
+                            context(TimingPointParseError::MissingSampleSet.into(), comma()),
+                            context(
+                                TimingPointParseError::InvalidSampleSet.into(),
+                                comma_field_type(),
+                            ),
+                        ),
+                        preceded(
+                            context(TimingPointParseError::MissingSampleIndex.into(), comma()),
                             alt((
-                                nothing()
-                                    .and(context(
-                                        TimingPointParseError::InvalidVolume.into(),
-                                        cut(verify(success(0), |_| version == 5)),
-                                    ))
-                                    .map(|_| (uninherited_fallback, effects_fallback)),
+                                preceded(
+                                    verify(success(0), |_| version == 4),
+                                    context(
+                                        TimingPointParseError::InvalidSampleIndex.into(),
+                                        cut(consume_rest_type()),
+                                    ),
+                                )
+                                .map(|sample_index| {
+                                    (
+                                        sample_index,
+                                        (volume_fallback, uninherited_fallback, effects_fallback),
+                                    )
+                                }),
                                 tuple((
-                                    preceded(
-                                        context(
-                                            TimingPointParseError::MissingUninherited.into(),
-                                            comma(),
-                                        ),
-                                        context(
-                                            TimingPointParseError::InvalidUninherited.into(),
-                                            map_res(comma_field(), parse_zero_one_bool),
-                                        ),
+                                    context(
+                                        TimingPointParseError::InvalidSampleIndex.into(),
+                                        comma_field_type(),
                                     ),
                                     preceded(
                                         context(
-                                            TimingPointParseError::MissingEffects.into(),
+                                            TimingPointParseError::MissingVolume.into(),
                                             comma(),
                                         ),
-                                        context(
-                                            TimingPointParseError::InvalidEffects.into(),
-                                            consume_rest_type(),
-                                        ),
+                                        alt((
+                                            preceded(
+                                                verify(success(0), |_| version == 5),
+                                                context(
+                                                    TimingPointParseError::InvalidVolume.into(),
+                                                    cut(consume_rest_type()),
+                                                ),
+                                            )
+                                            .map(
+                                                |volume| {
+                                                    (volume, uninherited_fallback, effects_fallback)
+                                                },
+                                            ),
+                                            tuple((
+                                                context(
+                                                    TimingPointParseError::InvalidVolume.into(),
+                                                    comma_field_type(),
+                                                ),
+                                                preceded(
+                                                    context(
+                                                        TimingPointParseError::MissingUninherited
+                                                            .into(),
+                                                        comma(),
+                                                    ),
+                                                    context(
+                                                        TimingPointParseError::InvalidUninherited
+                                                            .into(),
+                                                        map_res(comma_field(), parse_zero_one_bool),
+                                                    ),
+                                                ),
+                                                preceded(
+                                                    context(
+                                                        TimingPointParseError::MissingEffects
+                                                            .into(),
+                                                        comma(),
+                                                    ),
+                                                    context(
+                                                        TimingPointParseError::InvalidEffects
+                                                            .into(),
+                                                        consume_rest_type(),
+                                                    ),
+                                                ),
+                                            ))
+                                            .map(
+                                                |(volume, uninherited, effects)| {
+                                                    (volume, uninherited, effects)
+                                                },
+                                            ),
+                                        )),
                                     ),
-                                )),
+                                ))
+                                .map(
+                                    |(sample_index, (volume, uninherited, effects))| {
+                                        (sample_index, (volume, uninherited, effects))
+                                    },
+                                ),
                             )),
-                        )),
-                    )),
+                        ),
+                    ))
+                    .map(
+                        |(
+                            beat_length,
+                            meter,
+                            sample_set,
+                            (sample_index, (volume, uninherited, effects)),
+                        )| {
+                            (
+                                beat_length,
+                                meter,
+                                sample_set,
+                                (sample_index, (volume, uninherited, effects)),
+                            )
+                        },
+                    ),
                 )),
-            )),
+            ),
         ))(s)?;
 
         Ok(Some(TimingPoint {
