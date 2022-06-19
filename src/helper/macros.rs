@@ -145,7 +145,7 @@ macro_rules! general_section {
                 }
             }
 
-            pub fn from_str(s: &str, version: usize) -> Result<Option<$section_name>, Error<$parse_error>> {
+            pub fn from_str(s: &str, version: usize) -> Result<Option<$section_name>, crate::osu_file::types::Error<$parse_error>> {
                 let mut section = $section_name::new();
 
                 let (s, fields) = get_colon_field_value_lines(s).unwrap();
@@ -154,7 +154,7 @@ macro_rules! general_section {
                     // line count from fields
                     let line_count = { fields.iter().map(|(_, _, ws)| ws.lines().count()).sum() };
 
-                    return Err(Error::new(<$parse_error>::InvalidColonSet, line_count));
+                    return Err(crate::osu_file::types::Error::new(<$parse_error>::InvalidColonSet, line_count));
                 }
 
                 let mut line_count = 0;
@@ -162,16 +162,16 @@ macro_rules! general_section {
 
                 for (name, value, ws) in fields {
                     if parsed_fields.contains(&name) {
-                        return Err(Error::new(ParseError::DuplicateField, line_count));
+                        return Err(crate::osu_file::types::Error::new(ParseError::DuplicateField, line_count));
                     }
 
                     match name {
                         $(
                             stringify!($field_type) => {
-                                section.$field = Error::new_from_result_into(<$field_type>::from_str(value, version), line_count)?;
+                                section.$field = crate::osu_file::types::Error::new_from_result_into(<$field_type as crate::osu_file::types::VersionedFromString>::from_str(value, version), line_count)?;
                             }
                         )*
-                        _ => return Err(Error::new(ParseError::InvalidKey, line_count)),
+                        _ => return Err(crate::osu_file::types::Error::new(ParseError::InvalidKey, line_count)),
                     }
 
                     line_count += ws.lines().count();
