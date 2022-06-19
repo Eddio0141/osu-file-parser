@@ -7,7 +7,7 @@ use rust_decimal::Decimal;
 
 use crate::parsers::{comma, get_colon_field_value_lines};
 
-use super::{Error, Integer, VersionedFromString};
+use super::Integer;
 use crate::helper::macros::*;
 
 pub use self::error::*;
