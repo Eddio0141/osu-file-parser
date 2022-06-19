@@ -17,7 +17,7 @@ use crate::parsers::comma;
 pub use self::error::*;
 
 use super::{Error, VersionedDefault, VersionedFromString, VersionedToString, MIN_VERSION};
-use crate::helper::trait_ext::*;
+use crate::helper::trait_ext::MapStringNewLine;
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Colours(pub Vec<Colour>);

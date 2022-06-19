@@ -46,7 +46,7 @@ impl VersionedFromString for HitObjects {
 
 impl VersionedToString for HitObjects {
     fn to_string(&self, version: usize) -> Option<String> {
-        self.0.iter().map_string_new_line(version)
+        Some(self.0.iter().map_string_new_line(version))
     }
 }
 

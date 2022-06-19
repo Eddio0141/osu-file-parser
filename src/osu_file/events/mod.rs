@@ -12,7 +12,9 @@ use nom::{
     Finish, Parser,
 };
 
-use crate::{osu_file::events::storyboard::sprites, parsers::*};
+use crate::{
+    helper::trait_ext::MapOptStringNewLine, osu_file::events::storyboard::sprites, parsers::*,
+};
 
 use self::storyboard::{cmds::CommandProperties, error::ObjectParseError, sprites::Object};
 
@@ -152,7 +154,7 @@ impl VersionedFromString for Events {
 
 impl VersionedToString for Events {
     fn to_string(&self, version: usize) -> Option<String> {
-        let s = self.0.iter().map(|i| {
+        let mut s = self.0.iter().map(|i| {
             if let Event::NormalEvent {
                 start_time,
                 event_params,
@@ -183,9 +185,7 @@ impl VersionedToString for Events {
             }
         });
 
-        // BUG making Vec<Option<String>> into Option<Vec<String>> will lose the Some values
-        // solution, filter out the None values
-        Some(s.into_iter().flatten().collect::<Vec<_>>().join("\n"))
+        Some(s.map_string_new_line())
     }
 }
 
