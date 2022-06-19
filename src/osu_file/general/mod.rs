@@ -1,4 +1,5 @@
 pub mod error;
+pub mod types;
 
 use std::fmt::Debug;
 use std::num::ParseIntError;
@@ -7,8 +8,6 @@ use std::path::PathBuf;
 use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
 
-use strum_macros::{Display, EnumString, FromRepr};
-
 use crate::helper;
 use crate::helper::macros::*;
 use crate::parsers::get_colon_field_value_lines;
@@ -16,9 +15,7 @@ use crate::parsers::get_colon_field_value_lines;
 use crate::osu_file::Integer;
 
 pub use self::error::*;
-
-use super::MIN_VERSION;
-use super::{types::Error, VersionedDefault, VersionedFromString, VersionedToString};
+pub use self::types::*;
 
 versioned_field!(AudioFilename, PathBuf, no_versions, |s| { Ok(PathBuf::from(s)) } -> (), |v| { v.display().to_string() }, PathBuf::from(""));
 versioned_field!(AudioLeadIn, Integer, no_versions, |s| { s.parse() } -> ParseIntError,, 0);
@@ -98,199 +95,3 @@ general_section!(
     },
     ParseError
 );
-
-/// Speed of the countdown before the first hitobject.
-#[derive(PartialEq, Eq, Debug, Clone, Copy, Hash, FromRepr)]
-#[non_exhaustive]
-pub enum Countdown {
-    /// No countdown.
-    NoCountdown,
-    /// Normal speed.
-    Normal,
-    /// Half speed.
-    Half,
-    /// Double speed.
-    Double,
-}
-
-impl VersionedFromString for Countdown {
-    type ParseError = ParseCountdownSpeedError;
-
-    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
-        match version {
-            MIN_VERSION..=4 => Ok(None),
-            _ => Countdown::from_repr(s.parse()?)
-                .ok_or(ParseCountdownSpeedError::UnknownType)
-                .map(Some),
-        }
-    }
-}
-
-impl VersionedToString for Countdown {
-    fn to_string(&self, version: usize) -> Option<String> {
-        match version {
-            MIN_VERSION..=4 => None,
-            _ => Some((*self as usize).to_string()),
-        }
-    }
-}
-
-impl VersionedDefault for Countdown {
-    fn default(version: usize) -> Option<Self> {
-        match version {
-            MIN_VERSION..=4 => None,
-            _ => Some(Countdown::Normal),
-        }
-    }
-}
-
-/// Sample set that will be used if timing points do not override it
-#[derive(PartialEq, Eq, Debug, Clone, Copy, Hash, Display, EnumString)]
-#[non_exhaustive]
-pub enum SampleSet {
-    /// The `Normal` sample set.
-    Normal,
-    /// The `Soft` sample set.
-    Soft,
-    /// The `Drum` sample set.
-    Drum,
-    /// The `None` sample set, used before version 14.
-    /// - Converted to `Normal` in version 14.
-    None,
-}
-
-impl Default for SampleSet {
-    fn default() -> Self {
-        SampleSet::Normal
-    }
-}
-
-impl VersionedFromString for SampleSet {
-    type ParseError = strum::ParseError;
-
-    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
-        match version {
-            3 => Ok(None),
-            4..=13 => Ok(Some(s.parse()?)),
-            _ => {
-                let mut sample_set = s.parse()?;
-
-                if let SampleSet::None = sample_set {
-                    sample_set = SampleSet::Normal;
-                };
-
-                Ok(Some(sample_set))
-            }
-        }
-    }
-}
-
-impl VersionedToString for SampleSet {
-    fn to_string(&self, version: usize) -> Option<String> {
-        match version {
-            3 => None,
-            // I dont think we have to revert to None
-            _ => Some(ToString::to_string(&self)),
-        }
-    }
-}
-
-impl VersionedDefault for SampleSet {
-    fn default(version: usize) -> Option<Self> {
-        match version {
-            3 => None,
-            _ => Some(Self::Normal),
-        }
-    }
-}
-
-/// Game mode of the .osu file
-#[derive(PartialEq, Eq, Debug, Clone, Copy, Hash, FromRepr)]
-#[non_exhaustive]
-pub enum Mode {
-    /// Osu! gamemode.
-    Osu,
-    /// Osu!Taiko gamemode.
-    Taiko,
-    /// Osu!Catch gamemode.
-    Catch,
-    /// Osu!Mania gamemode.
-    Mania,
-}
-
-impl VersionedFromString for Mode {
-    type ParseError = ParseGameModeError;
-
-    // TODO check what gamemodes exist in versions
-    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
-        let mode = Mode::from_repr(s.parse()?).ok_or(ParseGameModeError::UnknownType)?;
-
-        let mode = match version {
-            3..=13 if mode != Mode::Osu && mode != Mode::Mania => None,
-            _ => Some(mode),
-        };
-
-        Ok(mode)
-    }
-}
-
-impl VersionedToString for Mode {
-    fn to_string(&self, _: usize) -> Option<String> {
-        Some((*self as usize).to_string())
-    }
-}
-
-impl VersionedDefault for Mode {
-    fn default(_: usize) -> Option<Self> {
-        Some(Self::Osu)
-    }
-}
-
-/// Draw order of hit circle overlays compared to hit numbers
-#[derive(PartialEq, Eq, Debug, Clone, Copy, Hash, Display, EnumString)]
-#[non_exhaustive]
-pub enum OverlayPosition {
-    /// Use skin setting.
-    NoChange,
-    /// Draw overlays under numbers.
-    Below,
-    /// Draw overlays on top of numbers.
-    Above,
-}
-
-impl Default for OverlayPosition {
-    fn default() -> Self {
-        Self::NoChange
-    }
-}
-
-impl VersionedFromString for OverlayPosition {
-    type ParseError = strum::ParseError;
-
-    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
-        match version {
-            MIN_VERSION..=13 => Ok(None),
-            _ => Ok(Some(s.parse()?)),
-        }
-    }
-}
-
-impl VersionedToString for OverlayPosition {
-    fn to_string(&self, version: usize) -> Option<String> {
-        match version {
-            MIN_VERSION..=13 => None,
-            _ => Some(ToString::to_string(&self)),
-        }
-    }
-}
-
-impl VersionedDefault for OverlayPosition {
-    fn default(version: usize) -> Option<Self> {
-        match version {
-            MIN_VERSION..=13 => None,
-            _ => Some(Self::NoChange),
-        }
-    }
-}
-
-// TODO separate types in types.rs
