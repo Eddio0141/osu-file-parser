@@ -1,4 +1,4 @@
-use crate::osu_file::{VersionedFromString, VersionedToString, MIN_VERSION, VersionedDefault};
+use crate::osu_file::{VersionedDefault, VersionedFromString, VersionedToString, MIN_VERSION};
 use strum_macros::{Display, EnumString, FromRepr};
 
 use super::error::*;
@@ -196,5 +196,3 @@ impl VersionedDefault for OverlayPosition {
         }
     }
 }
-
-// TODO separate types in types.rs
