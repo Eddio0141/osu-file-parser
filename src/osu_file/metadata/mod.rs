@@ -6,9 +6,7 @@ use nom::{
     Parser,
 };
 
-use crate::parsers::get_colon_field_value_lines;
-
-use super::{Error, Integer};
+use super::Integer;
 use crate::helper::macros::*;
 
 pub use self::error::*;
@@ -60,4 +58,5 @@ general_section!(
         pub beatmap_set_id: BeatmapSetID,
     },
     ParseError,
+    "",
 );

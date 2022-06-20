@@ -10,7 +10,6 @@ use rust_decimal_macros::dec;
 
 use crate::helper;
 use crate::helper::macros::*;
-use crate::parsers::get_colon_field_value_lines;
 
 use crate::osu_file::Integer;
 
@@ -93,5 +92,6 @@ general_section!(
         /// - Defaults to `false`.
         pub samples_match_playback_rate: SamplesMatchPlaybackRate,
     },
-    ParseError
+    ParseError,
+    " ",
 );

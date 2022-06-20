@@ -5,7 +5,7 @@ use std::num::ParseIntError;
 use nom::{bytes::complete::take_till, combinator::map_res, multi::separated_list0, Finish};
 use rust_decimal::Decimal;
 
-use crate::parsers::{comma, get_colon_field_value_lines};
+use crate::parsers::comma;
 
 use super::Integer;
 use crate::helper::macros::*;
@@ -53,5 +53,6 @@ general_section!(
         /// Scale factor for the objecct timeline.
         pub timeline_zoom: TimelineZoom,
     },
-    ParseError
+    ParseError,
+    " ",
 );

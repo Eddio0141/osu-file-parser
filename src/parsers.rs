@@ -38,14 +38,15 @@ use nom::{
 //     delimited(multispace0, inner, multispace0)
 // }
 
-/// Parses fields that has a structure of `key: value`, returning in form of `(key, value, ws)`.
-pub fn get_colon_field_value_lines(s: &str) -> IResult<&str, Vec<(&str, &str, &str)>> {
+/// Parses fields that has a structure of `key: value`, returning in form of `(key, ws, value, ws)`.
+pub fn get_colon_field_value_lines(s: &str) -> IResult<&str, Vec<(&str, &str, &str, &str)>> {
     let field_name = take_till(|c| c == ':' || c == '\n');
     let field_separator = char(':');
     let field_value = take_till(|c| c == '\r' || c == '\n');
     // we keep whitespace information that can contain newlines
     let field_line = tuple((
-        terminated(field_name, tuple((field_separator, space0))),
+        terminated(field_name, field_separator),
+        space0,
         field_value,
         multispace0,
     ));

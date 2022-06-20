@@ -46,6 +46,7 @@ SamplesMatchPlaybackRate: 1";
     let i = General::from_str(i_str, 14).unwrap().unwrap();
 
     let g = General {
+        spacing: Default::default(),
         audio_filename: Some(PathBuf::from("test.mp3").into()),
         audio_lead_in: Some(555.into()),
         audio_hash: None,
@@ -81,6 +82,7 @@ TimelineZoom: 2";
     let i = Editor::from_str(i_str, 14).unwrap().unwrap();
 
     let e = Editor {
+        spacing: Default::default(),
         bookmarks: Some(
             vec![
                 11018, 21683, 32349, 37683, 48349, 59016, 69683, 80349, 91016,
@@ -112,6 +114,7 @@ BeatmapSetID:1499093";
     let i = Metadata::from_str(i_str, 14).unwrap().unwrap();
 
     let m = Metadata {
+        spacing: Default::default(),
         title: Some("LOVE IS ORANGE".to_string().into()),
         title_unicode: Some("LOVE IS ORANGE".to_string().into()),
         artist: Some("Orange Lounge".to_string().into()),
@@ -157,6 +160,7 @@ SliderTickRate:1";
         approach_rate: Some(dec!(5).into()),
         slider_multiplier: Some(dec!(1.4).into()),
         slider_tickrate: Some(Decimal::ONE.into()),
+        spacing: Default::default(),
     };
 
     assert_eq!(i, d);

@@ -2,9 +2,7 @@ pub mod error;
 
 use rust_decimal::Decimal;
 
-use crate::{helper::macros::*, parsers::get_colon_field_value_lines};
-
-use super::Error;
+use crate::helper::macros::*;
 
 pub use self::error::*;
 
@@ -33,4 +31,5 @@ general_section!(
         pub slider_tickrate: SliderTickRate,
     },
     ParseError,
+    "",
 );

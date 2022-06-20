@@ -1,6 +1,8 @@
-// TODO clean up macros
-macro_rules! versioned_field_from {
-    ($name:ident, $field_type:ty) => {
+macro_rules! versioned_inner {
+    ($name:ident, $field_type:ty, $error_from_string:ty, $s_from_string:ident, $version_from_string:ident, $inner_from_string:block) => {
+        #[derive(PartialEq, Debug, Clone, Eq, Hash)]
+        pub struct $name($field_type);
+
         impl From<$field_type> for $name {
             fn from(t: $field_type) -> Self {
                 $name(t)
@@ -12,26 +14,15 @@ macro_rules! versioned_field_from {
                 t.0
             }
         }
-    };
-}
 
-macro_rules! versioned_field_new_type {
-    ($name:ident, $field_type:ty) => {
-        #[derive(PartialEq, Debug, Clone, Eq, Hash)]
-        pub struct $name(pub $field_type);
-    };
-}
-
-macro_rules! versioned_field_from_string {
-    ($name:ident, $error:ty, $s:ident, $version:ident, $inner:block) => {
         impl crate::osu_file::types::VersionedFromString for $name {
-            type ParseError = $error;
+            type ParseError = $error_from_string;
 
             fn from_str(
-                $s: &str,
-                $version: usize,
+                $s_from_string: &str,
+                $version_from_string: usize,
             ) -> std::result::Result<Option<Self>, Self::ParseError> {
-                $inner
+                $inner_from_string
             }
         }
     };
@@ -62,75 +53,61 @@ macro_rules! versioned_field {
     // full syntax
     // $name:ident, $field_type:ty, no_versions | (nothing), |$s:ident| $from_str_inner:block -> $parse_str_error:ty, |$v:ident| $to_string_inner:block | boolean, $default:block
     ($name:ident, $field_type:ty, no_versions, |$s:ident| $from_str_inner:block -> $parse_str_error:ty, |$v:ident, $version_to_string:ident| $to_string_inner:block, |$version_default:ident| $default:block) => {
-        versioned_field_new_type!($name, $field_type);
-        versioned_field_from_string!($name, $parse_str_error, $s, _version, {
+        versioned_inner!($name, $field_type, $parse_str_error, $s, _version, {
             $from_str_inner.map(|value| Some(Self(value)))
         });
         versioned_field_to_string!($name, $version_to_string, $v, $to_string_inner);
         versioned_field_default!($name, $version_default, { $default.map(|v| v.into()) });
-        versioned_field_from!($name, $field_type);
     };
     ($name:ident, $field_type:ty, no_versions, |$s:ident| $from_str_inner:block -> $parse_str_error:ty, |$v:ident| $to_string_inner:block, $default:expr) => {
-        versioned_field_new_type!($name, $field_type);
-        versioned_field_from_string!($name, $parse_str_error, $s, _version, {
+        versioned_inner!($name, $field_type, $parse_str_error, $s, _version, {
             $from_str_inner.map(|value| Some(Self(value)))
         });
         versioned_field_to_string!($name, _version, $v, { Some($to_string_inner) });
         versioned_field_default!($name, _version, { Some($default.into()) });
-        versioned_field_from!($name, $field_type);
     };
     ($name:ident, $field_type:ty, no_versions, |$s:ident| $from_str_inner:block -> $parse_str_error:ty,, $default:expr) => {
-        versioned_field_new_type!($name, $field_type);
-        versioned_field_from_string!($name, $parse_str_error, $s, _version, {
+        versioned_inner!($name, $field_type, $parse_str_error, $s, _version, {
             $from_str_inner.map(|value| Some(Self(value)))
         });
         versioned_field_to_string!($name, _version, v, { Some(v.to_string()) });
         versioned_field_default!($name, _version, { Some($default.into()) });
-        versioned_field_from!($name, $field_type);
     };
     ($name:ident, $field_type:ty, no_versions, |$s:ident| $from_str_inner:block -> $parse_str_error:ty, |$v:ident| $to_string_inner:block,) => {
-        versioned_field_new_type!($name, $field_type);
-        versioned_field_from_string!($name, $parse_str_error, $s, _version, {
+        versioned_inner!($name, $field_type, $parse_str_error, $s, _version, {
             $from_str_inner.map(|value| Some(Self(value)))
         });
         versioned_field_to_string!($name, _version, $v, { Some($to_string_inner) });
-        versioned_field_from!($name, $field_type);
     };
     ($name:ident, $field_type:ty, no_versions, |$s:ident| $from_str_inner:block -> $parse_str_error:ty,,) => {
-        versioned_field_new_type!($name, $field_type);
-        versioned_field_from_string!($name, $parse_str_error, $s, _version, {
+        versioned_inner!($name, $field_type, $parse_str_error, $s, _version, {
             $from_str_inner.map(|value| Some(Self(value)))
         });
         versioned_field_to_string!($name, _version, v, { Some(v.to_string()) });
-        versioned_field_from!($name, $field_type);
     };
     ($name:ident, $field_type:ty, no_versions, |$s:ident| $from_str_inner:block -> $parse_str_error:ty, boolean, $default:expr) => {
-        versioned_field_new_type!($name, $field_type);
-        versioned_field_from_string!($name, $parse_str_error, $s, _version, {
+        versioned_inner!($name, $field_type, $parse_str_error, $s, _version, {
             $from_str_inner.map(|value| Some(Self(value)))
         });
         versioned_field_to_string!($name, _version, v, { Some((*v as u8).to_string()) });
         versioned_field_default!($name, _version, { Some($default.into()) });
-        versioned_field_from!($name, $field_type);
     };
 }
 
-// TODO do we store the space after the colon?
-// TODO merge with versioned_field
-macro_rules! general_section {
-    (
-        $(#[$outer:meta])*
-        pub struct $section_name:ident {
+macro_rules! general_section_inner {
+    ($(#[$outer:meta])*, $section_name:ident, $($(#[$inner:meta])*, $field:ident, $field_type:ty)*, $parse_error:ty, $default_spacing:expr) => {
+        #[derive(Default, Debug)]
+        // TODO solve this problem
+        pub struct SectionSpacing {
             $(
-                $(#[$inner:meta])*
-                pub $field:ident: $field_type:ty,
+                pub $field: Option<usize>,
             )*
-        },
-        $parse_error:ty
-    ) => {
+        }
+
         #[derive(PartialEq, Debug, Clone, Eq, Hash)]
         $(#[$outer])*
         pub struct $section_name {
+            pub spacing: SectionSpacing,
             $(
                 $(#[$inner])*
                 pub $field: Option<$field_type>,
@@ -141,6 +118,7 @@ macro_rules! general_section {
             /// Creates a new instance, with all fields being `None`.
             pub fn new() -> Self {
                 $section_name {
+                    spacing: Default::default(),
                     $($field: None),*
                 }
             }
@@ -148,11 +126,11 @@ macro_rules! general_section {
             pub fn from_str(s: &str, version: usize) -> Result<Option<$section_name>, crate::osu_file::types::Error<$parse_error>> {
                 let mut section = $section_name::new();
 
-                let (s, fields) = get_colon_field_value_lines(s).unwrap();
+                let (s, fields) = crate::parsers::get_colon_field_value_lines(s).unwrap();
 
                 if !s.trim().is_empty() {
                     // line count from fields
-                    let line_count = { fields.iter().map(|(_, _, ws)| ws.lines().count()).sum() };
+                    let line_count = { fields.iter().map(|(_, _, _, ws)| ws.lines().count()).sum() };
 
                     return Err(crate::osu_file::types::Error::new(<$parse_error>::InvalidColonSet, line_count));
                 }
@@ -160,7 +138,7 @@ macro_rules! general_section {
                 let mut line_count = 0;
                 let mut parsed_fields = Vec::new();
 
-                for (name, value, ws) in fields {
+                for (name, ws, value, ws_2) in fields {
                     if parsed_fields.contains(&name) {
                         return Err(crate::osu_file::types::Error::new(ParseError::DuplicateField, line_count));
                     }
@@ -169,12 +147,13 @@ macro_rules! general_section {
                         $(
                             stringify!($field_type) => {
                                 section.$field = crate::osu_file::types::Error::new_from_result_into(<$field_type as crate::osu_file::types::VersionedFromString>::from_str(value, version), line_count)?;
+                                section.spacing.$field = Some(ws.len());
                             }
                         )*
                         _ => return Err(crate::osu_file::types::Error::new(ParseError::InvalidKey, line_count)),
                     }
 
-                    line_count += ws.lines().count();
+                    line_count += ws_2.lines().count();
                     parsed_fields.push(name);
                 }
 
@@ -187,12 +166,25 @@ macro_rules! general_section {
                 $(
                     if let Some(value) = &self.$field {
                         if let Some(value) = crate::osu_file::types::VersionedToString::to_string(value, version) {
-                            v.push(format!("{}: {value}", stringify!($field_type)));
+                            let spacing = match self.spacing.$field {
+                                Some(spacing) => " ".repeat(spacing),
+                                None => $default_spacing,
+                            };
+                            let field_name = stringify!($field_type);
+
+                            v.push(format!("{field_name}:{spacing}{value}"));
                         }
                     }
                 )*
 
                 Some(v.join("\n"))
+            }
+
+            /// Resets the custom spacings of the gap between the colon and the value.
+            pub fn reset_spacing(&mut self) {
+                $(
+                    self.spacing.$field = None;
+                )*
             }
         }
 
@@ -201,6 +193,22 @@ macro_rules! general_section {
                 Self::new()
             }
         }
+    };
+}
+
+macro_rules! general_section {
+    (
+        $(#[$outer:meta])*
+        pub struct $section_name:ident {
+            $(
+                $(#[$inner:meta])*
+                pub $field:ident: $field_type:ty,
+            )*
+        },
+        $parse_error:ty,
+        $default_spacing:expr,
+    ) => {
+        general_section_inner!($(#[$outer])*, $section_name, $($(#[$inner])*, $field, $field_type)*, $parse_error, { $default_spacing.to_string() });
     };
     (
         $(#[$outer:meta])*
@@ -211,81 +219,26 @@ macro_rules! general_section {
             )*
         },
         $parse_error:ty,
+        $default_spacing:expr,
+        $(
+            $version:expr,
+            $field_spacing:ident: $field_spacing_count:expr,
+        )*
     ) => {
-        #[derive(PartialEq, Debug, Clone, Eq, Hash)]
-        $(#[$outer])*
-        pub struct $section_name {
-            $(
-                $(#[$inner])*
-                pub $field: Option<$field_type>,
-            )*
-        }
-
-        impl $section_name {
-            /// Creates a new instance, with all fields being `None`.
-            pub fn new() -> Self {
-                $section_name {
-                    $($field: None),*
-                }
-            }
-
-            pub fn from_str(s: &str, version: usize) -> Result<Option<$section_name>, Error<$parse_error>> {
-                let mut section = $section_name::new();
-
-                let (s, fields) = get_colon_field_value_lines(s).unwrap();
-
-                if !s.trim().is_empty() {
-                    // line count from fields
-                    let line_count = { fields.iter().map(|(_, _, ws)| ws.lines().count()).sum() };
-
-                    return Err(Error::new(<$parse_error>::InvalidColonSet, line_count));
-                }
-
-                let mut line_count = 0;
-                let mut parsed_fields = Vec::new();
-
-                for (name, value, ws) in fields {
-                    if parsed_fields.contains(&name) {
-                        return Err(Error::new(ParseError::DuplicateField, line_count));
-                    }
-
-                    match name {
-                        $(
-                            stringify!($field_type) => {
-                                section.$field = Error::new_from_result_into(crate::osu_file::types::VersionedFromString::from_str(value, version), line_count)?;
-                            }
-                        )*
-                        _ => return Err(Error::new(ParseError::InvalidKey, line_count)),
-                    }
-
-                    line_count += ws.lines().count();
-                    parsed_fields.push(name);
-                }
-
-                Ok(Some(section))
-            }
-
-            pub fn to_string(&self, version: usize) -> Option<String> {
-                let mut v = Vec::new();
+        general_section_inner!($(#[$outer])*, $section_name, $($(#[$inner])*, $field, $field_type)*, $parse_error,
+            {
+                let mut spacing = $default_spacing.to_string();
 
                 $(
-                    if let Some(value) = &self.$field {
-                        if let Some(value) = crate::osu_file::types::VersionedToString::to_string(value, version) {
-                            v.push(format!("{}:{value}", stringify!($field_type)));
-                        }
+                    if version == $version && field_name == stringify!($field_spacing) {
+                        spacing = " ".repeat($field_spacing_count);
                     }
                 )*
 
-                Some(v.join("\n"))
+                spacing
             }
-        }
-
-        impl Default for $section_name {
-            fn default() -> Self {
-                Self::new()
-            }
-        }
-    };
+        );
+    }
 }
 
 macro_rules! verbose_error_to_error {
@@ -311,10 +264,9 @@ macro_rules! verbose_error_to_error {
 }
 
 pub(crate) use general_section;
+pub(crate) use general_section_inner;
 pub(crate) use verbose_error_to_error;
 pub(crate) use versioned_field;
 pub(crate) use versioned_field_default;
-pub(crate) use versioned_field_from;
-pub(crate) use versioned_field_from_string;
-pub(crate) use versioned_field_new_type;
 pub(crate) use versioned_field_to_string;
+pub(crate) use versioned_inner;
