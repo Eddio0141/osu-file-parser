@@ -96,7 +96,7 @@ macro_rules! versioned_field {
 
 macro_rules! general_section_inner {
     ($(#[$outer:meta])*, $section_name:ident, $($(#[$inner:meta])*, $field:ident, $field_type:ty)*, $parse_error:ty, $default_spacing:expr) => {
-        #[derive(Default, Debug)]
+        #[derive(Default, Debug, Clone)]
         // TODO solve this problem
         pub struct SectionSpacing {
             $(
@@ -104,7 +104,7 @@ macro_rules! general_section_inner {
             )*
         }
 
-        #[derive(PartialEq, Debug, Clone, Eq, Hash)]
+        #[derive(Debug, Clone)]
         $(#[$outer])*
         pub struct $section_name {
             pub spacing: SectionSpacing,
@@ -112,6 +112,23 @@ macro_rules! general_section_inner {
                 $(#[$inner])*
                 pub $field: Option<$field_type>,
             )*
+        }
+
+        impl PartialEq for $section_name {
+            fn eq(&self, other: &Self) -> bool {
+                $(
+                    self.$field == other.$field &&
+                )*
+                true
+            }
+        }
+
+        impl std::hash::Hash for $section_name {
+            fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+                $(
+                    self.$field.hash(state);
+                )*
+            }
         }
 
         impl $section_name {

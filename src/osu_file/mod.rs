@@ -31,7 +31,7 @@ pub use self::timingpoints::TimingPoints;
 pub use self::types::*;
 
 /// An .osu file represented as a struct.
-#[derive(Clone, Debug, Hash, PartialEq, Eq)]
+#[derive(Clone, Debug, Hash, PartialEq)]
 #[non_exhaustive]
 pub struct OsuFile {
     /// Version of the file format.
