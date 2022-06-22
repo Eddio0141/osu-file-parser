@@ -442,7 +442,6 @@ impl VersionedToString for TimingPoint {
             fields.push(self.volume.to_string());
         }
         if version > 5 {
-            // TODO check all bool types to be integer
             fields.push((self.uninherited as u8).to_string());
             fields.push(self.effects.to_string());
         }

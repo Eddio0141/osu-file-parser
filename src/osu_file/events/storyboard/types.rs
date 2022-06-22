@@ -53,7 +53,6 @@ impl FromStr for TriggerType {
                         fields
                     };
 
-                    // TODO for the project, make sure all fields are used in iterator next call
                     if fields.len() > 4 {
                         return Err(TriggerTypeParseError::TooManyHitSoundFields(fields.len()));
                     }

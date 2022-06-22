@@ -221,7 +221,6 @@ impl Display for Object {
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Animation {
-    // TODO what types are those counts
     pub frame_count: u32,
     pub frame_delay: u32,
     pub loop_type: LoopType,
