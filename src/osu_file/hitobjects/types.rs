@@ -1,6 +1,10 @@
 //! Module defining misc types used for different hitobjects, such as [CurveType] used for [`Slider`][super::SlideParams] curve types.
 
-use std::{fmt::Display, num::NonZeroUsize, str::FromStr};
+use std::{
+    fmt::Display,
+    num::{NonZeroUsize, ParseIntError},
+    str::FromStr,
+};
 
 use nom::{
     branch::alt,
@@ -385,97 +389,60 @@ pub enum CurveType {
     PerfectCircle,
 }
 
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+pub enum SampleIndex {
+    TimingPointSampleIndex,
+    Index(NonZeroUsize),
+}
+
+impl Default for SampleIndex {
+    fn default() -> Self {
+        Self::TimingPointSampleIndex
+    }
+}
+
+impl From<usize> for SampleIndex {
+    fn from(index: usize) -> Self {
+        if index == 0 {
+            Self::TimingPointSampleIndex
+        } else {
+            Self::Index(NonZeroUsize::new(index).unwrap())
+        }
+    }
+}
+
+impl From<SampleIndex> for usize {
+    fn from(index: SampleIndex) -> Self {
+        match index {
+            SampleIndex::TimingPointSampleIndex => 0,
+            SampleIndex::Index(index) => index.get(),
+        }
+    }
+}
+
+impl Display for SampleIndex {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", usize::from(*self))
+    }
+}
+
+impl FromStr for SampleIndex {
+    type Err = ParseIntError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(s.parse::<usize>()?.into())
+    }
+}
+
 #[derive(Default, Clone, Debug, Hash, PartialEq, Eq)]
 /// Information about which samples are played when the object is hit.
 /// It is closely related to [`hitSound`][HitSound].
 pub struct HitSample {
-    normal_set: SampleSet,
-    addition_set: SampleSet,
-    // TODO make this into own type
-    index: Option<NonZeroUsize>,
-    volume: Volume,
-    filename: String,
-}
-
-impl HitSample {
-    pub fn new(
-        normal_set: SampleSet,
-        addition_set: SampleSet,
-        index: Option<NonZeroUsize>,
-        volume: Volume,
-        filename: String,
-    ) -> Self {
-        Self {
-            normal_set,
-            addition_set,
-            index,
-            volume,
-            filename,
-        }
-    }
-
-    /// Returns the sample set of the normal sound.
-    pub fn normal_set(&self) -> SampleSet {
-        self.normal_set
-    }
-
-    /// Sets the sample set of the normal sound.
-    pub fn set_normal_set(&mut self, normal_set: SampleSet) {
-        self.normal_set = normal_set;
-    }
-
-    /// Returns the sample set of the whistle, finish, and clap sounds.
-    pub fn addition_set(&self) -> SampleSet {
-        self.addition_set
-    }
-
-    /// Sets the sample set of the whistle, finish, and clap sounds.
-    pub fn set_addition_set(&mut self, addition_set: SampleSet) {
-        self.addition_set = addition_set;
-    }
-
-    /// Index of the sample.
-    /// - If this returns `None`, the timing point's sample index will be used instead.
-    pub fn index(&self) -> Option<NonZeroUsize> {
-        self.index
-    }
-
-    // TODO make custom type for those 0 index cases
-    /// Sets the index of the sample.
-    /// - If this returns `None`, the timing point's sample index will be used instead.
-    pub fn set_index(&mut self, index: NonZeroUsize) {
-        self.index = Some(index);
-    }
-
-    /// Returns `true` if the timing point index is used instead.
-    pub fn use_timing_point_index(&self) -> bool {
-        self.index.is_none()
-    }
-
-    /// Sets if the timing point index is to be used.
-    pub fn set_use_timing_point_index(&mut self) {
-        self.index = None;
-    }
-
-    /// Returns the reference to the hit sample's `volume`.
-    pub fn volume(&self) -> &Volume {
-        &self.volume
-    }
-
-    /// Get a mutable reference to the hit sample's `volume`.
-    pub fn volume_mut(&mut self) -> &mut Volume {
-        &mut self.volume
-    }
-
-    /// Returns the reference to the custom filename of the addition sound.
-    pub fn filename(&self) -> &str {
-        self.filename.as_ref()
-    }
-
-    /// Sets the custom filename of the addition sound.
-    pub fn set_filename(&mut self, filename: &str) {
-        self.filename = filename.to_owned();
-    }
+    pub normal_set: SampleSet,
+    pub addition_set: SampleSet,
+    pub index: SampleIndex,
+    pub volume: Volume,
+    pub filename: String,
 }
 
 impl VersionedFromString for HitSample {
@@ -524,14 +491,7 @@ impl VersionedFromString for HitSample {
                         ),
                         context(
                             HitSampleParseError::InvalidIndex.into(),
-                            map_res(field(), |v: &str| v.parse()).map(|v| {
-                                let v = if v == 0 {
-                                    None
-                                } else {
-                                    Some(NonZeroUsize::new(v).unwrap())
-                                };
-                                Some(v)
-                            }),
+                            map_res(field(), |v: &str| v.parse()).map(Some),
                         ),
                     ),
                 )),
@@ -570,7 +530,13 @@ impl VersionedFromString for HitSample {
                 let volume = volume.unwrap_or_default();
                 let filename = filename.unwrap_or_default().to_string();
 
-                HitSample::new(normal_set, addition_set, index, volume, filename)
+                HitSample {
+                    normal_set,
+                    addition_set,
+                    index,
+                    volume,
+                    filename,
+                }
             }),
         ))(s)?;
 
@@ -580,19 +546,18 @@ impl VersionedFromString for HitSample {
 
 impl VersionedToString for HitSample {
     fn to_string(&self, version: usize) -> Option<String> {
-        let index = match self.index {
-            Some(index) => index.into(),
-            None => 0,
-        };
         let volume: Integer = self.volume.into();
         let filename = &self.filename;
 
         match version {
             MIN_VERSION..=9 => None,
-            10..=11 => Some(format!("{}:{}:{index}", self.normal_set, self.addition_set)),
+            10..=11 => Some(format!(
+                "{}:{}:{}",
+                self.normal_set, self.addition_set, self.index
+            )),
             _ => Some(format!(
-                "{}:{}:{index}:{volume}:{filename}",
-                self.normal_set, self.addition_set
+                "{}:{}:{}:{volume}:{filename}",
+                self.normal_set, self.addition_set, self.index
             )),
         }
     }
