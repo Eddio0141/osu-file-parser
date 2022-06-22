@@ -256,14 +256,21 @@ impl VersionedToString for Event {
             }
             Event::Storyboard(object) => {
                 let pos_str = format!("{},{}", object.position.x, object.position.y);
+                let filepath = |path: &Path| {
+                    let path = path.to_string_lossy();
+                    if path.contains(" ") {
+                        format!("\"{path}\"")
+                    } else {
+                        path.to_string()
+                    }
+                };
 
                 let object_str = match &object.object_type {
                     sprites::ObjectType::Sprite(sprite) => format!(
                         "Sprite,{},{},{},{}",
                         object.layer,
                         object.origin,
-                        // TODO make sure if the filepath has spaces, use the quotes no matter what, but don't add quotes if it already has
-                        sprite.filepath.to_string_lossy(),
+                        filepath(&sprite.filepath),
                         pos_str
                     ),
                     sprites::ObjectType::Animation(anim) => {
@@ -271,7 +278,7 @@ impl VersionedToString for Event {
                             "Animation,{},{},{},{},{},{},{}",
                             object.layer,
                             object.origin,
-                            anim.filepath.to_string_lossy(),
+                            filepath(&anim.filepath),
                             pos_str,
                             anim.frame_count,
                             anim.frame_delay,

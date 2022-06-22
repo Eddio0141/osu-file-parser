@@ -6,8 +6,6 @@ use strum_macros::{Display, EnumString, FromRepr, IntoStaticStr};
 use super::error::*;
 
 // TODO what is group_number
-// TODO check field types to be something that makes sense
-// and also for nonzerousize
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum TriggerType {
