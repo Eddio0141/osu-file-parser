@@ -95,7 +95,7 @@ macro_rules! versioned_field {
 }
 
 macro_rules! general_section_inner {
-    ($(#[$outer:meta])*, $section_name:ident, $($(#[$inner:meta])*, $field:ident, $field_type:ty)*, $parse_error:ty, $default_spacing:expr) => {
+    ($(#[$outer:meta])*, $section_name:ident, $($(#[$inner:meta])*, $field:ident, $field_type:ty)*, $parse_error:ty, $default_spacing:expr, $default_version:ident, $default_field_name:ident) => {
         #[derive(Default, Debug, Clone)]
         // TODO solve this problem
         pub struct SectionSpacing {
@@ -177,19 +177,19 @@ macro_rules! general_section_inner {
                 Ok(Some(section))
             }
 
-            pub fn to_string(&self, version: usize) -> Option<String> {
+            pub fn to_string(&self, $default_version: usize) -> Option<String> {
                 let mut v = Vec::new();
 
                 $(
                     if let Some(value) = &self.$field {
-                        if let Some(value) = crate::osu_file::types::VersionedToString::to_string(value, version) {
+                        if let Some($default_field_name) = crate::osu_file::types::VersionedToString::to_string(value, $default_version) {
                             let spacing = match self.spacing.$field {
                                 Some(spacing) => " ".repeat(spacing),
                                 None => $default_spacing,
                             };
                             let field_name = stringify!($field_type);
 
-                            v.push(format!("{field_name}:{spacing}{value}"));
+                            v.push(format!("{field_name}:{spacing}{}", $default_field_name));
                         }
                     }
                 )*
@@ -225,7 +225,7 @@ macro_rules! general_section {
         $parse_error:ty,
         $default_spacing:expr,
     ) => {
-        general_section_inner!($(#[$outer])*, $section_name, $($(#[$inner])*, $field, $field_type)*, $parse_error, { $default_spacing.to_string() });
+        general_section_inner!($(#[$outer])*, $section_name, $($(#[$inner])*, $field, $field_type)*, $parse_error, { $default_spacing.to_string() }, _version, _field_name);
     };
     (
         $(#[$outer:meta])*
@@ -238,8 +238,10 @@ macro_rules! general_section {
         $parse_error:ty,
         $default_spacing:expr,
         $(
-            $version:expr,
-            $field_spacing:ident: $field_spacing_count:expr,
+            {
+                $version:expr,
+                $($field_spacing:ident: $field_spacing_count:expr,)*
+            }
         )*
     ) => {
         general_section_inner!($(#[$outer])*, $section_name, $($(#[$inner])*, $field, $field_type)*, $parse_error,
@@ -247,13 +249,19 @@ macro_rules! general_section {
                 let mut spacing = $default_spacing.to_string();
 
                 $(
-                    if version == $version && field_name == stringify!($field_spacing) {
-                        spacing = " ".repeat($field_spacing_count);
+                    if $version.contains(&version) {
+                        $(
+                            if field_name == stringify!($field_spacing) {
+                                spacing = " ".repeat($field_spacing_count);
+                            }
+                        )*
                     }
                 )*
 
                 spacing
-            }
+            },
+            version,
+            field_name
         );
     }
 }
