@@ -33,7 +33,7 @@ general_section!(
     "",
     {
         3..=4,
-        SliderMultipler: 0,
-        SliderTickRate: 0,
+        SliderMultipler: 1,
+        SliderTickRate: 1,
     }
 );
