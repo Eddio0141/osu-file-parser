@@ -13,7 +13,6 @@ versioned_field!(ApproachRate, Decimal, no_versions, |s| { s.parse() } -> rust_d
 versioned_field!(SliderMultiplier, Decimal, no_versions, |s| { s.parse() } -> rust_decimal::Error,,);
 versioned_field!(SliderTickRate, Decimal, no_versions, |s| { s.parse() } -> rust_decimal::Error,,);
 
-// TODO SliderMultipler and SliderTickRate has a space after the colon in version 3 ~ 4.
 general_section!(
     /// Difficulty settings.
     pub struct Difficulty {
@@ -32,4 +31,9 @@ general_section!(
     },
     ParseError,
     "",
+    {
+        3..=4,
+        SliderMultipler: 0,
+        SliderTickRate: 0,
+    }
 );
