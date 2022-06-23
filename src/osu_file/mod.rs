@@ -14,10 +14,9 @@ use std::hash::Hash;
 use std::str::FromStr;
 
 use nom::bytes::complete::{tag, take_till};
-use nom::character::complete::multispace0;
 use nom::combinator::map_res;
 use nom::multi::many0;
-use nom::sequence::{delimited, tuple};
+use nom::sequence::tuple;
 use thiserror::Error;
 
 use crate::parsers::square_section;
@@ -85,8 +84,11 @@ impl OsuFile {
         }
     }
 
-    pub fn append_osb(&mut self) -> Error<Result<(), osb::ParseError>> {
-        todo!()
+    /// Appends .osb file.
+    pub fn append_osb(&mut self, s: &str) -> Result<(), Error<osb::ParseError>> {
+        self.osb = Osb::from_str(s, self.version)?;
+
+        Ok(())
     }
 }
 
