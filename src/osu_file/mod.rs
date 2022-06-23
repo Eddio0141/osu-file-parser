@@ -5,6 +5,7 @@ pub mod events;
 pub mod general;
 pub mod hitobjects;
 pub mod metadata;
+pub mod osb;
 pub mod timingpoints;
 pub mod types;
 
@@ -26,6 +27,7 @@ pub use self::events::Events;
 pub use self::general::General;
 pub use self::hitobjects::HitObjects;
 pub use self::metadata::Metadata;
+pub use self::osb::Osb;
 pub use self::timingpoints::TimingPoints;
 
 pub use self::types::*;
@@ -42,6 +44,8 @@ pub struct OsuFile {
     /// Saved settings for the beatmap editor.
     /// - `key`: `value` pairs.
     pub editor: Option<Editor>,
+    /// Contents of an .osb storyboard file.
+    pub osb: Option<Osb>,
     /// Information used to identify the beatmap.
     /// - `key`:`value` pairs.
     pub metadata: Option<Metadata>,
@@ -75,7 +79,12 @@ impl OsuFile {
             timing_points: None,
             colours: None,
             hitobjects: None,
+            osb: None,
         }
+    }
+
+    pub fn append_osb(&mut self) -> Error<Result<(), osb::ParseError>> {
+        todo!()
     }
 }
 
@@ -267,6 +276,7 @@ impl FromStr for OsuFile {
             timing_points,
             colours,
             hitobjects,
+            osb: None,
         })
     }
 }
