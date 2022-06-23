@@ -2,7 +2,7 @@ use crate::osu_file::OsuFile;
 use pretty_assertions::assert_eq;
 
 #[test]
-fn v3_file() {
+fn v3() {
     let v3 = include_str!("./files/v3.osu").replace("\r\n", "\n");
     let osu_file = v3.parse::<OsuFile>().unwrap();
 
@@ -10,7 +10,7 @@ fn v3_file() {
 }
 
 #[test]
-fn v3_to_v14_file() {
+fn v3_to_v14() {
     let v3 = include_str!("./files/v3.osu").replace("\r\n", "\n");
     let v3_v14 = include_str!("./files/v3_v14.osu").replace("\r\n", "\n");
     let mut osu_file = v3.parse::<OsuFile>().unwrap();
@@ -20,7 +20,7 @@ fn v3_to_v14_file() {
 }
 
 #[test]
-fn v4_file() {
+fn v4() {
     let v4 = include_str!("./files/v4.osu").replace("\r\n", "\n");
     let osu_file = v4.parse::<OsuFile>().unwrap();
 
@@ -28,7 +28,7 @@ fn v4_file() {
 }
 
 #[test]
-fn v5_file() {
+fn v5() {
     let v5 = include_str!("./files/v5.osu").replace("\r\n", "\n");
     let osu_file = v5.parse::<OsuFile>().unwrap();
 
@@ -36,7 +36,7 @@ fn v5_file() {
 }
 
 #[test]
-fn v6_file() {
+fn v6() {
     let v6 = include_str!("./files/v6.osu").replace("\r\n", "\n");
     let osu_file = v6.parse::<OsuFile>().unwrap();
 
@@ -44,7 +44,7 @@ fn v6_file() {
 }
 
 #[test]
-fn v7_file() {
+fn v7() {
     let v7 = include_str!("./files/v7.osu").replace("\r\n", "\n");
     let osu_file = v7.parse::<OsuFile>().unwrap();
 
@@ -52,7 +52,7 @@ fn v7_file() {
 }
 
 #[test]
-fn v8_file() {
+fn v8() {
     let v8 = include_str!("./files/v8.osu").replace("\r\n", "\n");
     let osu_file = v8.parse::<OsuFile>().unwrap();
 
@@ -60,7 +60,7 @@ fn v8_file() {
 }
 
 #[test]
-fn v9_file() {
+fn v9() {
     let v9 = include_str!("./files/v9.osu").replace("\r\n", "\n");
     let osu_file = v9.parse::<OsuFile>().unwrap();
 
@@ -68,7 +68,7 @@ fn v9_file() {
 }
 
 #[test]
-fn v10_file() {
+fn v10() {
     let v10 = include_str!("./files/v10.osu").replace("\r\n", "\n");
     let osu_file = v10.parse::<OsuFile>().unwrap();
 
@@ -76,7 +76,7 @@ fn v10_file() {
 }
 
 #[test]
-fn v11_file() {
+fn v11() {
     let v11 = include_str!("./files/v11.osu").replace("\r\n", "\n");
     let osu_file = v11.parse::<OsuFile>().unwrap();
 
@@ -84,7 +84,7 @@ fn v11_file() {
 }
 
 #[test]
-fn v12_file() {
+fn v12() {
     let v12 = include_str!("./files/v12.osu").replace("\r\n", "\n");
     let osu_file = v12.parse::<OsuFile>().unwrap();
 
@@ -92,7 +92,7 @@ fn v12_file() {
 }
 
 #[test]
-fn v13_file() {
+fn v13() {
     let v13 = include_str!("./files/v13.osu").replace("\r\n", "\n");
     let osu_file = v13.parse::<OsuFile>().unwrap();
 
@@ -100,9 +100,23 @@ fn v13_file() {
 }
 
 #[test]
-fn v14_file() {
+fn v14() {
     let v14 = include_str!("./files/v14.osu").replace("\r\n", "\n");
     let osu_file = v14.parse::<OsuFile>().unwrap();
 
     assert_eq!(v14, osu_file.to_string());
+}
+
+#[test]
+fn acid_rain() {
+    let acid_rain = include_str!("./files/acid_rain.osu").replace("\r\n", "\n");
+    let mut osu_file = acid_rain.parse::<OsuFile>().unwrap();
+
+    assert_eq!(acid_rain, osu_file.to_string());
+
+    if let Some(events) = &mut osu_file.events {
+        events.append_osb(include_str!("./files/acid_rain.osb"), 14).unwrap();
+    } else {
+        unreachable!();
+    }
 }
