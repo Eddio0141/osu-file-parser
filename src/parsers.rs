@@ -7,7 +7,7 @@ use nom::{
     combinator::{eof, map_res, rest},
     error::{FromExternalError, ParseError},
     multi::{many0, separated_list0},
-    sequence::{preceded, terminated, tuple},
+    sequence::{delimited, preceded, terminated, tuple},
     IResult,
 };
 
@@ -100,4 +100,17 @@ where
     E: ParseError<&'a str>,
 {
     preceded(space0, eof)
+}
+
+pub fn square_section<'a, E>(
+) -> impl FnMut(&'a str) -> IResult<&'a str, (&str, &str, &str, &str), E>
+where
+    E: ParseError<&'a str>,
+{
+    let section_open = tag("[");
+    let section_close = tag("]");
+    let section_name_inner = take_till(|c: char| c == ']' || c == '\r' || c == '\n');
+    let section_name = delimited(section_open, section_name_inner, section_close);
+    let section_until = take_till(|c| c == '[');
+    tuple((multispace0, section_name, multispace0, section_until))
 }
