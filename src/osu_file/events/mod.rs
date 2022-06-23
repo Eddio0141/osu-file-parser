@@ -30,6 +30,7 @@ pub struct Events(pub Vec<Event>);
 const OLD_VERSION_TIME_OFFSET: Integer = 24;
 
 impl Events {
+    // TODO move this to the main struct method instead
     pub fn append_osb(&mut self, osb: &str, version: usize) -> Result<(), OsbParseError> {
         // we do a check if its properly starting with [Events]
         let (osb, _) = context(OsbParseError::MissingEventsHeader.into(), tag("[Events]"))(osb)?;
