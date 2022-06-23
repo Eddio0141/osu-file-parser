@@ -20,6 +20,8 @@ use nom::multi::many0;
 use nom::sequence::{delimited, tuple};
 use thiserror::Error;
 
+use crate::parsers::square_section;
+
 pub use self::colours::Colours;
 pub use self::difficulty::Difficulty;
 pub use self::editor::Editor;
@@ -165,13 +167,6 @@ impl FromStr for OsuFile {
         let version_text = tag::<_, _, nom::error::Error<_>>("osu file format v");
         let version_number = map_res(take_till(|c| c == '\r' || c == '\n'), |s: &str| s.parse());
 
-        let section_open = tag::<_, _, nom::error::Error<_>>("[");
-        let section_close = tag("]");
-        let section_name_inner = take_till(|c: char| c == ']' || c == '\r' || c == '\n');
-        let section_name = delimited(section_open, section_name_inner, section_close);
-        let section_until = take_till(|c| c == '[');
-        let section = tuple((multispace0, section_name, multispace0, section_until));
-
         let (s, (_, version)) = match tuple((version_text, version_number))(s) {
             Ok(ok) => ok,
             Err(err) => {
@@ -197,7 +192,7 @@ impl FromStr for OsuFile {
             return Err(ParseError::InvalidFileVersion.into());
         }
 
-        let (_, sections) = many0(section)(s).unwrap();
+        let (_, sections) = many0::<_, _, nom::error::Error<_>, _>(square_section())(s).unwrap();
 
         let mut section_parsed = Vec::with_capacity(8);
 
