@@ -274,7 +274,8 @@ macro_rules! verbose_error_to_error {
                     nom::Err::Error(err) | nom::Err::Failure(err) => {
                         for (_, err) in err.errors {
                             if let nom::error::VerboseErrorKind::Context(context) = err {
-                                return <$error_type>::from_str(context).unwrap();
+                                return <$error_type as std::str::FromStr>::from_str(context)
+                                    .unwrap();
                             }
                         }
 
