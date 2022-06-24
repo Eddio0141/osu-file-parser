@@ -1,7 +1,7 @@
 use strum_macros::{EnumString, IntoStaticStr};
 use thiserror::Error;
 
-use crate::{helper::macros::verbose_error_to_error, osu_file};
+use crate::{helper::macros::verbose_error_to_error, osu_file::events};
 
 #[derive(Debug, Error, EnumString, IntoStaticStr)]
 #[non_exhaustive]
@@ -17,7 +17,7 @@ pub enum ParseError {
     VariableParseError(#[from] VariableParseError),
     #[error(transparent)]
     #[strum(disabled)]
-    EventsParseError(#[from] osu_file::types::Error<osu_file::events::ParseError>),
+    EventsParseError(#[from] events::ParseError),
 }
 
 verbose_error_to_error!(ParseError);
