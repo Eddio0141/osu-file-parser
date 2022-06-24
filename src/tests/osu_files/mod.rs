@@ -116,5 +116,5 @@ fn acid_rain() {
     assert_eq!(acid_rain, osu_file.to_string());
 
     osu_file.append_osb(&acid_rain_osb).unwrap();
-    assert_eq!(acid_rain_osb, osu_file.osb_to_string());
+    assert_eq!(acid_rain_osb, osu_file.osb_to_string().unwrap());
 }
