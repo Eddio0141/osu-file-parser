@@ -244,7 +244,7 @@ impl VersionedToString for Event {
                 let pos_str = format!("{},{}", object.position.x, object.position.y);
                 let filepath = |path: &Path| {
                     let path = path.to_string_lossy();
-                    if path.contains(" ") {
+                    if path.contains(' ') {
                         format!("\"{path}\"")
                     } else {
                         path.to_string()

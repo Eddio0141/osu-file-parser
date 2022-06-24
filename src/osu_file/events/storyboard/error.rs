@@ -1,7 +1,7 @@
 use strum_macros::{EnumString, IntoStaticStr};
 use thiserror::Error;
 
-use std::{num::ParseIntError, str::FromStr};
+use std::num::ParseIntError;
 
 use crate::helper::macros::verbose_error_to_error;
 

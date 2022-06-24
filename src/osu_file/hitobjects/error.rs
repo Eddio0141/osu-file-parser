@@ -3,7 +3,6 @@
 use std::{
     error::Error,
     num::{ParseIntError, TryFromIntError},
-    str::FromStr,
 };
 
 use strum_macros::{EnumString, IntoStaticStr};

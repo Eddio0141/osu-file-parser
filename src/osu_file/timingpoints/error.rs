@@ -1,4 +1,4 @@
-use std::{error::Error, num::ParseIntError, str::FromStr};
+use std::{error::Error, num::ParseIntError};
 
 use strum_macros::{EnumString, IntoStaticStr};
 use thiserror::Error;
