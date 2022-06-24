@@ -90,6 +90,14 @@ impl OsuFile {
 
         Ok(())
     }
+
+    /// Generates .osb file contents.
+    pub fn osb_to_string(&self) -> Option<String> {
+        match &self.osb {
+            Some(osb) => osb.to_string(self.version),
+            None => None,
+        }
+    }
 }
 
 impl Default for OsuFile {
