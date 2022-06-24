@@ -110,13 +110,11 @@ fn v14() {
 #[test]
 fn acid_rain() {
     let acid_rain = include_str!("./files/acid_rain.osu").replace("\r\n", "\n");
-    let mut osu_file = acid_rain.parse::<OsuFile>().unwrap();
+    let acid_rain_osb = include_str!("./files/acid_rain.osb").replace("\r\n", "\n");
 
+    let mut osu_file = acid_rain.parse::<OsuFile>().unwrap();
     assert_eq!(acid_rain, osu_file.to_string());
 
-    if let Some(events) = &mut osu_file.events {
-        events.append_osb(include_str!("./files/acid_rain.osb"), 14).unwrap();
-    } else {
-        unreachable!();
-    }
+    osu_file.append_osb(&acid_rain_osb).unwrap();
+    assert_eq!(acid_rain_osb, osu_file.osb_to_string());
 }
