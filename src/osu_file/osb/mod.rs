@@ -13,11 +13,11 @@ use nom::{
 
 use crate::parsers::square_section;
 
-use super::{events::storyboard::sprites::Object, Error, VersionedFromString, VersionedToString};
+use super::{Error, Events, VersionedFromString, VersionedToString};
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Osb {
-    pub objects: Option<Vec<Object>>,
+    pub events: Option<Events>,
     pub variables: Option<Vec<Variable>>,
 }
 
@@ -36,7 +36,7 @@ impl VersionedFromString for Osb {
             let mut section_parsed = Vec::with_capacity(2);
             let mut line_number = 0;
 
-            let (mut objects, mut variables) = (None, None);
+            let (mut events, mut variables) = (None, None);
 
             for (ws, section_name, ws2, section) in sections {
                 line_number += ws.lines().count();
@@ -62,16 +62,8 @@ impl VersionedFromString for Osb {
                         variables = Some(vars);
                     }
                     "Events" => {
-                        let mut objs = Vec::new();
-                        for (i, line) in section.lines().enumerate() {
-                            if !line.is_empty() {
-                                let object =
-                                    Error::new_from_result_into(line.parse(), line_number + i)?;
-
-                                objs.push(object);
-                            }
-                        }
-                        objects = Some(objs);
+                        events =
+                            Error::processing_line(Events::from_str(section, version), line_number)?
                     }
                     _ => return Err(Error::new(ParseError::UnknownSection, section_name_line)),
                 }
@@ -80,7 +72,7 @@ impl VersionedFromString for Osb {
                 line_number += section.lines().count();
             }
 
-            Ok(Some(Osb { objects, variables }))
+            Ok(Some(Osb { events, variables }))
         }
     }
 }
@@ -102,15 +94,9 @@ impl VersionedToString for Osb {
                         .join("\n"),
                 ));
             }
-            if let Some(objects) = &self.objects {
-                sections.push((
-                    "Events",
-                    objects
-                        .iter()
-                        .map(|v| v.to_string())
-                        .collect::<Vec<_>>()
-                        .join("\n"),
-                ))
+            if let Some(events) = &self.events {
+                // Events existed longer than storyboards I think
+                sections.push(("Events", events.to_string(version).unwrap()))
             }
 
             Some(

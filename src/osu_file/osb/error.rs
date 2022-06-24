@@ -1,10 +1,7 @@
 use strum_macros::{EnumString, IntoStaticStr};
 use thiserror::Error;
 
-use crate::{
-    helper::macros::verbose_error_to_error,
-    osu_file::{self, events::storyboard},
-};
+use crate::{helper::macros::verbose_error_to_error, osu_file};
 
 #[derive(Debug, Error, EnumString, IntoStaticStr)]
 #[non_exhaustive]
@@ -18,9 +15,6 @@ pub enum ParseError {
     #[error(transparent)]
     #[strum(disabled)]
     VariableParseError(#[from] VariableParseError),
-    #[error(transparent)]
-    #[strum(disabled)]
-    ObjectParseError(#[from] storyboard::error::ObjectParseError),
     #[error(transparent)]
     #[strum(disabled)]
     EventsParseError(#[from] osu_file::types::Error<osu_file::events::ParseError>),
