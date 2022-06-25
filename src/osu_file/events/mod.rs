@@ -1,3 +1,4 @@
+pub mod audio_sample;
 pub mod error;
 pub mod storyboard;
 
@@ -22,6 +23,7 @@ use super::{
     types::Error, Integer, Position, VersionedDefault, VersionedFromString, VersionedToString,
 };
 
+pub use self::audio_sample::*;
 pub use self::error::*;
 
 #[derive(Default, Clone, Debug, Hash, PartialEq, Eq)]
@@ -72,55 +74,68 @@ impl VersionedFromString for Events {
                             }
                             Err(err) => {
                                 if let ObjectParseError::UnknownObjectType = err {
-                                    // TODO clean this trash up
-                                    let (_, (_, _, start_time, _)) = tuple((
-                                        comma_field(),
-                                        context("missing_start_time", comma()),
-                                        context("invalid_end_time", comma_field_type()),
-                                        rest,
-                                    ))(
-                                        line
-                                    )
-                                    .finish()
-                                    .map_err(|err: nom::error::VerboseError<_>| {
-                                        for (_, err) in err.errors {
-                                            if let nom::error::VerboseErrorKind::Context(context) =
-                                                err
-                                            {
-                                                let err = match context {
-                                                    "missing_start_time" => {
-                                                        ParseError::MissingStartTime
-                                                    }
-                                                    "invalid_end_time" => {
-                                                        ParseError::ParseStartTime
-                                                    }
-                                                    _ => unreachable!(),
-                                                };
-
-                                                return Error::new(err, line_index);
-                                            }
+                                    // try AudioSample
+                                    match line.parse() {
+                                        Ok(audio_sample) => {
+                                            events.0.push(Event::AudioSample(audio_sample))
                                         }
+                                        Err(_) => {
+                                            // TODO clean this trash up
+                                            let (_, (_, _, start_time, _)) = tuple((
+                                                comma_field(),
+                                                context("missing_start_time", comma()),
+                                                context("invalid_end_time", comma_field_type()),
+                                                rest,
+                                            ))(
+                                                line
+                                            )
+                                            .finish()
+                                            .map_err(|err: nom::error::VerboseError<_>| {
+                                                for (_, err) in err.errors {
+                                                    if let nom::error::VerboseErrorKind::Context(
+                                                        context,
+                                                    ) = err
+                                                    {
+                                                        let err = match context {
+                                                            "missing_start_time" => {
+                                                                ParseError::MissingStartTime
+                                                            }
+                                                            "invalid_end_time" => {
+                                                                ParseError::ParseStartTime
+                                                            }
+                                                            _ => unreachable!(),
+                                                        };
 
-                                        unimplemented!("I somehow forgot to implement a context");
-                                    })?;
+                                                        return Error::new(err, line_index);
+                                                    }
+                                                }
 
-                                    let event_params = Error::new_from_result_into(
-                                        EventParams::from_str(line, version),
-                                        line_index,
-                                    )?
-                                    .unwrap();
+                                                unimplemented!(
+                                                    "I somehow forgot to implement a context"
+                                                );
+                                            })?;
 
-                                    events.0.push(Event::NormalEvent {
-                                        // TODO does start_time has the version offset in storyboard?
-                                        start_time: if (3..=4).contains(&version)
-                                            && !matches!(event_params, EventParams::Background(_))
-                                        {
-                                            start_time + OLD_VERSION_TIME_OFFSET
-                                        } else {
-                                            start_time
-                                        },
-                                        event_params,
-                                    })
+                                            let event_params = Error::new_from_result_into(
+                                                EventParams::from_str(line, version),
+                                                line_index,
+                                            )?
+                                            .unwrap();
+
+                                            events.0.push(Event::NormalEvent {
+                                                // TODO does start_time has the version offset in storyboard?
+                                                start_time: if (3..=4).contains(&version)
+                                                    && !matches!(
+                                                        event_params,
+                                                        EventParams::Background(_)
+                                                    ) {
+                                                    start_time + OLD_VERSION_TIME_OFFSET
+                                                } else {
+                                                    start_time
+                                                },
+                                                event_params,
+                                            })
+                                        }
+                                    }
                                 } else {
                                     return Err(Error::new(
                                         ParseError::StoryboardObjectParseError(err),
@@ -190,6 +205,7 @@ pub enum Event {
         event_params: EventParams,
     },
     Storyboard(Object),
+    AudioSample(AudioSample),
 }
 
 impl VersionedToString for Event {
@@ -355,6 +371,7 @@ impl VersionedToString for Event {
                     None => Some(object_str),
                 }
             }
+            Event::AudioSample(audio_sample) => Some(audio_sample.to_string()),
         }
     }
 }
@@ -422,6 +439,7 @@ pub enum EventParams {
     ColourTransformation(ColourTransformation),
 }
 
+// TODO either break up this into doing this in own types, or handle in events entirely by merging it
 impl VersionedFromString for EventParams {
     type ParseError = EventParamsParseError;
 
