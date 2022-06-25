@@ -1,5 +1,3 @@
-// TODO move those somewhere else
-
 pub mod error;
 
 use std::{fmt::Display, path::PathBuf, str::FromStr};
