@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use crate::osu_file::events::storyboard::sprites::*;
 use crate::osu_file::events::Event;
@@ -25,12 +25,12 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
             layer: Layer::Fail,
             origin: Origin::BottomCentre,
             position: Position { x: 418, y: 108 },
-            object_type: ObjectType::Animation(Animation::new(
-                12,
-                31,
-                LoopType::LoopForever,
-                Path::new("\"Other\\Play3\\explosion.png\""),
-            )),
+            object_type: ObjectType::Animation(Animation {
+                frame_count: 12,
+                frame_delay: 31,
+                loop_type: LoopType::LoopForever,
+                filepath: "\"Other\\Play3\\explosion.png\"".into(),
+            }),
             commands: Vec::new(),
         }),
     ]);
@@ -45,12 +45,12 @@ fn frame_file_names() {
         layer: Layer::Background,
         origin: Origin::BottomCentre,
         position: Position { x: 0, y: 0 },
-        object_type: ObjectType::Animation(Animation::new(
-            4,
-            0,
-            LoopType::LoopForever,
-            Path::new("testfile.png"),
-        )),
+        object_type: ObjectType::Animation(Animation {
+            frame_count: 4,
+            frame_delay: 0,
+            loop_type: LoopType::LoopForever,
+            filepath: "testfile.png".into(),
+        }),
         commands: Vec::new(),
     };
 
@@ -60,10 +60,10 @@ fn frame_file_names() {
         assert_eq!(
             file_names,
             vec![
-                "testfile0.png",
-                "testfile1.png",
-                "testfile2.png",
-                "testfile3.png",
+                PathBuf::from("testfile0.png"),
+                "testfile1.png".into(),
+                "testfile2.png".into(),
+                "testfile3.png".into(),
             ]
         );
     } else {
