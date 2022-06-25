@@ -1,11 +1,11 @@
 use std::num::ParseIntError;
 
-use strum_macros::IntoStaticStr;
+use strum_macros::{EnumString, IntoStaticStr};
 use thiserror::Error;
 
 use crate::helper::macros::verbose_error_to_error;
 
-#[derive(Debug, Error, IntoStaticStr)]
+#[derive(Debug, Error, IntoStaticStr, EnumString)]
 pub enum AudioSampleParseError {
     #[error("Missing `time` field")]
     MissingTime,
