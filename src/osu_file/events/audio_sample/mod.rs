@@ -42,7 +42,7 @@ impl FromStr for AudioSample {
                     AudioSampleParseError::InvalidLayer.into(),
                     comma_field_type(),
                 ),
-                |v| Layer::from_repr(v),
+                Layer::from_repr,
             ),
         );
         let filepath = comma_field().map(|p| p.into());
@@ -95,7 +95,7 @@ impl Display for AudioSample {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Default, Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct Volume(Option<u8>);
 
 impl Volume {
@@ -134,12 +134,6 @@ impl From<Volume> for u8 {
     }
 }
 
-impl Default for Volume {
-    fn default() -> Self {
-        Volume(None)
-    }
-}
-
 impl FromStr for Volume {
     type Err = VolumeParseError;
 
@@ -150,7 +144,7 @@ impl FromStr for Volume {
 
 impl Display for Volume {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", u8::from(*self).to_string())
+        write!(f, "{}", u8::from(*self))
     }
 }
 
