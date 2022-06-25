@@ -10,7 +10,7 @@ use nom::sequence::{preceded, tuple};
 use nom::Parser;
 use strum_macros::{Display, EnumString, FromRepr};
 
-use crate::osu_file::Position;
+use crate::osu_file::{FilePath, Position};
 use crate::parsers::{comma, comma_field, comma_field_type, consume_rest_type, nothing};
 
 use super::cmds::*;
@@ -201,12 +201,12 @@ impl Display for Object {
 
         match &self.object_type {
             ObjectType::Sprite(sprite) => {
-                fields.push(sprite.filepath.to_string_lossy().to_string());
+                fields.push(sprite.filepath.to_string());
                 fields.push(self.position.x.to_string());
                 fields.push(self.position.y.to_string());
             }
             ObjectType::Animation(animation) => {
-                fields.push(animation.filepath.to_string_lossy().to_string());
+                fields.push(animation.filepath.to_string());
                 fields.push(self.position.x.to_string());
                 fields.push(self.position.y.to_string());
                 fields.push(animation.frame_count.to_string());
@@ -224,48 +224,35 @@ pub struct Animation {
     pub frame_count: u32,
     pub frame_delay: u32,
     pub loop_type: LoopType,
-    pub filepath: PathBuf,
+    pub filepath: FilePath,
 }
 
 impl Animation {
-    pub fn new(frame_count: u32, frame_delay: u32, loop_type: LoopType, filepath: &Path) -> Self {
-        Self {
-            frame_count,
-            frame_delay,
-            loop_type,
-            filepath: filepath.to_path_buf(),
-        }
-    }
-
-    pub fn frame_file_names(&self) -> Vec<String> {
+    pub fn frame_file_names(&self) -> Vec<PathBuf> {
         let mut file_names = Vec::with_capacity(self.frame_count as usize);
 
-        let file_name = self
-            .filepath
-            .file_name()
-            .unwrap()
-            .to_string_lossy()
-            .to_string();
-        let file_extension = self.filepath.extension().map(|s| s.to_string_lossy());
+        let filepath = self.filepath.get();
+        let mut file_name = filepath.file_name().unwrap().to_string_lossy().to_string();
+        let file_extension = match filepath.extension() {
+            Some(extension) => {
+                let extension = format!(".{}", extension.to_string_lossy());
+                file_name = file_name.strip_suffix(&extension).unwrap().to_string();
+                extension
+            }
+            None => String::new(),
+        };
 
         for i in 0..self.frame_count {
-            match &file_extension {
-                Some(file_extension) => file_names.push(format!(
-                    "{}{i}.{file_extension}",
-                    file_name
-                        .strip_suffix(&format!(".{}", file_extension.as_ref()))
-                        .unwrap()
-                )),
-                None => file_names.push(format!("{file_name}{i}")),
-            };
+            file_names.push(format!("{file_name}{i}{file_extension}").into());
         }
+
         file_names
     }
 }
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Sprite {
-    pub filepath: PathBuf,
+    pub filepath: FilePath,
 }
 
 impl Sprite {
@@ -274,7 +261,7 @@ impl Sprite {
             Err(FilePathNotRelative)
         } else {
             Ok(Self {
-                filepath: filepath.to_path_buf(),
+                filepath: filepath.into(),
             })
         }
     }

@@ -1,6 +1,6 @@
 mod error;
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
@@ -239,7 +239,7 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
                 frame_count: 12,
                 frame_delay: 31,
                 loop_type: LoopType::LoopForever,
-                filepath: PathBuf::from("\"Other\\Play3\\explosion.png\""),
+                filepath: "\"Other\\Play3\\explosion.png\"".into(),
             }),
             commands: vec![
                 Command {

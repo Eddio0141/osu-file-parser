@@ -1,6 +1,6 @@
 pub mod error;
 
-use std::{fmt::Display, path::PathBuf, str::FromStr};
+use std::{fmt::Display, str::FromStr};
 
 pub use error::*;
 use nom::{
@@ -14,17 +14,15 @@ use nom::{
 use strum_macros::FromRepr;
 
 use crate::{
-    osu_file::Integer,
+    osu_file::{FilePath, Integer},
     parsers::{comma, comma_field, comma_field_type, consume_rest_type},
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct AudioSample {
     pub time: Integer,
-    // TODO i might have to make a separate layer type
     pub layer: Layer,
-    // TODO make all file paths their own type, this would also solve problem of doing to_string double quotes stuff
-    pub filepath: PathBuf,
+    pub filepath: FilePath,
     pub volume: Volume,
 }
 
@@ -47,7 +45,7 @@ impl FromStr for AudioSample {
                 |v| Layer::from_repr(v),
             ),
         );
-        let filepath = comma_field().map(PathBuf::from);
+        let filepath = comma_field().map(|p| p.into());
         let volume = alt((
             eof.map(|_| Volume::default()),
             preceded(
@@ -92,10 +90,7 @@ impl Display for AudioSample {
         write!(
             f,
             "Sample,{},{},{}{}",
-            self.time,
-            self.layer as usize,
-            self.filepath.to_string_lossy(),
-            self.volume
+            self.time, self.layer as usize, self.filepath, self.volume
         )
     }
 }

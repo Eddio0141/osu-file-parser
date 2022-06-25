@@ -1,4 +1,4 @@
-use std::{path::PathBuf, str::FromStr};
+use std::str::FromStr;
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use osu_file_parser::osu_file::{
@@ -171,7 +171,7 @@ fn storyboard_loop_cmd_to_string(c: &mut Criterion) {
         origin: Origin::BottomCentre,
         position: Position::default(),
         object_type: ObjectType::Sprite(Sprite {
-            filepath: PathBuf::new(),
+            filepath: "".into(),
         }),
         commands: vec![loop_cmd(vec![loop_cmd(vec![loop_cmd(vec![loop_cmd(
             vec![loop_cmd(Vec::new())],

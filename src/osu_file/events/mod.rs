@@ -20,7 +20,8 @@ use crate::{
 use self::storyboard::{cmds::CommandProperties, error::ObjectParseError, sprites::Object};
 
 use super::{
-    types::Error, Integer, Position, VersionedDefault, VersionedFromString, VersionedToString,
+    types::Error, FilePath, Integer, Position, VersionedDefault, VersionedFromString,
+    VersionedToString,
 };
 
 pub use self::audio_sample::*;
@@ -230,13 +231,13 @@ impl VersionedToString for Event {
                 match event_params {
                     EventParams::Background(background) => Some(format!(
                         "0,{start_time},{}{}",
-                        background.filename.to_string_lossy(),
+                        background.filename,
                         position_str(&background.position),
                     )),
                     EventParams::Video(video) => Some(format!(
                         "{},{start_time},{}{}",
                         if video.short_hand { "1" } else { "Video" },
-                        video.filename.to_string_lossy(),
+                        video.filename,
                         position_str(&video.position),
                     )),
                     EventParams::Break(_break) => Some(format!(
@@ -258,29 +259,18 @@ impl VersionedToString for Event {
             }
             Event::Storyboard(object) => {
                 let pos_str = format!("{},{}", object.position.x, object.position.y);
-                let filepath = |path: &Path| {
-                    let path = path.to_string_lossy();
-                    if path.contains(' ') {
-                        format!("\"{path}\"")
-                    } else {
-                        path.to_string()
-                    }
-                };
 
                 let object_str = match &object.object_type {
                     sprites::ObjectType::Sprite(sprite) => format!(
                         "Sprite,{},{},{},{}",
-                        object.layer,
-                        object.origin,
-                        filepath(&sprite.filepath),
-                        pos_str
+                        object.layer, object.origin, sprite.filepath, pos_str
                     ),
                     sprites::ObjectType::Animation(anim) => {
                         format!(
                             "Animation,{},{},{},{},{},{},{}",
                             object.layer,
                             object.origin,
-                            filepath(&anim.filepath),
+                            anim.filepath,
                             pos_str,
                             anim.frame_count,
                             anim.frame_delay,
@@ -378,14 +368,14 @@ impl VersionedToString for Event {
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Background {
-    pub filename: PathBuf,
+    pub filename: FilePath,
     pub position: Option<Position>,
 }
 
 impl Background {
     pub fn new(filename: &Path, position: Option<Position>) -> Self {
         Self {
-            filename: filename.to_path_buf(),
+            filename: filename.into(),
             position,
         }
     }
@@ -393,7 +383,7 @@ impl Background {
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Video {
-    pub filename: PathBuf,
+    pub filename: FilePath,
     pub position: Option<Position>,
     short_hand: bool,
 }
@@ -401,7 +391,7 @@ pub struct Video {
 impl Video {
     pub fn new(filename: PathBuf, position: Option<Position>) -> Self {
         Self {
-            filename,
+            filename: filename.into(),
             position,
             short_hand: true,
         }
@@ -445,7 +435,7 @@ impl VersionedFromString for EventParams {
 
     fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
         let start_time = comma_field;
-        let file_name = || comma_field().map(PathBuf::from);
+        let file_name = || comma_field().map(|f| f.into());
         let coordinates = || {
             alt((
                 eof.map(|_| None),

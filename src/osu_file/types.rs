@@ -1,4 +1,7 @@
-use std::fmt::{Debug, Display};
+use std::{
+    fmt::{Debug, Display},
+    path::{Path, PathBuf},
+};
 
 /// Definition of the `Integer` type.
 pub type Integer = i32;
@@ -170,4 +173,47 @@ pub trait VersionedFromString: Sized {
 
 pub trait VersionedDefault: Sized {
     fn default(version: usize) -> Option<Self>;
+}
+
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
+pub struct FilePath(PathBuf);
+
+impl FilePath {
+    pub fn get(&self) -> &Path {
+        &self.0
+    }
+
+    pub fn set<P>(&mut self, path: P)
+    where
+        P: AsRef<Path>,
+    {
+        let path = path.as_ref().to_owned();
+
+        self.0 = path;
+    }
+}
+
+impl Display for FilePath {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let quotes = {
+            let path = self.0.to_string_lossy();
+
+            path.contains(' ') && !(path.starts_with('"') && path.ends_with('"'))
+        };
+        let path = self.0.display();
+
+        if quotes {
+            write!(f, "\"{path}\"")
+        } else {
+            write!(f, "{path}")
+        }
+    }
+}
+
+impl<P: AsRef<Path>> From<P> for FilePath {
+    fn from(path: P) -> Self {
+        let path = path.as_ref().to_owned();
+
+        FilePath(path)
+    }
 }
