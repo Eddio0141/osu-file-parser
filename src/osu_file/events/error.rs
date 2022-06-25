@@ -25,7 +25,7 @@ pub enum ParseError {
     #[error("A storyboard command was used without defined sprite or animation sprite")]
     StoryboardCmdWithNoSprite,
     #[error(transparent)]
-    EventParamsParseError(#[from] EventParamsParseError),
+    EventParamsParseError(#[from] NormalEventParamsParseError),
     #[error(transparent)]
     CommandPushError(#[from] CommandPushError),
     #[error(transparent)]
@@ -37,7 +37,7 @@ pub enum ParseError {
 
 #[derive(Debug, Error, EnumString, IntoStaticStr)]
 #[non_exhaustive]
-pub enum EventParamsParseError {
+pub enum NormalEventParamsParseError {
     #[error("Missing the `start_time` field")]
     MissingStartTime,
     #[error("Unknown event type")]
@@ -70,4 +70,4 @@ pub enum EventParamsParseError {
     InvalidBlue,
 }
 
-verbose_error_to_error!(EventParamsParseError);
+verbose_error_to_error!(NormalEventParamsParseError);

@@ -2,16 +2,14 @@
 
 pub mod audio_sample;
 pub mod error;
+pub mod normal_event;
 pub mod storyboard;
 
-use std::path::{Path, PathBuf};
-
 use nom::{
-    branch::alt,
     bytes::complete::{tag, take_while},
-    combinator::{cut, eof, fail, rest},
+    combinator::rest,
     error::context,
-    sequence::{preceded, terminated, tuple},
+    sequence::{preceded, tuple},
     Finish, Parser,
 };
 
@@ -22,12 +20,12 @@ use crate::{
 use self::storyboard::{cmds::CommandProperties, error::ObjectParseError, sprites::Object};
 
 use super::{
-    types::Error, FilePath, Integer, Position, VersionedDefault, VersionedFromString,
-    VersionedToString,
+    types::Error, Integer, Position, VersionedDefault, VersionedFromString, VersionedToString,
 };
 
 pub use self::audio_sample::*;
 pub use self::error::*;
+pub use self::normal_event::*;
 
 #[derive(Default, Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Events(pub Vec<Event>);
@@ -119,7 +117,7 @@ impl VersionedFromString for Events {
                                             })?;
 
                                             let event_params = Error::new_from_result_into(
-                                                EventParams::from_str(line, version),
+                                                NormalEventParams::from_str(line, version),
                                                 line_index,
                                             )?
                                             .unwrap();
@@ -129,7 +127,7 @@ impl VersionedFromString for Events {
                                                 start_time: if (3..=4).contains(&version)
                                                     && !matches!(
                                                         event_params,
-                                                        EventParams::Background(_)
+                                                        NormalEventParams::Background(_)
                                                     ) {
                                                     start_time + OLD_VERSION_TIME_OFFSET
                                                 } else {
@@ -164,7 +162,7 @@ impl VersionedToString for Events {
                 event_params,
             } = i
             {
-                if matches!(event_params, EventParams::Background(_)) {
+                if matches!(event_params, NormalEventParams::Background(_)) {
                     i.to_string(version)
                 } else {
                     // TODO check out whats going on in v5, seems inconsistent
@@ -173,7 +171,7 @@ impl VersionedToString for Events {
                             start_time: *start_time,
                             event_params: {
                                 let mut event_params = event_params.clone();
-                                if let EventParams::Break(b) = &mut event_params {
+                                if let NormalEventParams::Break(b) = &mut event_params {
                                     b.end_time -= OLD_VERSION_TIME_OFFSET
                                 }
                                 event_params
@@ -203,10 +201,10 @@ impl VersionedDefault for Events {
 #[non_exhaustive]
 pub enum Event {
     Comment(String),
-    NormalEvent {
-        start_time: Integer,
-        event_params: EventParams,
-    },
+    Background(Background),
+    Video(Video),
+    Break(Break),
+    ColourTransformation(ColourTransformation),
     Storyboard(Object),
     AudioSample(AudioSample),
 }
@@ -215,50 +213,7 @@ impl VersionedToString for Event {
     fn to_string(&self, version: usize) -> Option<String> {
         match self {
             Event::Comment(comment) => Some(format!("//{comment}")),
-            Event::NormalEvent {
-                start_time,
-                event_params,
-            } => {
-                let position_str = |position: &Option<Position>| match position {
-                    Some(position) => format!(",{},{}", position.x, position.y),
-                    None => String::new(),
-                };
-                let mut start_time = *start_time;
-
-                if (3..=4).contains(&version) && !matches!(event_params, EventParams::Background(_))
-                {
-                    start_time -= OLD_VERSION_TIME_OFFSET;
-                }
-
-                match event_params {
-                    EventParams::Background(background) => Some(format!(
-                        "0,{start_time},{}{}",
-                        background.filename,
-                        position_str(&background.position),
-                    )),
-                    EventParams::Video(video) => Some(format!(
-                        "{},{start_time},{}{}",
-                        if video.short_hand { "1" } else { "Video" },
-                        video.filename,
-                        position_str(&video.position),
-                    )),
-                    EventParams::Break(_break) => Some(format!(
-                        "{},{start_time},{}",
-                        if _break.short_hand { "2" } else { "Break" },
-                        _break.end_time
-                    )),
-                    EventParams::ColourTransformation(transformation) => {
-                        if version < 14 {
-                            Some(format!(
-                                "3,{start_time},{},{},{}",
-                                transformation.red, transformation.green, transformation.blue
-                            ))
-                        } else {
-                            None
-                        }
-                    }
-                }
-            }
+            
             Event::Storyboard(object) => {
                 let pos_str = format!("{},{}", object.position.x, object.position.y);
 
@@ -365,200 +320,5 @@ impl VersionedToString for Event {
             }
             Event::AudioSample(audio_sample) => Some(audio_sample.to_string()),
         }
-    }
-}
-
-#[derive(Clone, Debug, Hash, PartialEq, Eq)]
-pub struct Background {
-    pub filename: FilePath,
-    pub position: Option<Position>,
-}
-
-impl Background {
-    pub fn new(filename: &Path, position: Option<Position>) -> Self {
-        Self {
-            filename: filename.into(),
-            position,
-        }
-    }
-}
-
-#[derive(Clone, Debug, Hash, PartialEq, Eq)]
-pub struct Video {
-    pub filename: FilePath,
-    pub position: Option<Position>,
-    short_hand: bool,
-}
-
-impl Video {
-    pub fn new(filename: PathBuf, position: Option<Position>) -> Self {
-        Self {
-            filename: filename.into(),
-            position,
-            short_hand: true,
-        }
-    }
-}
-
-#[derive(Clone, Debug, Hash, PartialEq, Eq)]
-pub struct Break {
-    pub end_time: Integer,
-    short_hand: bool,
-}
-
-impl Break {
-    pub fn new(end_time: Integer) -> Self {
-        Self {
-            end_time,
-            short_hand: true,
-        }
-    }
-}
-
-#[derive(Clone, Debug, Hash, PartialEq, Eq)]
-pub struct ColourTransformation {
-    pub red: u8,
-    pub green: u8,
-    pub blue: u8,
-}
-
-#[derive(Clone, Debug, Hash, PartialEq, Eq)]
-#[non_exhaustive]
-pub enum EventParams {
-    Background(Background),
-    Video(Video),
-    Break(Break),
-    ColourTransformation(ColourTransformation),
-}
-
-// TODO either break up this into doing this in own types, or handle in events entirely by merging it
-impl VersionedFromString for EventParams {
-    type ParseError = EventParamsParseError;
-
-    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
-        let start_time = comma_field;
-        let file_name = || comma_field().map(|f| f.into());
-        let coordinates = || {
-            alt((
-                eof.map(|_| None),
-                tuple((
-                    preceded(
-                        context(EventParamsParseError::MissingXOffset.into(), comma()),
-                        context(
-                            EventParamsParseError::InvalidXOffset.into(),
-                            comma_field_type(),
-                        ),
-                    ),
-                    preceded(
-                        context(EventParamsParseError::MissingYOffset.into(), comma()),
-                        context(
-                            EventParamsParseError::InvalidYOffset.into(),
-                            consume_rest_type(),
-                        ),
-                    ),
-                ))
-                .map(|(x, y)| Some((x, y))),
-            ))
-            .map(|position| position.map(|(x, y)| Position { x, y }))
-        };
-        let file_name_and_coordinates = || tuple((file_name(), coordinates()));
-        let end_time = consume_rest_type().map(|end_time| {
-            if (3..=4).contains(&version) {
-                end_time + OLD_VERSION_TIME_OFFSET
-            } else {
-                end_time
-            }
-        });
-
-        let background = preceded(
-            tuple((
-                tag("0"),
-                cut(tuple((
-                    context(EventParamsParseError::MissingStartTime.into(), comma()),
-                    start_time(),
-                    context(EventParamsParseError::MissingFileName.into(), comma()),
-                ))),
-            )),
-            cut(file_name_and_coordinates()),
-        )
-        .map(|(filename, position)| EventParams::Background(Background { filename, position }));
-        let video = tuple((
-            terminated(
-                alt((tag("1").map(|_| true), tag("Video").map(|_| false))),
-                cut(tuple((
-                    context(EventParamsParseError::MissingStartTime.into(), comma()),
-                    start_time(),
-                    context(EventParamsParseError::MissingFileName.into(), comma()),
-                ))),
-            ),
-            cut(file_name_and_coordinates()),
-        ))
-        .map(|(short_hand, (filename, position))| {
-            EventParams::Video(Video {
-                filename,
-                position,
-                short_hand,
-            })
-        });
-        let break_ = tuple((
-            terminated(
-                alt((tag("2").map(|_| true), tag("Break").map(|_| false))),
-                cut(tuple((
-                    context(EventParamsParseError::MissingStartTime.into(), comma()),
-                    start_time(),
-                    context(EventParamsParseError::MissingEndTime.into(), comma()),
-                ))),
-            ),
-            cut(context(
-                EventParamsParseError::InvalidEndTime.into(),
-                end_time,
-            )),
-        ))
-        .map(|(short_hand, end_time)| {
-            EventParams::Break(Break {
-                end_time,
-                short_hand,
-            })
-        });
-        let colour_transformation = preceded(
-            tuple((
-                tag("3"),
-                cut(tuple((
-                    context(EventParamsParseError::MissingStartTime.into(), comma()),
-                    start_time(),
-                    context(EventParamsParseError::MissingRed.into(), comma()),
-                ))),
-            )),
-            cut(tuple((
-                context(EventParamsParseError::InvalidRed.into(), comma_field_type()),
-                preceded(
-                    context(EventParamsParseError::MissingGreen.into(), comma()),
-                    context(
-                        EventParamsParseError::InvalidGreen.into(),
-                        comma_field_type(),
-                    ),
-                ),
-                preceded(
-                    context(EventParamsParseError::MissingBlue.into(), comma()),
-                    context(
-                        EventParamsParseError::InvalidBlue.into(),
-                        consume_rest_type(),
-                    ),
-                ),
-            ))),
-        )
-        .map(|(red, green, blue)| {
-            EventParams::ColourTransformation(ColourTransformation { red, green, blue })
-        });
-
-        let result = alt((
-            background,
-            video,
-            break_,
-            colour_transformation,
-            context(EventParamsParseError::UnknownEventType.into(), fail),
-        ))(s)?;
-
-        Ok(Some(result.1))
     }
 }

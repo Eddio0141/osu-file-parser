@@ -125,7 +125,6 @@ pub enum Mode {
 impl VersionedFromString for Mode {
     type ParseError = ParseGameModeError;
 
-    // TODO check what gamemodes exist in versions
     fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
         let mode = Mode::from_repr(s.parse()?).ok_or(ParseGameModeError::UnknownType)?;
 

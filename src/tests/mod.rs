@@ -14,7 +14,7 @@ use crate::osu_file::{
     colours::{Colour, Colours, Rgb},
     difficulty::Difficulty,
     editor::Editor,
-    events::{Background, Break, Event, EventParams, Events},
+    events::{Background, Break, Event, NormalEventParams, Events},
     general::{Countdown, General, Mode, OverlayPosition, SampleSet},
     metadata::Metadata,
     timingpoints,
@@ -247,14 +247,14 @@ fn events_parse_v14() {
     let e = Events(vec![
         Event::NormalEvent {
             start_time: 0,
-            event_params: EventParams::Background(Background::new(
+            event_params: NormalEventParams::Background(Background::new(
                 Path::new("\"bg2.jpg\""),
                 Some(Position { x: 0, y: 0 }),
             )),
         },
         Event::NormalEvent {
             start_time: 0,
-            event_params: EventParams::Background(Background::new(
+            event_params: NormalEventParams::Background(Background::new(
                 Path::new("bg2.jpg"),
                 Some(Position { x: 0, y: 1 }),
             )),
@@ -262,7 +262,7 @@ fn events_parse_v14() {
         Event::Comment("Break Periods".to_string()),
         Event::NormalEvent {
             start_time: 100,
-            event_params: EventParams::Break(Break::new(163)),
+            event_params: NormalEventParams::Break(Break::new(163)),
         },
     ]);
 
