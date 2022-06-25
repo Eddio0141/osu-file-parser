@@ -121,7 +121,7 @@ impl FromStr for Variable {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let header = tag("$");
-        let value_name = take_till(|c| c == '=');
+        let value_name = take_till(|c| c == '=' || c == '\n');
         let equals = tag("=");
         let value = rest;
 
