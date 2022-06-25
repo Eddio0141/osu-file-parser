@@ -8,8 +8,9 @@ use rust_decimal_macros::dec;
 use crate::osu_file::events::storyboard::cmds::*;
 use crate::osu_file::events::storyboard::sprites::*;
 use crate::osu_file::events::storyboard::types::*;
-use crate::osu_file::events::*;
+use crate::osu_file::events::Event;
 use crate::osu_file::types::Position;
+use crate::osu_file::Events;
 use crate::osu_file::{VersionedFromString, VersionedToString};
 
 use pretty_assertions::assert_eq;

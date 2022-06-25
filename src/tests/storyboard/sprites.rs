@@ -1,8 +1,9 @@
 use std::path::Path;
 
 use crate::osu_file::events::storyboard::sprites::*;
+use crate::osu_file::events::Event;
 use crate::osu_file::types::Position;
-use crate::osu_file::{events::*, VersionedFromString, VersionedToString};
+use crate::osu_file::{Events, VersionedFromString, VersionedToString};
 
 #[test]
 fn storyboard_sprites_parse() {
