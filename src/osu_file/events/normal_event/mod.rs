@@ -96,6 +96,17 @@ pub struct Video {
     short_hand: bool,
 }
 
+impl Video {
+    pub fn new(start_time: Integer, file_name: FilePath, position: Option<Position>) -> Self {
+        Self {
+            start_time,
+            file_name,
+            position,
+            short_hand: true,
+        }
+    }
+}
+
 impl VersionedFromString for Video {
     type ParseError = VideoParseError;
 
@@ -151,6 +162,16 @@ pub struct Break {
     pub start_time: Integer,
     pub end_time: Integer,
     short_hand: bool,
+}
+
+impl Break {
+    pub fn new(start_time: Integer, end_time: Integer) -> Self {
+        Self {
+            start_time,
+            end_time,
+            short_hand: true,
+        }
+    }
 }
 
 impl VersionedFromString for Break {
