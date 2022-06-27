@@ -33,4 +33,7 @@ pub enum ParseError {
     /// There was a problem parsing some `storyboard` element.
     #[error(transparent)]
     StoryboardObjectParseError(#[from] ObjectParseError),
+    /// Event doesn't exist on the version.
+    #[error("Event type doesn't exist on version")]
+    EventNotExistOnVersion,
 }

@@ -70,20 +70,19 @@ impl VersionedFromString for Events {
                                         Err(_) => {
                                             // its a normal event
                                             match Background::from_str(line, version) {
-                                                // TODO what to do on the Option type?
-                                                Ok(background) => events.0.push(Event::Background(background.unwrap())),
+                                                Ok(background) => events.0.push(Event::Background(background.ok_or(Error::new(ParseError::EventNotExistOnVersion, line_index))?)),
                                                 Err(err) => {
                                                     if let BackgroundParseError::WrongEventType =
                                                         err
                                                     {
                                                         match Video::from_str(line, version) {
-                                                            Ok(video) => events.0.push(Event::Video(video.unwrap())),
+                                                            Ok(video) => events.0.push(Event::Video(video.ok_or(Error::new(ParseError::EventNotExistOnVersion, line_index))?)),
                                                             Err(err) => if let VideoParseError::WrongEventType = err {
                                                                 match Break::from_str(line, version) {
-                                                                    Ok(break_) => events.0.push(Event::Break(break_.unwrap())),
+                                                                    Ok(break_) => events.0.push(Event::Break(break_.ok_or(Error::new(ParseError::EventNotExistOnVersion, line_index))?)),
                                                                     Err(err) => if let BreakParseError::WrongEventType = err {
                                                                         match ColourTransformation::from_str(line, version) {
-                                                                            Ok(colour_trans) => events.0.push(Event::ColourTransformation(colour_trans.unwrap())),
+                                                                            Ok(colour_trans) => events.0.push(Event::ColourTransformation(colour_trans.ok_or(Error::new(ParseError::EventNotExistOnVersion, line_index))?)),
                                                                             Err(err) => {
                                                                                 return Err(Error::new(
                                                                                     ParseError::ColourTransformationParseError(err),
