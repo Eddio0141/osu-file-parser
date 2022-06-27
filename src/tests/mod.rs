@@ -14,7 +14,7 @@ use crate::osu_file::{
     colours::{Colour, Colours, Rgb},
     difficulty::Difficulty,
     editor::Editor,
-    events::{Background, Break, Event, NormalEventParams, Events},
+    events::{Background, Break, Event, Events},
     general::{Countdown, General, Mode, OverlayPosition, SampleSet},
     metadata::Metadata,
     timingpoints,
@@ -245,25 +245,18 @@ fn events_parse_v14() {
     let i = Events::from_str(i_str, 14).unwrap().unwrap();
 
     let e = Events(vec![
-        Event::NormalEvent {
+        Event::Background(Background {
             start_time: 0,
-            event_params: NormalEventParams::Background(Background::new(
-                Path::new("\"bg2.jpg\""),
-                Some(Position { x: 0, y: 0 }),
-            )),
-        },
-        Event::NormalEvent {
+            file_name: Path::new("\"bg2.jpg\"").into(),
+            position: Some(Position { x: 0, y: 0 }),
+        }),
+        Event::Background(Background {
             start_time: 0,
-            event_params: NormalEventParams::Background(Background::new(
-                Path::new("bg2.jpg"),
-                Some(Position { x: 0, y: 1 }),
-            )),
-        },
+            file_name: Path::new("bg2.jpg").into(),
+            position: Some(Position { x: 0, y: 1 }),
+        }),
         Event::Comment("Break Periods".to_string()),
-        Event::NormalEvent {
-            start_time: 100,
-            event_params: NormalEventParams::Break(Break::new(163)),
-        },
+        Event::Break(Break::new(100, 163)),
     ]);
 
     assert_eq!(i, e);
