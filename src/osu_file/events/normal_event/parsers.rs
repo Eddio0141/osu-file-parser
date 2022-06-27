@@ -39,6 +39,22 @@ pub fn file_name_and_position<'a>(
     tuple((file_name, coordinates))
 }
 
+pub fn start_time_offset<'a>(
+    error: &'static str,
+    version: usize,
+) -> impl FnMut(&'a str) -> IResult<&'a str, Integer, nom::error::VerboseError<&'a str>> {
+    context(
+        error,
+        comma_field_type().map(move |time| {
+            if (3..=4).contains(&version) {
+                time + OLD_VERSION_TIME_OFFSET
+            } else {
+                time
+            }
+        }),
+    )
+}
+
 pub fn end_time<'a>(
     error: &'static str,
     version: usize,

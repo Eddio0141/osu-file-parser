@@ -110,7 +110,7 @@ impl Video {
 impl VersionedFromString for Video {
     type ParseError = VideoParseError;
 
-    fn from_str(s: &str, _: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
+    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
         let (_, (short_hand, start_time, (file_name, position))) = tuple((
             alt((
                 tag("1").map(|_| true),
@@ -121,7 +121,7 @@ impl VersionedFromString for Video {
             )),
             preceded(
                 context(VideoParseError::MissingStartTime.into(), comma()),
-                context(VideoParseError::InvalidStartTime.into(), comma_field_type()),
+                start_time_offset(VideoParseError::InvalidStartTime.into(), version),
             ),
             preceded(
                 context(VideoParseError::MissingFileName.into(), comma()),
@@ -188,7 +188,7 @@ impl VersionedFromString for Break {
             )),
             preceded(
                 context(BreakParseError::MissingStartTime.into(), comma()),
-                context(BreakParseError::InvalidStartTime.into(), comma_field_type()),
+                start_time_offset(BreakParseError::InvalidStartTime.into(), version),
             ),
             preceded(
                 context(BreakParseError::MissingEndTime.into(), comma()),
@@ -210,7 +210,7 @@ impl VersionedToString for Break {
             "{},{},{}",
             if self.short_hand { "2" } else { "Break" },
             time_to_string(self.start_time, version),
-            self.end_time
+            time_to_string(self.end_time, version)
         ))
     }
 }
@@ -226,7 +226,7 @@ pub struct ColourTransformation {
 impl VersionedFromString for ColourTransformation {
     type ParseError = ColourTransformationParseError;
 
-    fn from_str(s: &str, _: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
+    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
         let (_, (start_time, red, green, blue)) = tuple((
             preceded(
                 tuple((
@@ -239,9 +239,9 @@ impl VersionedFromString for ColourTransformation {
                         comma(),
                     ),
                 )),
-                context(
+                start_time_offset(
                     ColourTransformationParseError::InvalidStartTime.into(),
-                    comma_field_type(),
+                    version,
                 ),
             ),
             preceded(
