@@ -19,8 +19,8 @@ pub enum AudioSampleParseError {
     MissingVolume,
     #[error("Invalid `volume` value")]
     InvalidVolume,
-    #[error("Missing header `Sample`")]
-    MissingHeader,
+    #[error("Wrong event type")]
+    WrongEvent,
     #[error("Missing `filepath` field")]
     MissingFilepath,
 }

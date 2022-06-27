@@ -30,7 +30,7 @@ impl FromStr for AudioSample {
     type Err = AudioSampleParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let header = context(AudioSampleParseError::MissingHeader.into(), tag("Sample"));
+        let header = context(AudioSampleParseError::WrongEvent.into(), tag("Sample"));
         let time = context(
             AudioSampleParseError::InvalidTime.into(),
             comma_field_type(),

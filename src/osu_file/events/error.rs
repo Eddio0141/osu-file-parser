@@ -1,9 +1,9 @@
-use strum_macros::{EnumString, IntoStaticStr};
 use thiserror::Error;
 
-use crate::helper::macros::verbose_error_to_error;
-
-use super::storyboard::error::*;
+use super::{
+    storyboard::error::*, BackgroundParseError, BreakParseError, ColourTransformationParseError,
+    VideoParseError,
+};
 
 /// Errors used when there was a problem parsing an [`Event`][super::Event] from a `str`.
 #[derive(Debug, Error)]
@@ -15,17 +15,17 @@ pub enum ParseError {
     /// Invalid key name was used.
     #[error("The key doesn't exist in `General`")]
     InvalidKey,
-    /// Missing the `start_time` field.
-    #[error("Missing the `start_time` field")]
-    MissingStartTime,
-    /// Failed to parse the `start_time` field.
-    #[error("Failed to parse the `start_time` field")]
-    ParseStartTime,
     /// A `storyboard` `command` was used without defined sprite or animation sprite.
     #[error("A storyboard command was used without defined sprite or animation sprite")]
     StoryboardCmdWithNoSprite,
     #[error(transparent)]
-    EventParamsParseError(#[from] NormalEventParamsParseError),
+    BackgroundParseError(#[from] BackgroundParseError),
+    #[error(transparent)]
+    VideoParseError(#[from] VideoParseError),
+    #[error(transparent)]
+    BreakParseError(#[from] BreakParseError),
+    #[error(transparent)]
+    ColourTransformationParseError(#[from] ColourTransformationParseError),
     #[error(transparent)]
     CommandPushError(#[from] CommandPushError),
     #[error(transparent)]
@@ -34,40 +34,3 @@ pub enum ParseError {
     #[error(transparent)]
     StoryboardObjectParseError(#[from] ObjectParseError),
 }
-
-#[derive(Debug, Error, EnumString, IntoStaticStr)]
-#[non_exhaustive]
-pub enum NormalEventParamsParseError {
-    #[error("Missing the `start_time` field")]
-    MissingStartTime,
-    #[error("Unknown event type")]
-    UnknownEventType,
-    #[error("Missing the `file_name` field")]
-    MissingFileName,
-    #[error("Missing the `x_offset` field")]
-    MissingXOffset,
-    #[error("Invalid `x_offset` field")]
-    InvalidXOffset,
-    #[error("Missing the `y_offset` field")]
-    MissingYOffset,
-    #[error("Invalid `y_offset` field")]
-    InvalidYOffset,
-    #[error("Missing the `end_time` field")]
-    MissingEndTime,
-    #[error("Invalid `end_time` field")]
-    InvalidEndTime,
-    #[error("Missing the `red` field")]
-    MissingRed,
-    #[error("Invalid `red` field")]
-    InvalidRed,
-    #[error("Missing the `green` field")]
-    MissingGreen,
-    #[error("Invalid `green` field")]
-    InvalidGreen,
-    #[error("Missing the `blue` field")]
-    MissingBlue,
-    #[error("Invalid `blue` field")]
-    InvalidBlue,
-}
-
-verbose_error_to_error!(NormalEventParamsParseError);

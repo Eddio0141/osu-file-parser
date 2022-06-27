@@ -5,23 +5,13 @@ pub mod error;
 pub mod normal_event;
 pub mod storyboard;
 
-use nom::{
-    bytes::complete::{tag, take_while},
-    combinator::rest,
-    error::context,
-    sequence::{preceded, tuple},
-    Finish, Parser,
-};
+use nom::{bytes::complete::tag, combinator::rest, sequence::preceded};
 
-use crate::{
-    helper::trait_ext::MapOptStringNewLine, osu_file::events::storyboard::sprites, parsers::*,
-};
+use crate::{helper::trait_ext::MapOptStringNewLine, osu_file::events::storyboard::sprites};
 
 use self::storyboard::{cmds::CommandProperties, error::ObjectParseError, sprites::Object};
 
-use super::{
-    types::Error, Integer, Position, VersionedDefault, VersionedFromString, VersionedToString,
-};
+use super::{types::Error, Integer, VersionedDefault, VersionedFromString, VersionedToString};
 
 pub use self::audio_sample::*;
 pub use self::error::*;
@@ -45,9 +35,7 @@ impl VersionedFromString for Events {
                 if let Ok((_, comment)) = comment(line) {
                     events.0.push(Event::Comment(comment.to_string()));
                 } else {
-                    let indent = take_while::<_, _, nom::error::Error<_>>(|c| c == ' ' || c == '_');
-
-                    let indent = indent(line).unwrap().1.len();
+                    let indent = line.chars().take_while(|c| *c == ' ' || *c == '_').count();
 
                     // its a storyboard command
                     if indent > 0 {
@@ -68,7 +56,6 @@ impl VersionedFromString for Events {
                         }
                     } else {
                         // is it a storyboard object?
-
                         match line.parse() {
                             Ok(object) => {
                                 events.0.push(Event::Storyboard(object));
@@ -81,60 +68,41 @@ impl VersionedFromString for Events {
                                             events.0.push(Event::AudioSample(audio_sample))
                                         }
                                         Err(_) => {
-                                            // TODO clean this trash up
-                                            let (_, (_, _, start_time, _)) = tuple((
-                                                comma_field(),
-                                                context("missing_start_time", comma()),
-                                                context("invalid_end_time", comma_field_type()),
-                                                rest,
-                                            ))(
-                                                line
-                                            )
-                                            .finish()
-                                            .map_err(|err: nom::error::VerboseError<_>| {
-                                                for (_, err) in err.errors {
-                                                    if let nom::error::VerboseErrorKind::Context(
-                                                        context,
-                                                    ) = err
+                                            // its a normal event
+                                            match Background::from_str(line, version) {
+                                                // TODO what to do on the Option type?
+                                                Ok(background) => events.0.push(Event::Background(background.unwrap())),
+                                                Err(err) => {
+                                                    if let BackgroundParseError::WrongEventType =
+                                                        err
                                                     {
-                                                        let err = match context {
-                                                            "missing_start_time" => {
-                                                                ParseError::MissingStartTime
+                                                        match Video::from_str(line, version) {
+                                                            Ok(video) => events.0.push(Event::Video(video.unwrap())),
+                                                            Err(err) => if let VideoParseError::WrongEventType = err {
+                                                                match Break::from_str(line, version) {
+                                                                    Ok(break_) => events.0.push(Event::Break(break_.unwrap())),
+                                                                    Err(err) => if let BreakParseError::WrongEventType = err {
+                                                                        match ColourTransformation::from_str(line, version) {
+                                                                            Ok(colour_trans) => events.0.push(Event::ColourTransformation(colour_trans.unwrap())),
+                                                                            Err(err) => {
+                                                                                return Err(Error::new(
+                                                                                    ParseError::ColourTransformationParseError(err),
+                                                                                    line_index,
+                                                                                ));
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }   
                                                             }
-                                                            "invalid_end_time" => {
-                                                                ParseError::ParseStartTime
-                                                            }
-                                                            _ => unreachable!(),
-                                                        };
-
-                                                        return Error::new(err, line_index);
+                                                        }
+                                                    } else {
+                                                        return Err(Error::new(
+                                                            ParseError::BackgroundParseError(err),
+                                                            line_index,
+                                                        ));
                                                     }
                                                 }
-
-                                                unimplemented!(
-                                                    "I somehow forgot to implement a context"
-                                                );
-                                            })?;
-
-                                            let event_params = Error::new_from_result_into(
-                                                NormalEventParams::from_str(line, version),
-                                                line_index,
-                                            )?
-                                            .unwrap();
-
-                                            events.0.push(Event::NormalEvent {
-                                                // TODO does start_time has the version offset in storyboard?
-                                                start_time: if (3..=4).contains(&version)
-                                                    && !matches!(
-                                                        event_params,
-                                                        NormalEventParams::Background(_)
-                                                    ) {
-                                                    start_time + OLD_VERSION_TIME_OFFSET
-                                                } else {
-                                                    start_time
-                                                },
-                                                event_params,
-                                            })
+                                            }
                                         }
                                     }
                                 } else {
@@ -156,36 +124,9 @@ impl VersionedFromString for Events {
 
 impl VersionedToString for Events {
     fn to_string(&self, version: usize) -> Option<String> {
-        let mut s = self.0.iter().map(|i| {
-            if let Event::NormalEvent {
-                start_time,
-                event_params,
-            } = i
-            {
-                if matches!(event_params, NormalEventParams::Background(_)) {
-                    i.to_string(version)
-                } else {
-                    // TODO check out whats going on in v5, seems inconsistent
-                    if (3..=4).contains(&version) {
-                        Event::NormalEvent {
-                            start_time: *start_time,
-                            event_params: {
-                                let mut event_params = event_params.clone();
-                                if let NormalEventParams::Break(b) = &mut event_params {
-                                    b.end_time -= OLD_VERSION_TIME_OFFSET
-                                }
-                                event_params
-                            },
-                        }
-                        .to_string(version)
-                    } else {
-                        i.to_string(version)
-                    }
-                }
-            } else {
-                i.to_string(version)
-            }
-        });
+        let mut s = self.0.iter().map(|i| 
+            i.to_string(version)
+        );
 
         Some(s.map_string_new_line())
     }
@@ -213,7 +154,10 @@ impl VersionedToString for Event {
     fn to_string(&self, version: usize) -> Option<String> {
         match self {
             Event::Comment(comment) => Some(format!("//{comment}")),
-            
+            Event::Background(background) => background.to_string(version),
+            Event::Video(video) => video.to_string(version),
+            Event::Break(break_) => break_.to_string(version),
+            Event::ColourTransformation(colour_trans) => colour_trans.to_string(version),
             Event::Storyboard(object) => {
                 let pos_str = format!("{},{}", object.position.x, object.position.y);
 
