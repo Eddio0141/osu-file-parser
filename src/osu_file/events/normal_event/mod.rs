@@ -99,7 +99,7 @@ pub struct Video {
 impl VersionedFromString for Video {
     type ParseError = VideoParseError;
 
-    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
+    fn from_str(s: &str, _: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
         let (_, (short_hand, start_time, (file_name, position))) = tuple((
             alt((
                 tag("1").map(|_| true),
@@ -205,7 +205,7 @@ pub struct ColourTransformation {
 impl VersionedFromString for ColourTransformation {
     type ParseError = ColourTransformationParseError;
 
-    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
+    fn from_str(s: &str, _: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
         let (_, (start_time, red, green, blue)) = tuple((
             preceded(
                 tuple((
