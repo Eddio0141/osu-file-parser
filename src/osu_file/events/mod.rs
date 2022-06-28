@@ -9,6 +9,7 @@ use nom::{bytes::complete::tag, combinator::rest, sequence::preceded};
 
 use crate::{helper::trait_ext::MapOptStringNewLine, osu_file::events::storyboard::sprites};
 
+use self::storyboard::cmds::Command;
 use self::storyboard::{cmds::CommandProperties, error::ObjectParseError, sprites::Object};
 
 use super::{types::Error, Integer, VersionedDefault, VersionedFromString, VersionedToString};
@@ -40,13 +41,18 @@ impl VersionedFromString for Events {
                     // its a storyboard command
                     if indent > 0 {
                         match events.0.last_mut() {
-                            Some(Event::Storyboard(sprite)) => Error::new_from_result_into(
-                                sprite.try_push_cmd(
-                                    Error::new_from_result_into(line.parse(), line_index)?,
-                                    indent,
-                                ),
-                                line_index,
-                            )?,
+                            Some(Event::Storyboard(sprite)) => {
+                                let cmd = Error::new_from_result_into(Command::from_str(line, version), line_index)?;
+                                if let Some(cmd) = cmd {
+                                    Error::new_from_result_into(
+                                        sprite.try_push_cmd(
+                                            cmd,
+                                            indent,
+                                        ),
+                                        line_index,
+                                    )?
+                                }
+                            },
                             _ => {
                                 return Err(Error::new(
                                     ParseError::StoryboardCmdWithNoSprite,

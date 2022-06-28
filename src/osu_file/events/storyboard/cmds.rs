@@ -1,9 +1,9 @@
 use std::fmt::Display;
-use std::str::FromStr;
 
 use super::error::*;
 use super::types::*;
 use crate::osu_file::Integer;
+use crate::osu_file::VersionedFromString;
 use crate::parsers::*;
 use nom::branch::alt;
 use nom::bytes::complete::{tag, take_while};
@@ -456,10 +456,10 @@ impl Display for Colours {
     }
 }
 
-impl FromStr for Command {
-    type Err = CommandParseError;
+impl VersionedFromString for Command {
+    type ParseError = CommandParseError;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(s: &str, _: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
         let indentation = take_while(|c: char| c == ' ' || c == '_');
         let start_time = || {
             preceded(
@@ -857,6 +857,6 @@ impl FromStr for Command {
             )),
         )(s)?;
 
-        Ok(parse.1)
+        Ok(Some(parse.1))
     }
 }
