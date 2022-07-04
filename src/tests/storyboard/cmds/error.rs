@@ -1,4 +1,4 @@
-use crate::osu_file::events::storyboard::cmds::Command;
+use crate::osu_file::{events::storyboard::cmds::Command, VersionedFromString};
 
 #[test]
 fn storyboard_cmd_errors() {
@@ -14,49 +14,55 @@ fn storyboard_cmd_errors() {
 
     assert_eq!(
         "Unknown command type",
-        invalid_event.parse::<Command>().unwrap_err().to_string()
+        Command::from_str(invalid_event, 14)
+            .unwrap_err()
+            .to_string()
     );
     assert_eq!(
         "Missing `easing` field",
-        missing_easing.parse::<Command>().unwrap_err().to_string()
+        Command::from_str(missing_easing, 14)
+            .unwrap_err()
+            .to_string()
     );
     assert_eq!(
         "Invalid `easing` value",
-        invalid_easing.parse::<Command>().unwrap_err().to_string()
+        Command::from_str(invalid_easing, 14)
+            .unwrap_err()
+            .to_string()
     );
     assert_eq!(
         "Missing `start_time` field",
-        missing_start_time
-            .parse::<Command>()
+        Command::from_str(missing_start_time, 14)
             .unwrap_err()
             .to_string()
     );
     assert_eq!(
         "Invalid `start_time` value",
-        invalid_start_time
-            .parse::<Command>()
+        Command::from_str(invalid_start_time, 14)
             .unwrap_err()
             .to_string()
     );
     assert_eq!(
         "Missing `end_time` field",
-        missing_end_time.parse::<Command>().unwrap_err().to_string()
+        Command::from_str(missing_end_time, 14)
+            .unwrap_err()
+            .to_string()
     );
     assert_eq!(
         "Invalid `end_time` value",
-        invalid_end_time.parse::<Command>().unwrap_err().to_string()
+        Command::from_str(invalid_end_time, 14)
+            .unwrap_err()
+            .to_string()
     );
     assert_eq!(
         "Missing `start_opacity` field",
-        missing_command_params
-            .parse::<Command>()
+        Command::from_str(missing_command_params, 14)
             .unwrap_err()
             .to_string()
     );
     assert_eq!(
         "Missing `loop_count` field",
-        missing_loop_count
-            .parse::<Command>()
+        Command::from_str(missing_loop_count, 14)
             .unwrap_err()
             .to_string()
     );
@@ -72,33 +78,31 @@ fn continuing_error() {
 
     assert_eq!(
         "Invalid continuing colour value",
-        invalid_continuing_red
-            .parse::<Command>()
+        Command::from_str(invalid_continuing_red, 14)
             .unwrap_err()
             .to_string()
     );
     assert_eq!(
         "Invalid `red` value",
-        colour_invalid_red
-            .parse::<Command>()
+        Command::from_str(colour_invalid_red, 14)
             .unwrap_err()
             .to_string()
     );
     assert_eq!(
         "Missing `green` field",
-        missing_green.parse::<Command>().unwrap_err().to_string()
+        Command::from_str(missing_green, 14)
+            .unwrap_err()
+            .to_string()
     );
     assert_eq!(
         "Missing `scale_y` field",
-        missing_second_field
-            .parse::<Command>()
+        Command::from_str(missing_second_field, 14)
             .unwrap_err()
             .to_string()
     );
     assert_eq!(
         "Invalid continuing move value",
-        invalid_move_x_continuing
-            .parse::<Command>()
+        Command::from_str(invalid_move_x_continuing, 14)
             .unwrap_err()
             .to_string()
     );

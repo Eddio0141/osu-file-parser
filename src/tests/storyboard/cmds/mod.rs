@@ -383,7 +383,7 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
 #[test]
 fn colours() {
     let i = "C,0,0,0,255,255,255,255,255,255,0";
-    let i = i.parse::<Command>().unwrap();
+    let i = Command::from_str(i, 14).unwrap().unwrap();
 
     let cmd = Command {
         start_time: 0,
@@ -403,7 +403,7 @@ fn colours() {
 #[test]
 fn parameters() {
     let i = "P,0,0,,H,V,A";
-    let i = i.parse::<Command>().unwrap();
+    let i = Command::from_str(i, 14).unwrap().unwrap();
 
     let cmd = Command {
         start_time: 0,
@@ -429,14 +429,14 @@ fn trigger() {
     // no group number, has end time
     // no group number, no end time
     let everything_str = "T,HitSound,0,1,2";
-    let everything = everything_str.parse::<Command>().unwrap();
+    let everything = Command::from_str(everything_str, 14).unwrap().unwrap();
     let group_str = "T,HitSound,0,,1";
-    let group = group_str.parse::<Command>().unwrap();
+    let group = Command::from_str(group_str, 14).unwrap().unwrap();
     let end_time_str = "T,HitSound,0,1";
-    let end_time = end_time_str.parse::<Command>().unwrap();
+    let end_time = Command::from_str(end_time_str, 14).unwrap().unwrap();
     // TODO check if this is accurate
     let nothing_str = "T,HitSound,0,";
-    let nothing = nothing_str.parse::<Command>().unwrap();
+    let nothing = Command::from_str(nothing_str, 14).unwrap().unwrap();
 
     assert_eq!(everything_str, everything.to_string());
     assert_eq!(group_str, group.to_string());
@@ -447,7 +447,7 @@ fn trigger() {
 #[test]
 fn trigger_group_number() {
     let i = "T,HitSound,0,0,5";
-    let i = i.parse::<Command>().unwrap();
+    let i = Command::from_str(i, 14).unwrap().unwrap();
 
     let cmd = Command {
         start_time: 0,
@@ -470,7 +470,7 @@ fn trigger_group_number() {
 #[test]
 fn move_command() {
     let i = "M,0,0,0,-5,10,55";
-    let i = i.parse::<Command>().unwrap();
+    let i = Command::from_str(i, 14).unwrap().unwrap();
 
     let cmd = Command {
         start_time: 0,
@@ -488,7 +488,7 @@ fn move_command() {
 #[test]
 fn fade_chain() {
     let i = "F,0,0,0,1,0,0.5,0,0.25,0";
-    let i = i.parse::<Command>().unwrap();
+    let i = Command::from_str(i, 14).unwrap().unwrap();
 
     let cmd = Command {
         start_time: 0,

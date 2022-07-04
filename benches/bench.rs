@@ -30,73 +30,87 @@ fn storyboard_cmds_parse(c: &mut Criterion) {
 
     group.bench_function("fade", |b| {
         b.iter(|| {
-            Command::from_str(black_box(fade_str)).unwrap();
+            Command::from_str(black_box(fade_str), black_box(14)).unwrap();
         })
     });
     group.bench_function("move", |b| {
         b.iter(|| {
-            Command::from_str(black_box(move_str)).unwrap();
+            Command::from_str(black_box(move_str), black_box(14)).unwrap();
         })
     });
     group.bench_function("move_x", |b| {
         b.iter(|| {
-            Command::from_str(black_box(move_x_str)).unwrap();
+            Command::from_str(black_box(move_x_str), black_box(14)).unwrap();
         })
     });
     group.bench_function("move_y", |b| {
         b.iter(|| {
-            Command::from_str(black_box(move_y_str)).unwrap();
+            Command::from_str(black_box(move_y_str), black_box(14)).unwrap();
         })
     });
     group.bench_function("scale", |b| {
         b.iter(|| {
-            Command::from_str(black_box(scale_str)).unwrap();
+            Command::from_str(black_box(scale_str), black_box(14)).unwrap();
         })
     });
     group.bench_function("vector_scale", |b| {
         b.iter(|| {
-            Command::from_str(black_box(vector_scale_str)).unwrap();
+            Command::from_str(black_box(vector_scale_str), black_box(14)).unwrap();
         })
     });
     group.bench_function("rotate", |b| {
         b.iter(|| {
-            Command::from_str(black_box(rotate_str)).unwrap();
+            Command::from_str(black_box(rotate_str), black_box(14)).unwrap();
         })
     });
     group.bench_function("colour", |b| {
         b.iter(|| {
-            Command::from_str(black_box(colour_str)).unwrap();
+            Command::from_str(black_box(colour_str), black_box(14)).unwrap();
         })
     });
     group.bench_function("parameter", |b| {
         b.iter(|| {
-            Command::from_str(black_box(parameter_str)).unwrap();
+            Command::from_str(black_box(parameter_str), black_box(14)).unwrap();
         })
     });
     group.bench_function("loop", |b| {
         b.iter(|| {
-            Command::from_str(black_box(loop_str)).unwrap();
+            Command::from_str(black_box(loop_str), black_box(14)).unwrap();
         })
     });
     group.bench_function("trigger", |b| {
         b.iter(|| {
-            Command::from_str(black_box(trigger_str)).unwrap();
+            Command::from_str(black_box(trigger_str), black_box(14)).unwrap();
         })
     });
 }
 
 fn storyboard_cmds_to_string(c: &mut Criterion) {
-    let fade = Command::from_str("F,0,500,1000,0,0.5").unwrap();
-    let move_ = Command::from_str("M,0,500,1000,0,1,2,3").unwrap();
-    let move_x = Command::from_str("MX,0,500,1000,0,1").unwrap();
-    let move_y = Command::from_str("MY,0,500,1000,0,1").unwrap();
-    let scale = Command::from_str("S,0,500,1000,0,0.5").unwrap();
-    let vector_scale = Command::from_str("V,0,500,1000,0,0,0.5,0.5").unwrap();
-    let rotate = Command::from_str("R,0,500,1000,0,0.5").unwrap();
-    let colour = Command::from_str("C,0,500,1000,0,0,0,255,255,255").unwrap();
-    let parameter = Command::from_str("P,0,500,1000,H").unwrap();
-    let loop_ = Command::from_str("L,0,10").unwrap();
-    let trigger = Command::from_str("T,HitSound,500,1000").unwrap();
+    let fade = Command::from_str("F,0,500,1000,0,0.5", 14)
+        .unwrap()
+        .unwrap();
+    let move_ = Command::from_str("M,0,500,1000,0,1,2,3", 14)
+        .unwrap()
+        .unwrap();
+    let move_x = Command::from_str("MX,0,500,1000,0,1", 14).unwrap().unwrap();
+    let move_y = Command::from_str("MY,0,500,1000,0,1", 14).unwrap().unwrap();
+    let scale = Command::from_str("S,0,500,1000,0,0.5", 14)
+        .unwrap()
+        .unwrap();
+    let vector_scale = Command::from_str("V,0,500,1000,0,0,0.5,0.5", 14)
+        .unwrap()
+        .unwrap();
+    let rotate = Command::from_str("R,0,500,1000,0,0.5", 14)
+        .unwrap()
+        .unwrap();
+    let colour = Command::from_str("C,0,500,1000,0,0,0,255,255,255", 14)
+        .unwrap()
+        .unwrap();
+    let parameter = Command::from_str("P,0,500,1000,H", 14).unwrap().unwrap();
+    let loop_ = Command::from_str("L,0,10", 14).unwrap().unwrap();
+    let trigger = Command::from_str("T,HitSound,500,1000", 14)
+        .unwrap()
+        .unwrap();
 
     let mut group = c.benchmark_group("storyboard_cmds_to_string");
 
