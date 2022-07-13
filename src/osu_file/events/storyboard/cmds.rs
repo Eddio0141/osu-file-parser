@@ -459,7 +459,7 @@ impl Display for Colours {
 impl VersionedFromString for Command {
     type ParseError = CommandParseError;
 
-    fn from_str(s: &str, _: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
+    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
         let indentation = take_while(|c: char| c == ' ' || c == '_');
         let start_time = || {
             preceded(
@@ -599,7 +599,9 @@ impl VersionedFromString for Command {
                 cut(tuple((
                     context(
                         CommandParseError::InvalidTriggerType.into(),
-                        comma_field_type(),
+                        map_res(comma_field(), |s| {
+                            TriggerType::from_str(s, version).map(|t| t.unwrap())
+                        }),
                     ),
                     start_time(),
                     // there are 4 possibilities:
