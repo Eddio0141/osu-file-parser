@@ -43,13 +43,18 @@ pub struct Background {
     pub position: Option<Position>,
 }
 
+pub const BACKGROUND_HEADER: &str = "0";
+
 impl VersionedFromString for Background {
     type ParseError = BackgroundParseError;
 
     fn from_str(s: &str, _: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
         let (_, (start_time, (filename, position))) = preceded(
             tuple((
-                context(BackgroundParseError::WrongEventType.into(), tag("0")),
+                context(
+                    BackgroundParseError::WrongEventType.into(),
+                    tag(BACKGROUND_HEADER),
+                ),
                 context(BackgroundParseError::MissingStartTime.into(), comma()),
             )),
             tuple((
@@ -80,7 +85,7 @@ impl VersionedFromString for Background {
 impl VersionedToString for Background {
     fn to_string(&self, _: usize) -> Option<String> {
         Some(format!(
-            "0,{},{}{}",
+            "{BACKGROUND_HEADER},{},{}{}",
             self.start_time,
             self.file_name,
             position_str(&self.position),
@@ -107,16 +112,19 @@ impl Video {
     }
 }
 
+pub const VIDEO_HEADER: &str = "1";
+pub const VIDEO_HEADER_LONG: &str = "Video";
+
 impl VersionedFromString for Video {
     type ParseError = VideoParseError;
 
     fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
         let (_, (short_hand, start_time, (file_name, position))) = tuple((
             alt((
-                tag("1").map(|_| true),
+                tag(VIDEO_HEADER).map(|_| true),
                 context(
                     VideoParseError::WrongEventType.into(),
-                    tag("Video").map(|_| false),
+                    tag(VIDEO_HEADER_LONG).map(|_| false),
                 ),
             )),
             preceded(
@@ -149,7 +157,11 @@ impl VersionedToString for Video {
     fn to_string(&self, version: usize) -> Option<String> {
         Some(format!(
             "{},{},{}{}",
-            if self.short_hand { "1" } else { "Video" },
+            if self.short_hand {
+                VIDEO_HEADER
+            } else {
+                VIDEO_HEADER_LONG
+            },
             time_to_string(self.start_time, version),
             self.file_name,
             position_str(&self.position)
@@ -174,16 +186,19 @@ impl Break {
     }
 }
 
+pub const BREAK_HEADER: &str = "2";
+pub const BREAK_HEADER_LONG: &str = "Break";
+
 impl VersionedFromString for Break {
     type ParseError = BreakParseError;
 
     fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
         let (_, (short_hand, start_time, end_time)) = tuple((
             alt((
-                tag("2").map(|_| true),
+                tag(BREAK_HEADER).map(|_| true),
                 context(
                     BreakParseError::WrongEventType.into(),
-                    tag("Break").map(|_| false),
+                    tag(BREAK_HEADER_LONG).map(|_| false),
                 ),
             )),
             preceded(
@@ -208,7 +223,11 @@ impl VersionedToString for Break {
     fn to_string(&self, version: usize) -> Option<String> {
         Some(format!(
             "{},{},{}",
-            if self.short_hand { "2" } else { "Break" },
+            if self.short_hand {
+                BREAK_HEADER
+            } else {
+                BREAK_HEADER_LONG
+            },
             time_to_string(self.start_time, version),
             time_to_string(self.end_time, version)
         ))
@@ -223,6 +242,8 @@ pub struct ColourTransformation {
     pub blue: u8,
 }
 
+pub const COLOUR_TRANSFORMATION_HEADER: &str = "3";
+
 impl VersionedFromString for ColourTransformation {
     type ParseError = ColourTransformationParseError;
 
@@ -232,7 +253,7 @@ impl VersionedFromString for ColourTransformation {
                 tuple((
                     context(
                         ColourTransformationParseError::WrongEventType.into(),
-                        tag("3"),
+                        tag(COLOUR_TRANSFORMATION_HEADER),
                     ),
                     context(
                         ColourTransformationParseError::MissingStartTime.into(),
@@ -280,7 +301,7 @@ impl VersionedToString for ColourTransformation {
     fn to_string(&self, version: usize) -> Option<String> {
         if version < 14 {
             Some(format!(
-                "3,{},{},{},{}",
+                "{COLOUR_TRANSFORMATION_HEADER},{},{},{},{}",
                 time_to_string(self.start_time, version),
                 self.red,
                 self.green,
