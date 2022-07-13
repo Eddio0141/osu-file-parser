@@ -1,6 +1,6 @@
 pub mod error;
 
-use std::{fmt::Display, str::FromStr};
+use std::fmt::Display;
 
 use nom::{
     branch::alt,
@@ -33,7 +33,11 @@ impl VersionedFromString for Colours {
 
                 for (line_index, s) in s.lines().enumerate() {
                     if !s.is_empty() {
-                        colours.push(Error::new_from_result_into(s.parse(), line_index)?);
+                        let colour =
+                            Error::new_from_result_into(Colour::from_str(s, version), line_index)?;
+                        if let Some(colour) = colour {
+                            colours.push(colour);
+                        }
                     }
                 }
 
@@ -73,10 +77,10 @@ pub enum Colour {
     SliderBorder(Rgb),
 }
 
-impl FromStr for Colour {
-    type Err = ColourParseError;
+impl VersionedFromString for Colour {
+    type ParseError = ColourParseError;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(s: &str, _: usize) -> Result<Option<Self>, Self::ParseError> {
         let separator = || tuple((space0, tag(":"), space0));
         let combo_type = tag("Combo");
         let combo_count = map_res(digit1, |s: &str| s.parse());
@@ -149,7 +153,7 @@ impl FromStr for Colour {
             context(ColourParseError::UnknownColourType.into(), fail),
         ))(s)?;
 
-        Ok(colour)
+        Ok(Some(colour))
     }
 }
 

@@ -1,12 +1,12 @@
 pub mod error;
 
-use std::{fmt::Display, str::FromStr};
+use std::fmt::Display;
 
 pub use error::*;
 use nom::{
     branch::alt,
     bytes::streaming::tag,
-    combinator::{eof, map_opt},
+    combinator::{eof, map_opt, map_res},
     error::context,
     sequence::{preceded, tuple},
     Parser,
@@ -14,8 +14,8 @@ use nom::{
 use strum_macros::FromRepr;
 
 use crate::{
-    osu_file::{FilePath, Integer},
-    parsers::{comma, comma_field, comma_field_type, consume_rest_type},
+    osu_file::{FilePath, Integer, VersionedFromString},
+    parsers::{comma, comma_field, comma_field_type},
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -26,10 +26,10 @@ pub struct AudioSample {
     pub volume: Volume,
 }
 
-impl FromStr for AudioSample {
-    type Err = AudioSampleParseError;
+impl VersionedFromString for AudioSample {
+    type ParseError = AudioSampleParseError;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(s: &str, version: usize) -> Result<Option<Self>, Self::ParseError> {
         let header = context(AudioSampleParseError::WrongEvent.into(), tag("Sample"));
         let time = context(
             AudioSampleParseError::InvalidTime.into(),
@@ -52,7 +52,9 @@ impl FromStr for AudioSample {
                 context(AudioSampleParseError::MissingVolume.into(), comma()),
                 context(
                     AudioSampleParseError::InvalidVolume.into(),
-                    consume_rest_type(),
+                    map_res::<_, _, _, _, VolumeParseError, _, _>(comma_field(), |s| {
+                        Ok(Volume::from_str(s, version)?.unwrap())
+                    }),
                 ),
             ),
         ));
@@ -76,12 +78,12 @@ impl FromStr for AudioSample {
             volume,
         ))(s)?;
 
-        Ok(AudioSample {
+        Ok(Some(AudioSample {
             time,
             layer,
             filepath,
             volume,
-        })
+        }))
     }
 }
 
@@ -134,11 +136,11 @@ impl From<Volume> for u8 {
     }
 }
 
-impl FromStr for Volume {
-    type Err = VolumeParseError;
+impl VersionedFromString for Volume {
+    type ParseError = VolumeParseError;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Volume::try_from(s.parse::<u8>()?)?)
+    fn from_str(s: &str, _: usize) -> Result<Option<Self>, Self::ParseError> {
+        Ok(Some(Volume::try_from(s.parse::<u8>()?)?))
     }
 }
 

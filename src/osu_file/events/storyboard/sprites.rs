@@ -1,6 +1,4 @@
-use std::fmt::Display;
 use std::path::{Path, PathBuf};
-use std::str::FromStr;
 
 use nom::branch::alt;
 use nom::bytes::complete::tag;
@@ -10,7 +8,7 @@ use nom::sequence::{preceded, tuple};
 use nom::Parser;
 use strum_macros::{Display, EnumString, FromRepr};
 
-use crate::osu_file::{FilePath, Position};
+use crate::osu_file::{FilePath, Position, VersionedFromString, VersionedToString};
 use crate::parsers::{comma, comma_field, comma_field_type, consume_rest_type, nothing};
 
 use super::cmds::*;
@@ -33,6 +31,105 @@ pub struct Object {
     pub position: Position,
     pub object_type: ObjectType,
     pub commands: Vec<Command>,
+}
+
+impl VersionedToString for Object {
+    fn to_string(&self, _: usize) -> Option<String> {
+        let pos_str = format!("{},{}", self.position.x, self.position.y);
+
+        let object_str = match &self.object_type {
+            ObjectType::Sprite(sprite) => format!(
+                "Sprite,{},{},{},{}",
+                self.layer, self.origin, sprite.filepath, pos_str
+            ),
+            ObjectType::Animation(anim) => {
+                format!(
+                    "Animation,{},{},{},{},{},{},{}",
+                    self.layer,
+                    self.origin,
+                    anim.filepath,
+                    pos_str,
+                    anim.frame_count,
+                    anim.frame_delay,
+                    anim.loop_type
+                )
+            }
+        };
+
+        let cmds = {
+            if self.commands.is_empty() {
+                None
+            } else {
+                let mut builder = Vec::new();
+                let mut indentation = 1usize;
+
+                for cmd in &self.commands {
+                    builder.push(format!("{}{cmd}", " ".repeat(indentation)));
+
+                    if let CommandProperties::Loop { commands, .. }
+                    | CommandProperties::Trigger { commands, .. } = &cmd.properties
+                    {
+                        if commands.is_empty() {
+                            continue;
+                        }
+
+                        let starting_indentation = indentation;
+                        indentation += 1;
+
+                        let mut current_cmds = commands;
+                        let mut current_index = 0;
+                        // stack of commands, index, and indentation
+                        let mut cmds_stack = Vec::new();
+
+                        loop {
+                            let cmd = &current_cmds[current_index];
+                            current_index += 1;
+
+                            builder.push(format!("{}{cmd}", " ".repeat(indentation)));
+                            match &cmd.properties {
+                                CommandProperties::Loop { commands, .. }
+                                | CommandProperties::Trigger { commands, .. }
+                                    if !commands.is_empty() =>
+                                {
+                                    // save the current cmds and index
+                                    // ignore if index is already at the end of the current cmds
+                                    if current_index < current_cmds.len() {
+                                        cmds_stack.push((current_cmds, current_index, indentation));
+                                    }
+
+                                    current_cmds = commands;
+                                    current_index = 0;
+                                    indentation += 1;
+                                }
+                                _ => {
+                                    if current_index >= current_cmds.len() {
+                                        // check for end of commands
+                                        match cmds_stack.pop() {
+                                            Some((last_cmds, last_index, last_indentation)) => {
+                                                current_cmds = last_cmds;
+                                                current_index = last_index;
+                                                indentation = last_indentation;
+                                            }
+                                            None => break,
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        indentation = starting_indentation;
+                    }
+                }
+
+                Some(builder.join("\n"))
+            }
+        };
+
+        match cmds {
+            Some(cmds) => Some(format!("{object_str}\n{cmds}")),
+            None => Some(object_str),
+        }
+    }
 }
 
 impl Object {
@@ -82,10 +179,10 @@ impl Object {
 }
 
 // it will reject commands since push_cmd is used for that case
-impl FromStr for Object {
-    type Err = ObjectParseError;
+impl VersionedFromString for Object {
+    type ParseError = ObjectParseError;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(s: &str, _: usize) -> Result<Option<Self>, Self::ParseError> {
         let layer = || {
             preceded(
                 context(ObjectParseError::MissingLayer.into(), comma()),
@@ -191,31 +288,7 @@ impl FromStr for Object {
             context(ObjectParseError::UnknownObjectType.into(), fail),
         ))(s)?;
 
-        Ok(object)
-    }
-}
-
-impl Display for Object {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut fields = vec![self.layer.to_string(), self.origin.to_string()];
-
-        match &self.object_type {
-            ObjectType::Sprite(sprite) => {
-                fields.push(sprite.filepath.to_string());
-                fields.push(self.position.x.to_string());
-                fields.push(self.position.y.to_string());
-            }
-            ObjectType::Animation(animation) => {
-                fields.push(animation.filepath.to_string());
-                fields.push(self.position.x.to_string());
-                fields.push(self.position.y.to_string());
-                fields.push(animation.frame_count.to_string());
-                fields.push(animation.frame_delay.to_string());
-                fields.push(animation.loop_type.to_string());
-            }
-        }
-
-        write!(f, "{}", fields.join(","))
+        Ok(Some(object))
     }
 }
 

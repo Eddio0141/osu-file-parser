@@ -1,7 +1,8 @@
 use std::fmt::Display;
-use std::str::FromStr;
 
 use strum_macros::{Display, EnumString, FromRepr, IntoStaticStr};
+
+use crate::osu_file::VersionedFromString;
 
 use super::error::*;
 
@@ -19,22 +20,22 @@ pub enum TriggerType {
     Failing,
 }
 
-impl FromStr for TriggerType {
-    type Err = TriggerTypeParseError;
+impl VersionedFromString for TriggerType {
+    type ParseError = TriggerTypeParseError;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(s: &str, _: usize) -> Result<Option<Self>, Self::ParseError> {
         let s = s.trim();
 
         match s.strip_prefix("HitSound") {
             Some(s) => match s {
-                "Passing" => Ok(TriggerType::Passing),
-                "Failing" => Ok(TriggerType::Failing),
-                "" => Ok(TriggerType::HitSound {
+                "Passing" => Ok(Some(TriggerType::Passing)),
+                "Failing" => Ok(Some(TriggerType::Failing)),
+                "" => Ok(Some(TriggerType::HitSound {
                     sample_set: None,
                     additions_sample_set: None,
                     addition: None,
                     custom_sample_set: None,
-                }),
+                })),
                 _ => {
                     let fields = {
                         let mut fields = Vec::new();
@@ -95,12 +96,12 @@ impl FromStr for TriggerType {
                         }
                     }
 
-                    Ok(TriggerType::HitSound {
+                    Ok(Some(TriggerType::HitSound {
                         sample_set,
                         additions_sample_set,
                         addition,
                         custom_sample_set,
-                    })
+                    }))
                 }
             },
             None => Err(TriggerTypeParseError::UnknownTriggerType(s.to_string())),
