@@ -19,17 +19,17 @@ use crate::{
     parsers::*,
 };
 
-use super::{Error, Integer, VersionedDefault, VersionedFromString, VersionedToString};
+use super::{Error, Integer, VersionedDefault, VersionedFromStr, VersionedToString};
 
 pub use self::error::*;
 
 #[derive(Clone, Debug, Default, Hash, PartialEq, Eq)]
 pub struct TimingPoints(pub Vec<TimingPoint>);
 
-impl VersionedFromString for TimingPoints {
-    type ParseError = Error<ParseError>;
+impl VersionedFromStr for TimingPoints {
+    type Err = Error<ParseError>;
 
-    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
+    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::Err> {
         let mut timing_points = Vec::new();
 
         for (line_index, s) in s.lines().enumerate() {
@@ -229,10 +229,10 @@ impl TimingPoint {
 
 const OLD_VERSION_TIME_OFFSET: Decimal = dec!(24);
 
-impl VersionedFromString for TimingPoint {
-    type ParseError = TimingPointParseError;
+impl VersionedFromStr for TimingPoint {
+    type Err = TimingPointParseError;
 
-    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
+    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::Err> {
         let meter_fallback = 4;
         let sample_set_fallback = SampleSet::Normal;
         let sample_index_fallback = 1.try_into().unwrap();
@@ -483,10 +483,10 @@ impl Default for SampleSet {
     }
 }
 
-impl VersionedFromString for SampleSet {
-    type ParseError = SampleSetParseError;
+impl VersionedFromStr for SampleSet {
+    type Err = SampleSetParseError;
 
-    fn from_str(s: &str, _: usize) -> Result<Option<Self>, Self::ParseError> {
+    fn from_str(s: &str, _: usize) -> Result<Option<Self>, Self::Err> {
         let s = s
             .parse()
             .map_err(|err| SampleSetParseError::ValueParseError {
@@ -514,10 +514,10 @@ pub struct Effects {
     pub no_first_barline_in_taiko_mania: bool,
 }
 
-impl VersionedFromString for Effects {
-    type ParseError = EffectsParseError;
+impl VersionedFromStr for Effects {
+    type Err = EffectsParseError;
 
-    fn from_str(s: &str, _: usize) -> Result<Option<Self>, Self::ParseError> {
+    fn from_str(s: &str, _: usize) -> Result<Option<Self>, Self::Err> {
         let s = s.parse::<u8>().map_err(|err| EffectsParseError {
             source: err,
             value: s.to_string(),
@@ -570,10 +570,10 @@ pub enum SampleIndex {
     Index(NonZeroUsize),
 }
 
-impl VersionedFromString for SampleIndex {
-    type ParseError = SampleIndexParseError;
+impl VersionedFromStr for SampleIndex {
+    type Err = SampleIndexParseError;
 
-    fn from_str(s: &str, _: usize) -> Result<Option<Self>, Self::ParseError> {
+    fn from_str(s: &str, _: usize) -> Result<Option<Self>, Self::Err> {
         SampleIndex::try_from(s.parse::<Integer>().map_err(|err| SampleIndexParseError {
             source: Box::new(err),
             value: s.to_string(),
@@ -625,10 +625,10 @@ impl Default for SampleIndex {
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Volume(u8);
 
-impl VersionedFromString for Volume {
-    type ParseError = VolumeError;
+impl VersionedFromStr for Volume {
+    type Err = VolumeError;
 
-    fn from_str(s: &str, _: usize) -> Result<Option<Self>, Self::ParseError> {
+    fn from_str(s: &str, _: usize) -> Result<Option<Self>, Self::Err> {
         let s: u8 = s.parse().map_err(|err| VolumeError::VolumeParseError {
             source: err,
             value: s.to_string(),

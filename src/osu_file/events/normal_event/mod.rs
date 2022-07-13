@@ -7,7 +7,7 @@ use nom::{
 };
 
 use crate::{
-    osu_file::{FilePath, Integer, Position, VersionedFromString, VersionedToString},
+    osu_file::{FilePath, Integer, Position, VersionedFromStr, VersionedToString},
     parsers::{comma, comma_field_type, consume_rest_type},
 };
 
@@ -45,10 +45,10 @@ pub struct Background {
 
 pub const BACKGROUND_HEADER: &str = "0";
 
-impl VersionedFromString for Background {
-    type ParseError = BackgroundParseError;
+impl VersionedFromStr for Background {
+    type Err = BackgroundParseError;
 
-    fn from_str(s: &str, _: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
+    fn from_str(s: &str, _: usize) -> std::result::Result<Option<Self>, Self::Err> {
         let (_, (start_time, (filename, position))) = preceded(
             tuple((
                 context(
@@ -115,10 +115,10 @@ impl Video {
 pub const VIDEO_HEADER: &str = "1";
 pub const VIDEO_HEADER_LONG: &str = "Video";
 
-impl VersionedFromString for Video {
-    type ParseError = VideoParseError;
+impl VersionedFromStr for Video {
+    type Err = VideoParseError;
 
-    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
+    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::Err> {
         let (_, (short_hand, start_time, (file_name, position))) = tuple((
             alt((
                 tag(VIDEO_HEADER).map(|_| true),
@@ -189,10 +189,10 @@ impl Break {
 pub const BREAK_HEADER: &str = "2";
 pub const BREAK_HEADER_LONG: &str = "Break";
 
-impl VersionedFromString for Break {
-    type ParseError = BreakParseError;
+impl VersionedFromStr for Break {
+    type Err = BreakParseError;
 
-    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
+    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::Err> {
         let (_, (short_hand, start_time, end_time)) = tuple((
             alt((
                 tag(BREAK_HEADER).map(|_| true),
@@ -244,10 +244,10 @@ pub struct ColourTransformation {
 
 pub const COLOUR_TRANSFORMATION_HEADER: &str = "3";
 
-impl VersionedFromString for ColourTransformation {
-    type ParseError = ColourTransformationParseError;
+impl VersionedFromStr for ColourTransformation {
+    type Err = ColourTransformationParseError;
 
-    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
+    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::Err> {
         let (_, (start_time, red, green, blue)) = tuple((
             preceded(
                 tuple((

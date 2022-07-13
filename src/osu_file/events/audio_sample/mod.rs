@@ -14,7 +14,7 @@ use nom::{
 use strum_macros::FromRepr;
 
 use crate::{
-    osu_file::{FilePath, Integer, VersionedFromString},
+    osu_file::{FilePath, Integer, VersionedFromStr},
     parsers::{comma, comma_field, comma_field_type},
 };
 
@@ -26,10 +26,10 @@ pub struct AudioSample {
     pub volume: Volume,
 }
 
-impl VersionedFromString for AudioSample {
-    type ParseError = AudioSampleParseError;
+impl VersionedFromStr for AudioSample {
+    type Err = AudioSampleParseError;
 
-    fn from_str(s: &str, version: usize) -> Result<Option<Self>, Self::ParseError> {
+    fn from_str(s: &str, version: usize) -> Result<Option<Self>, Self::Err> {
         let header = context(AudioSampleParseError::WrongEvent.into(), tag("Sample"));
         let time = context(
             AudioSampleParseError::InvalidTime.into(),
@@ -136,10 +136,10 @@ impl From<Volume> for u8 {
     }
 }
 
-impl VersionedFromString for Volume {
-    type ParseError = VolumeParseError;
+impl VersionedFromStr for Volume {
+    type Err = VolumeParseError;
 
-    fn from_str(s: &str, _: usize) -> Result<Option<Self>, Self::ParseError> {
+    fn from_str(s: &str, _: usize) -> Result<Option<Self>, Self::Err> {
         Ok(Some(Volume::try_from(s.parse::<u8>()?)?))
     }
 }

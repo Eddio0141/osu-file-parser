@@ -21,16 +21,16 @@ use super::Error;
 use super::Integer;
 use super::Position;
 use super::VersionedDefault;
-use super::VersionedFromString;
+use super::VersionedFromStr;
 use super::VersionedToString;
 
 #[derive(Clone, Debug, Default, Hash, PartialEq, Eq)]
 pub struct HitObjects(pub Vec<HitObject>);
 
-impl VersionedFromString for HitObjects {
-    type ParseError = Error<ParseError>;
+impl VersionedFromStr for HitObjects {
+    type Err = Error<ParseError>;
 
-    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
+    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::Err> {
         let mut hitobjects = Vec::new();
 
         for (line_index, s) in s.lines().enumerate() {
@@ -150,10 +150,10 @@ impl HitObject {
 
 const OLD_VERSION_TIME_OFFSET: Integer = 24;
 
-impl VersionedFromString for HitObject {
-    type ParseError = HitObjectParseError;
+impl VersionedFromStr for HitObject {
+    type Err = HitObjectParseError;
 
-    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
+    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::Err> {
         let hitsound = context(
             HitObjectParseError::InvalidHitSound.into(),
             comma_field_type(),

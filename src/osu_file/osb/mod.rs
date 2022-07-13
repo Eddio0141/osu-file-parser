@@ -13,7 +13,7 @@ use nom::{
 
 use crate::parsers::square_section;
 
-use super::{Error, Events, VersionedFromString, VersionedToString};
+use super::{Error, Events, VersionedFromStr, VersionedToString};
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Osb {
@@ -21,10 +21,10 @@ pub struct Osb {
     pub variables: Option<Vec<Variable>>,
 }
 
-impl VersionedFromString for Osb {
-    type ParseError = Error<ParseError>;
+impl VersionedFromStr for Osb {
+    type Err = Error<ParseError>;
 
-    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
+    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::Err> {
         if version < 14 {
             Ok(None)
         } else {
@@ -118,10 +118,10 @@ pub struct Variable {
     pub value: String,
 }
 
-impl VersionedFromString for Variable {
-    type ParseError = VariableParseError;
+impl VersionedFromStr for Variable {
+    type Err = VariableParseError;
 
-    fn from_str(s: &str, _: usize) -> Result<Option<Self>, Self::ParseError> {
+    fn from_str(s: &str, _: usize) -> Result<Option<Self>, Self::Err> {
         let header = tag("$");
         let value_name = take_till(|c| c == '=' || c == '\n');
         let equals = tag("=");

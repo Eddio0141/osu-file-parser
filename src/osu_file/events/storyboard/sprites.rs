@@ -8,7 +8,7 @@ use nom::sequence::{preceded, tuple};
 use nom::Parser;
 use strum_macros::{Display, EnumString, FromRepr};
 
-use crate::osu_file::{FilePath, Position, VersionedFromString, VersionedToString};
+use crate::osu_file::{FilePath, Position, VersionedFromStr, VersionedToString};
 use crate::parsers::{comma, comma_field, comma_field_type, consume_rest_type, nothing};
 
 use super::cmds::*;
@@ -179,10 +179,10 @@ impl Object {
 }
 
 // it will reject commands since push_cmd is used for that case
-impl VersionedFromString for Object {
-    type ParseError = ObjectParseError;
+impl VersionedFromStr for Object {
+    type Err = ObjectParseError;
 
-    fn from_str(s: &str, _: usize) -> Result<Option<Self>, Self::ParseError> {
+    fn from_str(s: &str, _: usize) -> Result<Option<Self>, Self::Err> {
         let layer = || {
             preceded(
                 context(ObjectParseError::MissingLayer.into(), comma()),

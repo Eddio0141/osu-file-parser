@@ -445,10 +445,10 @@ pub struct HitSample {
     pub filename: String,
 }
 
-impl VersionedFromString for HitSample {
-    type ParseError = HitSampleParseError;
+impl VersionedFromStr for HitSample {
+    type Err = HitSampleParseError;
 
-    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
+    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::Err> {
         // TODO does the 4th and 5th field exist from v12 onwards?
         let field = || take_while(|c| c != ':');
         let field_separator = || tag(":");

@@ -1,4 +1,4 @@
-use crate::osu_file::{VersionedDefault, VersionedFromString, VersionedToString, MIN_VERSION};
+use crate::osu_file::{VersionedDefault, VersionedFromStr, VersionedToString, MIN_VERSION};
 use strum_macros::{Display, EnumString, FromRepr};
 
 use super::error::*;
@@ -17,10 +17,10 @@ pub enum Countdown {
     Double,
 }
 
-impl VersionedFromString for Countdown {
-    type ParseError = ParseCountdownSpeedError;
+impl VersionedFromStr for Countdown {
+    type Err = ParseCountdownSpeedError;
 
-    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
+    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::Err> {
         match version {
             MIN_VERSION..=4 => Ok(None),
             _ => Countdown::from_repr(s.parse()?)
@@ -69,10 +69,10 @@ impl Default for SampleSet {
     }
 }
 
-impl VersionedFromString for SampleSet {
-    type ParseError = strum::ParseError;
+impl VersionedFromStr for SampleSet {
+    type Err = strum::ParseError;
 
-    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
+    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::Err> {
         match version {
             3 => Ok(None),
             4..=13 => Ok(Some(s.parse()?)),
@@ -122,10 +122,10 @@ pub enum Mode {
     Mania,
 }
 
-impl VersionedFromString for Mode {
-    type ParseError = ParseGameModeError;
+impl VersionedFromStr for Mode {
+    type Err = ParseGameModeError;
 
-    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
+    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::Err> {
         let mode = Mode::from_repr(s.parse()?).ok_or(ParseGameModeError::UnknownType)?;
 
         let mode = match version {
@@ -167,10 +167,10 @@ impl Default for OverlayPosition {
     }
 }
 
-impl VersionedFromString for OverlayPosition {
-    type ParseError = strum::ParseError;
+impl VersionedFromStr for OverlayPosition {
+    type Err = strum::ParseError;
 
-    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
+    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::Err> {
         match version {
             MIN_VERSION..=13 => Ok(None),
             _ => Ok(Some(s.parse()?)),

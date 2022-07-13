@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use strum_macros::{Display, EnumString, FromRepr, IntoStaticStr};
 
-use crate::osu_file::VersionedFromString;
+use crate::osu_file::VersionedFromStr;
 
 use super::error::*;
 
@@ -20,10 +20,10 @@ pub enum TriggerType {
     Failing,
 }
 
-impl VersionedFromString for TriggerType {
-    type ParseError = TriggerTypeParseError;
+impl VersionedFromStr for TriggerType {
+    type Err = TriggerTypeParseError;
 
-    fn from_str(s: &str, _: usize) -> Result<Option<Self>, Self::ParseError> {
+    fn from_str(s: &str, _: usize) -> Result<Option<Self>, Self::Err> {
         let s = s.trim();
 
         match s.strip_prefix("HitSound") {

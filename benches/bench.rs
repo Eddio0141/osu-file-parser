@@ -10,7 +10,7 @@ use osu_file_parser::osu_file::{
         Event,
     },
     hitobjects::HitObject,
-    OsuFile, Position, VersionedFromString, VersionedToString,
+    OsuFile, Position, VersionedFromStr, VersionedToString,
 };
 
 fn storyboard_cmds_parse(c: &mut Criterion) {

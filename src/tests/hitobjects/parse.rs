@@ -1,4 +1,4 @@
-use crate::osu_file::{hitobjects::HitObject, VersionedFromString, VersionedToString};
+use crate::osu_file::{hitobjects::HitObject, VersionedFromStr, VersionedToString};
 use pretty_assertions::assert_eq;
 
 #[test]

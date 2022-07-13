@@ -16,16 +16,16 @@ use crate::parsers::comma;
 
 pub use self::error::*;
 
-use super::{Error, VersionedDefault, VersionedFromString, VersionedToString, MIN_VERSION};
+use super::{Error, VersionedDefault, VersionedFromStr, VersionedToString, MIN_VERSION};
 use crate::helper::trait_ext::MapStringNewLine;
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Colours(pub Vec<Colour>);
 
-impl VersionedFromString for Colours {
-    type ParseError = Error<ParseError>;
+impl VersionedFromStr for Colours {
+    type Err = Error<ParseError>;
 
-    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
+    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::Err> {
         match version {
             MIN_VERSION..=4 => Ok(None),
             _ => {
@@ -77,10 +77,10 @@ pub enum Colour {
     SliderBorder(Rgb),
 }
 
-impl VersionedFromString for Colour {
-    type ParseError = ColourParseError;
+impl VersionedFromStr for Colour {
+    type Err = ColourParseError;
 
-    fn from_str(s: &str, _: usize) -> Result<Option<Self>, Self::ParseError> {
+    fn from_str(s: &str, _: usize) -> Result<Option<Self>, Self::Err> {
         let separator = || tuple((space0, tag(":"), space0));
         let combo_type = tag("Combo");
         let combo_count = map_res(digit1, |s: &str| s.parse());

@@ -165,10 +165,10 @@ pub trait VersionedToString {
     fn to_string(&self, version: usize) -> Option<String>;
 }
 
-pub trait VersionedFromString: Sized {
-    type ParseError;
+pub trait VersionedFromStr: Sized {
+    type Err;
 
-    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError>;
+    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::Err>;
 }
 
 pub trait VersionedDefault: Sized {

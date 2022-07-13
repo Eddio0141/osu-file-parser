@@ -11,7 +11,7 @@ use crate::osu_file::events::storyboard::types::*;
 use crate::osu_file::events::Event;
 use crate::osu_file::types::Position;
 use crate::osu_file::Events;
-use crate::osu_file::{VersionedFromString, VersionedToString};
+use crate::osu_file::{VersionedFromStr, VersionedToString};
 
 use pretty_assertions::assert_eq;
 

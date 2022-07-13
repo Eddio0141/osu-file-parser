@@ -1,4 +1,4 @@
-use crate::osu_file::{events::storyboard::cmds::Command, VersionedFromString};
+use crate::osu_file::{events::storyboard::cmds::Command, VersionedFromStr};
 
 #[test]
 fn storyboard_cmd_errors() {

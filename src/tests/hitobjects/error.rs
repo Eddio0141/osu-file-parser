@@ -1,4 +1,4 @@
-use crate::osu_file::{hitobjects::HitObject, VersionedFromString};
+use crate::osu_file::{hitobjects::HitObject, VersionedFromStr};
 
 #[test]
 fn invalid_int() {

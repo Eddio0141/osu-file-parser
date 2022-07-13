@@ -3,7 +3,7 @@ use std::fmt::Display;
 use super::error::*;
 use super::types::*;
 use crate::osu_file::Integer;
-use crate::osu_file::VersionedFromString;
+use crate::osu_file::VersionedFromStr;
 use crate::parsers::*;
 use nom::branch::alt;
 use nom::bytes::complete::{tag, take_while};
@@ -456,10 +456,10 @@ impl Display for Colours {
     }
 }
 
-impl VersionedFromString for Command {
-    type ParseError = CommandParseError;
+impl VersionedFromStr for Command {
+    type Err = CommandParseError;
 
-    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
+    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::Err> {
         let indentation = take_while(|c: char| c == ' ' || c == '_');
         let start_time = || {
             preceded(

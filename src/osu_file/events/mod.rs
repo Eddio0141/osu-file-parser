@@ -15,7 +15,7 @@ use crate::parsers::comma;
 use self::storyboard::cmds::Command;
 use self::storyboard::{error::ObjectParseError, sprites::Object};
 
-use super::{types::Error, Integer, VersionedDefault, VersionedFromString, VersionedToString};
+use super::{types::Error, Integer, VersionedDefault, VersionedFromStr, VersionedToString};
 
 pub use self::audio_sample::*;
 pub use self::error::*;
@@ -26,10 +26,10 @@ pub struct Events(pub Vec<Event>);
 
 const OLD_VERSION_TIME_OFFSET: Integer = 24;
 
-impl VersionedFromString for Events {
-    type ParseError = Error<ParseError>;
+impl VersionedFromStr for Events {
+    type Err = Error<ParseError>;
 
-    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
+    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::Err> {
         let mut events = Events(Vec::new());
 
         #[derive(Clone)]
