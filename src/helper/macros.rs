@@ -15,13 +15,13 @@ macro_rules! versioned_inner {
             }
         }
 
-        impl crate::osu_file::types::VersionedFromString for $name {
-            type ParseError = $error_from_string;
+        impl crate::osu_file::types::VersionedFromStr for $name {
+            type Err = $error_from_string;
 
             fn from_str(
                 $s_from_string: &str,
                 $version_from_string: usize,
-            ) -> std::result::Result<Option<Self>, Self::ParseError> {
+            ) -> std::result::Result<Option<Self>, Self::Err> {
                 $inner_from_string
             }
         }
@@ -163,7 +163,7 @@ macro_rules! general_section_inner {
                     match name {
                         $(
                             stringify!($field_type) => {
-                                section.$field = crate::osu_file::types::Error::new_from_result_into(<$field_type as crate::osu_file::types::VersionedFromString>::from_str(value, version), line_count)?;
+                                section.$field = crate::osu_file::types::Error::new_from_result_into(<$field_type as crate::osu_file::types::VersionedFromStr>::from_str(value, version), line_count)?;
                                 section.spacing.$field = Some(ws.len());
                             }
                         )*
