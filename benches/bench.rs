@@ -180,7 +180,7 @@ fn storyboard_loop_cmd_to_string(c: &mut Criterion) {
         },
     };
 
-    let event = Event::Storyboard(Object {
+    let event = Event::StoryboardObject(Object {
         layer: Layer::Background,
         origin: Origin::BottomCentre,
         position: Position::default(),

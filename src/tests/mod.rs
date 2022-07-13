@@ -266,7 +266,7 @@ fn events_parse_v14() {
 #[test]
 fn colour_parse_error() {
     let i = "Combo1: foo";
-    let err = i.parse::<Colour>().unwrap_err();
+    let err = Colour::from_str(i, 14).unwrap_err();
 
     assert_eq!(err.to_string(), "Invalid red value");
 }
