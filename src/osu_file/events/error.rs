@@ -1,8 +1,8 @@
 use thiserror::Error;
 
 use super::{
-    storyboard::error::*, BackgroundParseError, BreakParseError, ColourTransformationParseError,
-    VideoParseError,
+    storyboard::error::*, AudioSampleParseError, BackgroundParseError, BreakParseError,
+    ColourTransformationParseError, VideoParseError,
 };
 
 /// Errors used when there was a problem parsing an [`Event`][super::Event] from a `str`.
@@ -33,6 +33,8 @@ pub enum ParseError {
     /// There was a problem parsing some `storyboard` element.
     #[error(transparent)]
     StoryboardObjectParseError(#[from] ObjectParseError),
+    #[error(transparent)]
+    AudioSampleParseError(#[from] AudioSampleParseError),
     /// Event doesn't exist on the version.
     #[error("Event type doesn't exist on version")]
     EventNotExistOnVersion,
