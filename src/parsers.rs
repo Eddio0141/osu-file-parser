@@ -11,6 +11,8 @@ use nom::{
     IResult,
 };
 
+use crate::osu_file::VersionedFromString;
+
 // pub fn leading_ws<'a, F: 'a, O, E: ParseError<&'a str>>(
 //     inner: F,
 // ) -> impl FnMut(&'a str) -> IResult<&'a str, O, E>
@@ -87,12 +89,36 @@ where
     map_res(comma_field(), |i| i.parse())
 }
 
+pub fn comma_field_versioned_type<'a, E, T>(
+    version: usize,
+) -> impl FnMut(&'a str) -> IResult<&str, T, E>
+where
+    E: ParseError<&'a str> + FromExternalError<&'a str, <T as VersionedFromString>::ParseError>,
+    T: VersionedFromString,
+{
+    map_res(comma_field(), move |i| {
+        T::from_str(i, version).map(|i| i.unwrap())
+    })
+}
+
 pub fn consume_rest_type<'a, E, T>() -> impl FnMut(&'a str) -> IResult<&str, T, E>
 where
     E: ParseError<&'a str> + FromExternalError<&'a str, <T as FromStr>::Err>,
     T: FromStr,
 {
     map_res(rest, |s: &str| s.parse())
+}
+
+pub fn consume_rest_versioned_type<'a, E, T>(
+    version: usize,
+) -> impl FnMut(&'a str) -> IResult<&str, T, E>
+where
+    E: ParseError<&'a str> + FromExternalError<&'a str, <T as VersionedFromString>::ParseError>,
+    T: VersionedFromString,
+{
+    map_res(rest, move |s: &str| {
+        T::from_str(s, version).map(|s| s.unwrap())
+    })
 }
 
 pub fn nothing<'a, E>() -> impl FnMut(&'a str) -> IResult<&str, &str, E>

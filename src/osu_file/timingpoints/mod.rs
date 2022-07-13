@@ -1,6 +1,6 @@
 pub mod error;
 
-use std::{fmt::Display, num::NonZeroUsize, str::FromStr};
+use std::{fmt::Display, num::NonZeroUsize};
 
 use nom::{
     branch::alt,
@@ -295,7 +295,7 @@ impl VersionedFromString for TimingPoint {
                             context(TimingPointParseError::MissingSampleSet.into(), comma()),
                             context(
                                 TimingPointParseError::InvalidSampleSet.into(),
-                                comma_field_type(),
+                                comma_field_versioned_type(version),
                             ),
                         ),
                         preceded(
@@ -305,7 +305,7 @@ impl VersionedFromString for TimingPoint {
                                     verify(success(0), |_| version == 4),
                                     context(
                                         TimingPointParseError::InvalidSampleIndex.into(),
-                                        cut(consume_rest_type()),
+                                        cut(consume_rest_versioned_type(version)),
                                     ),
                                 )
                                 .map(|sample_index| {
@@ -317,7 +317,7 @@ impl VersionedFromString for TimingPoint {
                                 tuple((
                                     context(
                                         TimingPointParseError::InvalidSampleIndex.into(),
-                                        comma_field_type(),
+                                        comma_field_versioned_type(version),
                                     ),
                                     preceded(
                                         context(
@@ -329,7 +329,7 @@ impl VersionedFromString for TimingPoint {
                                                 verify(success(0), |_| version == 5),
                                                 context(
                                                     TimingPointParseError::InvalidVolume.into(),
-                                                    cut(consume_rest_type()),
+                                                    cut(consume_rest_versioned_type(version)),
                                                 ),
                                             )
                                             .map(
@@ -340,7 +340,7 @@ impl VersionedFromString for TimingPoint {
                                             tuple((
                                                 context(
                                                     TimingPointParseError::InvalidVolume.into(),
-                                                    comma_field_type(),
+                                                    comma_field_versioned_type(version),
                                                 ),
                                                 preceded(
                                                     context(
@@ -363,7 +363,7 @@ impl VersionedFromString for TimingPoint {
                                                     context(
                                                         TimingPointParseError::InvalidEffects
                                                             .into(),
-                                                        consume_rest_type(),
+                                                        consume_rest_versioned_type(version),
                                                     ),
                                                 ),
                                             ))
@@ -483,10 +483,10 @@ impl Default for SampleSet {
     }
 }
 
-impl FromStr for SampleSet {
-    type Err = SampleSetParseError;
+impl VersionedFromString for SampleSet {
+    type ParseError = SampleSetParseError;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(s: &str, _: usize) -> Result<Option<Self>, Self::ParseError> {
         let s = s
             .parse()
             .map_err(|err| SampleSetParseError::ValueParseError {
@@ -494,7 +494,9 @@ impl FromStr for SampleSet {
                 value: s.to_string(),
             })?;
 
-        SampleSet::from_repr(s).ok_or(SampleSetParseError::UnknownSampleSet(s))
+        SampleSet::from_repr(s)
+            .ok_or(SampleSetParseError::UnknownSampleSet(s))
+            .map(Some)
     }
 }
 
@@ -512,16 +514,16 @@ pub struct Effects {
     pub no_first_barline_in_taiko_mania: bool,
 }
 
-impl FromStr for Effects {
-    type Err = EffectsParseError;
+impl VersionedFromString for Effects {
+    type ParseError = EffectsParseError;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(s: &str, _: usize) -> Result<Option<Self>, Self::ParseError> {
         let s = s.parse::<u8>().map_err(|err| EffectsParseError {
             source: err,
             value: s.to_string(),
         })?;
 
-        Ok(Self::from(s))
+        Ok(Some(Self::from(s)))
     }
 }
 
@@ -568,14 +570,15 @@ pub enum SampleIndex {
     Index(NonZeroUsize),
 }
 
-impl FromStr for SampleIndex {
-    type Err = SampleIndexParseError;
+impl VersionedFromString for SampleIndex {
+    type ParseError = SampleIndexParseError;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(s: &str, _: usize) -> Result<Option<Self>, Self::ParseError> {
         SampleIndex::try_from(s.parse::<Integer>().map_err(|err| SampleIndexParseError {
             source: Box::new(err),
             value: s.to_string(),
         })?)
+        .map(Some)
     }
 }
 
@@ -622,15 +625,15 @@ impl Default for SampleIndex {
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Volume(u8);
 
-impl FromStr for Volume {
-    type Err = VolumeError;
+impl VersionedFromString for Volume {
+    type ParseError = VolumeError;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(s: &str, _: usize) -> Result<Option<Self>, Self::ParseError> {
         let s: u8 = s.parse().map_err(|err| VolumeError::VolumeParseError {
             source: err,
             value: s.to_string(),
         })?;
-        Volume::try_from(s)
+        Volume::try_from(s).map(Some)
     }
 }
 

@@ -4,7 +4,7 @@ pub mod normal_event;
 pub mod storyboard;
 
 use nom::branch::alt;
-use nom::combinator::{cut, eof, fail, peek};
+use nom::combinator::{cut, eof, peek, success};
 use nom::sequence::tuple;
 use nom::Parser;
 use nom::{bytes::complete::tag, combinator::rest, sequence::preceded};
@@ -32,6 +32,7 @@ impl VersionedFromString for Events {
     fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::ParseError> {
         let mut events = Events(Vec::new());
 
+        #[derive(Clone)]
         enum NormalEventType {
             Background,
             Video,
@@ -112,7 +113,7 @@ impl VersionedFromString for Events {
                             video(),
                             break_(),
                             colour_transformation(),
-                            fail.map(|_: &str| NormalEventType::Other),
+                            success(NormalEventType::Other),
                         ))(line)
                         .unwrap();
 

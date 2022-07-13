@@ -1,6 +1,6 @@
 pub mod error;
 
-use std::{fmt::Display, str::FromStr};
+use std::fmt::Display;
 
 pub use error::*;
 use nom::{
@@ -53,8 +53,10 @@ impl VersionedFromString for Osb {
                         let mut vars = Vec::new();
                         for (i, line) in section.lines().enumerate() {
                             if !line.is_empty() {
-                                let variable =
-                                    Error::new_from_result_into(line.parse(), line_number + i)?;
+                                let variable = Error::new_from_result_into(
+                                    Variable::from_str(line, version).map(|v| v.unwrap()),
+                                    line_number + i,
+                                )?;
 
                                 vars.push(variable);
                             }
@@ -116,10 +118,10 @@ pub struct Variable {
     pub value: String,
 }
 
-impl FromStr for Variable {
-    type Err = VariableParseError;
+impl VersionedFromString for Variable {
+    type ParseError = VariableParseError;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(s: &str, _: usize) -> Result<Option<Self>, Self::ParseError> {
         let header = tag("$");
         let value_name = take_till(|c| c == '=' || c == '\n');
         let equals = tag("=");
@@ -136,10 +138,10 @@ impl FromStr for Variable {
             ),
         ))(s)?;
 
-        Ok(Variable {
+        Ok(Some(Variable {
             name: name.to_string(),
             value: value.to_string(),
-        })
+        }))
     }
 }
 
