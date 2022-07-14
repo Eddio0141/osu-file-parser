@@ -478,7 +478,6 @@ impl VersionedFromStr for LoopType {
     }
 }
 
-// TODO all default to versioned default
 impl VersionedDefault for LoopType {
     fn default(_: Version) -> Option<Self> {
         Some(Self::LoopForever)
