@@ -69,24 +69,16 @@ impl VersionedFromStr for EdgeSet {
         let s = s.split(':').collect::<Vec<_>>();
 
         if s.len() > 2 {
-            return Err(ColonSetParseError::MoreThanTwoItems(s[2..].join(":")));
+            return Err(ColonSetParseError::MoreThanTwoItems);
         }
 
         let normal_set = s.get(0).ok_or(ColonSetParseError::MissingFirstItem)?;
         let addition_set = s.get(1).ok_or(ColonSetParseError::MissingSecondItem)?;
 
-        let normal_set = SampleSet::from_str(normal_set, version).map_err(|err| {
-            ColonSetParseError::ValueParseError {
-                source: Box::new(err),
-                value: normal_set.to_string(),
-            }
-        })?;
-        let addition_set = SampleSet::from_str(addition_set, version).map_err(|err| {
-            ColonSetParseError::ValueParseError {
-                source: Box::new(err),
-                value: addition_set.to_string(),
-            }
-        })?;
+        let normal_set = SampleSet::from_str(normal_set, version)
+            .map_err(|_| ColonSetParseError::FirstItemParseError)?;
+        let addition_set = SampleSet::from_str(addition_set, version)
+            .map_err(|_| ColonSetParseError::SecondItemParseError)?;
 
         Ok(Some(Self {
             normal_set: normal_set.unwrap(),
@@ -116,7 +108,7 @@ impl VersionedFromStr for CurvePoint {
         let s = s.split(':').collect::<Vec<_>>();
 
         if s.len() > 2 {
-            return Err(ColonSetParseError::MoreThanTwoItems(s[2..].join(":")));
+            return Err(ColonSetParseError::MoreThanTwoItems);
         }
 
         let x = s.get(0).ok_or(ColonSetParseError::MissingFirstItem)?;
@@ -124,16 +116,10 @@ impl VersionedFromStr for CurvePoint {
 
         let x = x
             .parse()
-            .map_err(|err| ColonSetParseError::ValueParseError {
-                source: Box::new(err),
-                value: x.to_string(),
-            })?;
+            .map_err(|_| ColonSetParseError::FirstItemParseError)?;
         let y = y
             .parse()
-            .map_err(|err| ColonSetParseError::ValueParseError {
-                source: Box::new(err),
-                value: y.to_string(),
-            })?;
+            .map_err(|_| ColonSetParseError::SecondItemParseError)?;
 
         let position = Position { x, y };
 
@@ -565,10 +551,11 @@ impl VersionedFromStr for HitSample {
                 )),
             ))
             .map(|(normal_set, addition_set, index, volume, filename)| {
-                let normal_set = normal_set.unwrap_or(SampleSet::default(version).unwrap());
-                let addition_set = addition_set.unwrap_or(SampleSet::default(version).unwrap());
-                let index = index.unwrap_or(SampleIndex::default(version).unwrap());
-                let volume = volume.unwrap_or(Volume::default(version).unwrap());
+                let normal_set = normal_set.unwrap_or_else(|| SampleSet::default(version).unwrap());
+                let addition_set =
+                    addition_set.unwrap_or_else(|| SampleSet::default(version).unwrap());
+                let index = index.unwrap_or_else(|| SampleIndex::default(version).unwrap());
+                let volume = volume.unwrap_or_else(|| Volume::default(version).unwrap());
                 let filename = filename.unwrap_or_default().to_string();
 
                 HitSample {
