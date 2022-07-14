@@ -99,12 +99,6 @@ impl VersionedToString for SampleSet {
     }
 }
 
-impl Default for SampleSet {
-    fn default() -> Self {
-        SampleSet::Normal
-    }
-}
-
 impl VersionedFromStr for SampleSet {
     type Err = ParseSampleSetError;
 
@@ -216,12 +210,6 @@ impl VersionedToString for OverlayPosition {
                 .to_string(),
             ),
         }
-    }
-}
-
-impl Default for OverlayPosition {
-    fn default() -> Self {
-        Self::NoChange
     }
 }
 

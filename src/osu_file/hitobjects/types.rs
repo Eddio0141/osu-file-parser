@@ -53,7 +53,7 @@ impl VersionedFrom<ComboSkipCount> for u8 {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Default, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 /// Sample sets used for the `edgeSounds`.
 pub struct EdgeSet {
     /// Sample set of the normal sound.
@@ -147,7 +147,6 @@ impl VersionedToString for CurvePoint {
     }
 }
 
-// TODO all enum funcs that converts to string or usize should be moved to the impl of the enum
 /// Used for `normal_set` and `addition_set` for the `[hitobject]`[super::HitObject].
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[non_exhaustive]
@@ -162,9 +161,9 @@ pub enum SampleSet {
     DrumSet,
 }
 
-impl Default for SampleSet {
-    fn default() -> Self {
-        Self::NoCustomSampleSet
+impl VersionedDefault for SampleSet {
+    fn default(_: Version) -> Option<Self> {
+        Some(Self::NoCustomSampleSet)
     }
 }
 
@@ -190,9 +189,15 @@ impl VersionedFromStr for SampleSet {
     }
 }
 
-#[derive(Default, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, Debug)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, Debug)]
 /// Volume of the sample from `1` to `100`. If [volume][Self::volume] returns `None`, the timing point's volume will be used instead.
 pub struct Volume(Option<u8>);
+
+impl VersionedDefault for Volume {
+    fn default(_: Version) -> Option<Self> {
+        Some(Volume(None))
+    }
+}
 
 impl VersionedFrom<Volume> for Integer {
     fn from(volume: Volume, _: Version) -> Option<Self> {
@@ -418,9 +423,9 @@ pub enum SampleIndex {
     Index(NonZeroUsize),
 }
 
-impl Default for SampleIndex {
-    fn default() -> Self {
-        Self::TimingPointSampleIndex
+impl VersionedDefault for SampleIndex {
+    fn default(_: Version) -> Option<Self> {
+        Some(Self::TimingPointSampleIndex)
     }
 }
 
@@ -464,7 +469,7 @@ impl VersionedFromStr for SampleIndex {
     }
 }
 
-#[derive(Default, Clone, Debug, Hash, PartialEq, Eq)]
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
 /// Information about which samples are played when the object is hit.
 /// It is closely related to [`hitSound`][HitSound].
 pub struct HitSample {
@@ -560,10 +565,10 @@ impl VersionedFromStr for HitSample {
                 )),
             ))
             .map(|(normal_set, addition_set, index, volume, filename)| {
-                let normal_set = normal_set.unwrap_or_default();
-                let addition_set = addition_set.unwrap_or_default();
-                let index = index.unwrap_or_default();
-                let volume = volume.unwrap_or_default();
+                let normal_set = normal_set.unwrap_or(SampleSet::default(version).unwrap());
+                let addition_set = addition_set.unwrap_or(SampleSet::default(version).unwrap());
+                let index = index.unwrap_or(SampleIndex::default(version).unwrap());
+                let volume = volume.unwrap_or(Volume::default(version).unwrap());
                 let filename = filename.unwrap_or_default().to_string();
 
                 HitSample {
@@ -604,7 +609,13 @@ impl VersionedToString for HitSample {
 }
 
 impl VersionedDefault for HitSample {
-    fn default(_: Version) -> Option<Self> {
-        Some(<Self as Default>::default())
+    fn default(version: Version) -> Option<Self> {
+        Some(HitSample {
+            normal_set: SampleSet::default(version).unwrap(),
+            addition_set: SampleSet::default(version).unwrap(),
+            index: SampleIndex::default(version).unwrap(),
+            volume: Volume::default(version).unwrap(),
+            filename: "".to_string(),
+        })
     }
 }

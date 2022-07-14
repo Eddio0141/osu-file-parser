@@ -76,7 +76,7 @@ impl VersionedDefault for TimingPoints {
 /// Struct representing a timing point.
 /// Each timing point influences a specified portion of the map, commonly called a `timing section`.
 /// The .osu file format requires these to be sorted in chronological order.
-#[derive(Default, Clone, Hash, PartialEq, Eq, Debug)]
+#[derive(Clone, Hash, PartialEq, Eq, Debug)]
 pub struct TimingPoint {
     // for some reason decimal is parsed anyway in the beatmap???
     time: Decimal,
@@ -484,18 +484,6 @@ impl VersionedToString for TimingPoint {
     }
 }
 
-impl VersionedDefault for TimingPoint {
-    fn default(version: Version) -> Option<Self> {
-        let mut default = <Self as Default>::default();
-
-        if (3..=4).contains(&version) {
-            default.time -= OLD_VERSION_TIME_OFFSET;
-        }
-
-        Some(default)
-    }
-}
-
 // TODO figure out default
 /// Default sample set for hitobjects.
 #[derive(Clone, Copy, Hash, PartialEq, Eq, Debug)]
@@ -523,10 +511,9 @@ impl VersionedFromRepr for SampleSet {
     }
 }
 
-// TODO all default into versioned default
-impl Default for SampleSet {
-    fn default() -> Self {
-        Self::BeatmapDefault
+impl VersionedDefault for SampleSet {
+    fn default(_: Version) -> Option<Self> {
+        Some(Self::BeatmapDefault)
     }
 }
 
@@ -666,9 +653,9 @@ impl VersionedToString for SampleIndex {
     }
 }
 
-impl Default for SampleIndex {
-    fn default() -> Self {
-        Self::OsuDefaultHitsounds
+impl VersionedDefault for SampleIndex {
+    fn default(_: Version) -> Option<Self> {
+        Some(Self::OsuDefaultHitsounds)
     }
 }
 
