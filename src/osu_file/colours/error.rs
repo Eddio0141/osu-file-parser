@@ -17,6 +17,18 @@ pub enum ColourParseError {
     /// Invalid colon separator.
     #[error("Invalid colon separator")]
     InvalidColonSeparator,
+    #[error(transparent)]
+    #[strum(disabled)]
+    RgbParseError(#[from] RgbParseError),
+    /// Unknown colour type.
+    #[error("Unknown colour type")]
+    UnknownColourType,
+}
+
+verbose_error_to_error!(ColourParseError);
+
+#[derive(Debug, Error, EnumString, IntoStaticStr)]
+pub enum RgbParseError {
     /// Invalid red value.
     #[error("Invalid red value")]
     InvalidRed,
@@ -32,9 +44,6 @@ pub enum ColourParseError {
     /// Missing blue value.
     #[error("Missing blue value")]
     MissingBlue,
-    /// Unknown colour type.
-    #[error("Unknown colour type")]
-    UnknownColourType,
 }
 
-verbose_error_to_error!(ColourParseError);
+verbose_error_to_error!(RgbParseError);

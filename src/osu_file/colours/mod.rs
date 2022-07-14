@@ -1,4 +1,5 @@
 pub mod error;
+pub mod types;
 
 use std::fmt::Display;
 
@@ -6,19 +7,21 @@ use nom::{
     branch::alt,
     bytes::complete::tag,
     character::complete::{digit1, space0},
-    combinator::{cut, fail, map_res},
+    combinator::{cut, fail, map_res, rest},
     error::context,
     sequence::{preceded, tuple},
-    Parser,
+    Finish, Parser,
 };
 
 use crate::parsers::comma;
 
 pub use self::error::*;
+pub use self::types::*;
 
 use super::{Error, VersionedDefault, VersionedFromStr, VersionedToString, MIN_VERSION};
 use crate::helper::trait_ext::MapStringNewLine;
 
+// TODO only do Versioned traits on the top most level of the structs
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Colours(pub Vec<Colour>);
 
@@ -86,29 +89,8 @@ impl VersionedFromStr for Colour {
         let combo_count = map_res(digit1, |s: &str| s.parse());
         let slider_track_override_type = tag("SliderTrackOverride");
         let slider_border_type = tag("SliderBorder");
-        let byte = || map_res(digit1, |s: &str| s.parse());
-        let rgb = || {
-            tuple((
-                preceded(space0, context(ColourParseError::InvalidRed.into(), byte())),
-                preceded(
-                    tuple((
-                        space0,
-                        context(ColourParseError::MissingGreen.into(), comma()),
-                        space0,
-                    )),
-                    context(ColourParseError::InvalidGreen.into(), byte()),
-                ),
-                preceded(
-                    tuple((
-                        space0,
-                        context(ColourParseError::MissingBlue.into(), comma()),
-                        space0,
-                    )),
-                    context(ColourParseError::InvalidBlue.into(), byte()),
-                ),
-            ))
-            .map(|(red, green, blue)| Rgb { red, green, blue })
-        };
+        let rgb_parse_error = "rgb_parse_error";
+        let rgb = || context(rgb_parse_error, cut(map_res(rest, |s: &str| s.parse())));
 
         let combo = tuple((
             preceded(
@@ -146,14 +128,32 @@ impl VersionedFromStr for Colour {
         )
         .map(Colour::SliderBorder);
 
-        let (_, colour) = alt((
+        let colour_res: Result<(_, _), nom::error::VerboseError<&str>> = alt((
             combo,
             slide_track_override,
             slider_border,
             context(ColourParseError::UnknownColourType.into(), fail),
-        ))(s)?;
+        ))(s)
+        .finish();
 
-        Ok(Some(colour))
+        match colour_res {
+            Ok((_, colour)) => Ok(Some(colour)),
+            Err(e) => {
+                for (i, e) in &e.errors {
+                    if let nom::error::VerboseErrorKind::Context(context) = e {
+                        if context == &rgb_parse_error {
+                            // re-parse to get actual error message
+                            // TODO test this
+                            let err = Colour::from_str(i, MIN_VERSION).unwrap_err();
+                            return Err(err);
+                        }
+                    }
+                }
+
+                // else just return the error
+                Err(nom::Err::Error(e).into())
+            }
+        }
     }
 }
 
@@ -166,22 +166,5 @@ impl Display for Colour {
         };
 
         write!(f, "{colour_str}")
-    }
-}
-
-#[derive(Default, Clone, Copy, Hash, Debug, PartialEq, Eq)]
-/// Struct representing the RGB colours with each colour having value from 0 ~ 255.
-pub struct Rgb {
-    /// Red colour.
-    pub red: u8,
-    /// Green colour.
-    pub green: u8,
-    /// Blue colour.
-    pub blue: u8,
-}
-
-impl Display for Rgb {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{},{},{}", self.red, self.green, self.blue)
     }
 }
