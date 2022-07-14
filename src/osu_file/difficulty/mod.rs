@@ -4,7 +4,7 @@ use rust_decimal::Decimal;
 
 use crate::helper::macros::*;
 
-pub use self::error::*;
+pub use error::*;
 
 versioned_field!(HPDrainRate, Decimal, no_versions, |s| { s.parse() } -> rust_decimal::Error,,);
 versioned_field!(CircleSize, Decimal, no_versions, |s| { s.parse() } -> rust_decimal::Error,,);

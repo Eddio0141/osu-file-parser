@@ -11,7 +11,7 @@ use crate::{
     parsers::{comma, comma_field_type, consume_rest_type},
 };
 
-pub use self::error::*;
+pub use error::*;
 
 use super::OLD_VERSION_TIME_OFFSET;
 

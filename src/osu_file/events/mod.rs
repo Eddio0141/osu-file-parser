@@ -18,9 +18,9 @@ use self::storyboard::{error::ParseObjectError, sprites::Object};
 use super::Version;
 use super::{types::Error, Integer, VersionedDefault, VersionedFromStr, VersionedToString};
 
-pub use self::audio_sample::*;
-pub use self::error::*;
-pub use self::normal_event::*;
+pub use audio_sample::*;
+pub use error::*;
+pub use normal_event::*;
 
 #[derive(Default, Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Events(pub Vec<Event>);

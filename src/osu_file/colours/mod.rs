@@ -13,8 +13,8 @@ use nom::{
 
 use crate::parsers::comma;
 
-pub use self::error::*;
-pub use self::types::*;
+pub use error::*;
+pub use types::*;
 
 use super::{Error, Version, VersionedDefault, VersionedFromStr, VersionedToString, MIN_VERSION};
 

@@ -10,7 +10,7 @@ use crate::parsers::comma;
 use super::Integer;
 use crate::helper::macros::*;
 
-pub use self::error::*;
+pub use error::*;
 
 versioned_field!(Bookmarks, Vec<Integer>, no_versions, |s| {
     let bookmark = map_res(take_till(|c| c == ','), |s: &str| s.parse::<Integer>());

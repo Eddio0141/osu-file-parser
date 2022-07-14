@@ -9,7 +9,7 @@ use nom::{
 use super::Integer;
 use crate::helper::macros::*;
 
-pub use self::error::*;
+pub use error::*;
 
 versioned_field!(Title, String, no_versions, |s| { Ok(s.to_string()) } -> (),,);
 versioned_field!(TitleUnicode, String, no_versions, |s| { Ok(s.to_string()) } -> (),,);

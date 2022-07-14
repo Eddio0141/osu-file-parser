@@ -10,12 +10,12 @@ use nom::sequence::*;
 use nom::*;
 use rust_decimal::Decimal;
 
-use self::types::*;
 use crate::helper::trait_ext::MapStringNewLineVersion;
 use crate::helper::*;
 use crate::parsers::*;
 
-pub use self::error::*;
+pub use error::*;
+pub use types::*;
 
 use super::Error;
 use super::Integer;

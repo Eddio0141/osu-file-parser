@@ -13,8 +13,8 @@ use crate::helper::macros::*;
 
 use crate::osu_file::Integer;
 
-pub use self::error::*;
-pub use self::types::*;
+pub use error::*;
+pub use types::*;
 
 versioned_field!(AudioFilename, PathBuf, no_versions, |s| { Ok(PathBuf::from(s)) } -> (), |v| { v.display().to_string() }, PathBuf::from(""));
 versioned_field!(AudioLeadIn, Integer, no_versions, |s| { s.parse() } -> ParseIntError,, 0);

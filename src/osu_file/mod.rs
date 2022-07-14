@@ -21,17 +21,17 @@ use thiserror::Error;
 
 use crate::parsers::square_section;
 
-pub use self::colours::Colours;
-pub use self::difficulty::Difficulty;
-pub use self::editor::Editor;
-pub use self::events::Events;
-pub use self::general::General;
-pub use self::hitobjects::HitObjects;
-pub use self::metadata::Metadata;
-pub use self::osb::Osb;
-pub use self::timingpoints::TimingPoints;
+pub use colours::Colours;
+pub use difficulty::Difficulty;
+pub use editor::Editor;
+pub use events::Events;
+pub use general::General;
+pub use hitobjects::HitObjects;
+pub use metadata::Metadata;
+pub use osb::Osb;
+pub use timingpoints::TimingPoints;
 
-pub use self::types::*;
+pub use types::*;
 
 /// An .osu file represented as a struct.
 #[derive(Clone, Debug, Hash, PartialEq)]
