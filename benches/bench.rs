@@ -116,57 +116,57 @@ fn storyboard_cmds_to_string(c: &mut Criterion) {
 
     group.bench_function("fade", |b| {
         b.iter(|| {
-            black_box(&fade).to_string();
+            black_box(&fade).to_string(14);
         })
     });
     group.bench_function("move", |b| {
         b.iter(|| {
-            black_box(&move_).to_string();
+            black_box(&move_).to_string(14);
         })
     });
     group.bench_function("move_x", |b| {
         b.iter(|| {
-            black_box(&move_x).to_string();
+            black_box(&move_x).to_string(14);
         })
     });
     group.bench_function("move_y", |b| {
         b.iter(|| {
-            black_box(&move_y).to_string();
+            black_box(&move_y).to_string(14);
         })
     });
     group.bench_function("scale", |b| {
         b.iter(|| {
-            black_box(&scale).to_string();
+            black_box(&scale).to_string(14);
         })
     });
     group.bench_function("vector_scale", |b| {
         b.iter(|| {
-            black_box(&vector_scale).to_string();
+            black_box(&vector_scale).to_string(14);
         })
     });
     group.bench_function("rotate", |b| {
         b.iter(|| {
-            black_box(&rotate).to_string();
+            black_box(&rotate).to_string(14);
         })
     });
     group.bench_function("colour", |b| {
         b.iter(|| {
-            black_box(&colour).to_string();
+            black_box(&colour).to_string(14);
         })
     });
     group.bench_function("parameter", |b| {
         b.iter(|| {
-            black_box(&parameter).to_string();
+            black_box(&parameter).to_string(14);
         })
     });
     group.bench_function("loop", |b| {
         b.iter(|| {
-            black_box(&loop_).to_string();
+            black_box(&loop_).to_string(14);
         })
     });
     group.bench_function("trigger", |b| {
         b.iter(|| {
-            black_box(&trigger).to_string();
+            black_box(&trigger).to_string(14);
         })
     });
 }
