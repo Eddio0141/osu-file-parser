@@ -7,11 +7,15 @@ use nom::{
     bytes::complete::{tag, take_while},
     combinator::map_res,
     error::context,
-    sequence::{preceded, tuple},
+    sequence::{preceded, terminated, tuple},
     Parser,
 };
 
-use crate::{helper::nth_bit_state_i64, osu_file::*, parsers::nothing};
+use crate::{
+    helper::nth_bit_state_i64,
+    osu_file::*,
+    parsers::{consume_rest_type, consume_rest_versioned_type, nothing},
+};
 
 use super::error::*;
 
@@ -66,23 +70,25 @@ impl VersionedFromStr for EdgeSet {
     type Err = ParseColonSetError;
 
     fn from_str(s: &str, version: Version) -> Result<Option<Self>, Self::Err> {
-        let s = s.split(':').collect::<Vec<_>>();
-
-        if s.len() > 2 {
-            return Err(ParseColonSetError::MoreThanTwoItems);
-        }
-
-        let normal_set = s.get(0).ok_or(ParseColonSetError::MissingFirstItem)?;
-        let addition_set = s.get(1).ok_or(ParseColonSetError::MissingSecondItem)?;
-
-        let normal_set = SampleSet::from_str(normal_set, version)
-            .map_err(|_| ParseColonSetError::ParseFirstItemError)?;
-        let addition_set = SampleSet::from_str(addition_set, version)
-            .map_err(|_| ParseColonSetError::ParseSecondItemError)?;
+        let (_, (normal_set, addition_set)) = tuple((
+            terminated(
+                context(
+                    ParseColonSetError::InvalidFirstItem.into(),
+                    map_res(take_while(|c: char| c != ':'), |s| {
+                        SampleSet::from_str(s, version).map(|s| s.unwrap())
+                    }),
+                ),
+                context(ParseColonSetError::MissingSeparator.into(), tag(":")),
+            ),
+            context(
+                ParseColonSetError::InvalidFirstItem.into(),
+                consume_rest_versioned_type(version),
+            ),
+        ))(s)?;
 
         Ok(Some(Self {
-            normal_set: normal_set.unwrap(),
-            addition_set: addition_set.unwrap(),
+            normal_set,
+            addition_set,
         }))
     }
 }
@@ -105,21 +111,19 @@ impl VersionedFromStr for CurvePoint {
     type Err = ParseColonSetError;
 
     fn from_str(s: &str, _: Version) -> Result<Option<Self>, Self::Err> {
-        let s = s.split(':').collect::<Vec<_>>();
-
-        if s.len() > 2 {
-            return Err(ParseColonSetError::MoreThanTwoItems);
-        }
-
-        let x = s.get(0).ok_or(ParseColonSetError::MissingFirstItem)?;
-        let y = s.get(1).ok_or(ParseColonSetError::MissingSecondItem)?;
-
-        let x = x
-            .parse()
-            .map_err(|_| ParseColonSetError::ParseFirstItemError)?;
-        let y = y
-            .parse()
-            .map_err(|_| ParseColonSetError::ParseSecondItemError)?;
+        let (_, (x, y)) = tuple((
+            terminated(
+                context(
+                    ParseColonSetError::InvalidFirstItem.into(),
+                    map_res(take_while(|c: char| c != ':'), |s: &str| s.parse()),
+                ),
+                context(ParseColonSetError::MissingSeparator.into(), tag(":")),
+            ),
+            context(
+                ParseColonSetError::InvalidFirstItem.into(),
+                consume_rest_type(),
+            ),
+        ))(s)?;
 
         let position = Position { x, y };
 

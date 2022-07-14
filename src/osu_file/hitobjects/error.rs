@@ -15,28 +15,21 @@ pub struct ParseError(#[from] ParseHitObjectError);
 #[error("Expected combo skip count to be 3 bits")]
 pub struct ComboSkipCountTooHigh;
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, IntoStaticStr, EnumString)]
 #[non_exhaustive]
-/// Error used when there was a problem parsing a `str` having a `F:S` format.
+/// Error used when there was a problem parsing a `str` into a [`ColonSet`][super::ColonSet].
 pub enum ParseColonSetError {
-    /// When the first item is missing.
-    #[error("Missing the first item in the colon set, Colon set requires to have the format `first:second`")]
-    MissingFirstItem,
-    /// When the second item is missing.
-    #[error("Missing the second item in the colon set, Colon set requires to have the format `first:second`")]
-    MissingSecondItem,
-    /// There are more than 2 items defined.
-    #[error(
-        "There is more than 2 items in the colon set, Colon set only has two items: `first:second`"
-    )]
-    MoreThanTwoItems,
     /// When the first item failed to parse.
     #[error("Failed to parse the first item")]
-    ParseFirstItemError,
-    /// When the second item failed to parse.
+    InvalidFirstItem,
+    /// The colon separator is missing.
+    #[error("The colon separator is missing")]
+    MissingSeparator,
     #[error("Failed to parse the second item")]
-    ParseSecondItemError,
+    InvalidSecondItem,
 }
+
+verbose_error_to_error!(ParseColonSetError);
 
 #[derive(Debug, Error, EnumString, IntoStaticStr)]
 #[non_exhaustive]
