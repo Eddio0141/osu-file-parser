@@ -234,3 +234,13 @@ pub trait VersionedFromRepr: Sized {
     /// - Will return `Ok(None)` if the representation is valid but the version doesn't use that variant or `Self` entirely.
     fn from_repr(repr: usize, version: Version) -> Result<Option<Self>, InvalidRepr>;
 }
+
+pub trait VersionedFrom<T>: Sized {
+    fn from(value: T, version: Version) -> Option<Self>;
+}
+
+pub trait VersionedTryFrom<T>: Sized {
+    type Error;
+
+    fn try_from(value: T, version: Version) -> Result<Option<Self>, Self::Error>;
+}

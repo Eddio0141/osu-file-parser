@@ -24,6 +24,7 @@ use super::Version;
 use super::VersionedDefault;
 use super::VersionedFromStr;
 use super::VersionedToString;
+use super::VersionedTryFrom;
 
 #[derive(Clone, Debug, Default, Hash, PartialEq, Eq)]
 pub struct HitObjects(pub Vec<HitObject>);
@@ -208,7 +209,12 @@ impl VersionedFromStr for HitObject {
         ))(s)?;
 
         let new_combo = nth_bit_state_i64(obj_type as i64, 2);
-        let combo_skip_count = ComboSkipCount::try_from((obj_type >> 4 & 0b111) as u8).unwrap();
+        let combo_skip_count = <ComboSkipCount as VersionedTryFrom<u8>>::try_from(
+            (obj_type >> 4 & 0b111) as u8,
+            version,
+        )
+        .unwrap()
+        .unwrap();
 
         let hitobject = if nth_bit_state_i64(obj_type as i64, 0) {
             let (_, hitsample) = hitsample(s)?;

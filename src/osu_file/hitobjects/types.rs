@@ -19,37 +19,37 @@ use super::error::*;
 pub struct ComboSkipCount(u8);
 
 impl ComboSkipCount {
-    pub fn new(count: u8) -> Result<Self, ComboSkipCountTooHigh> {
-        Self::try_from(count)
+    pub fn new(count: u8, version: Version) -> Result<Option<Self>, ComboSkipCountTooHigh> {
+        <ComboSkipCount as VersionedTryFrom<u8>>::try_from(count, version)
     }
 
     pub fn get(&self) -> u8 {
         self.0
     }
 
-    pub fn set(&mut self, count: u8) -> Result<(), ComboSkipCountTooHigh> {
-        let new_self = Self::try_from(count)?;
+    pub fn set(&mut self, count: u8, version: Version) -> Result<(), ComboSkipCountTooHigh> {
+        let new_self = <ComboSkipCount as VersionedTryFrom<u8>>::try_from(count, version)?.unwrap();
         *self = new_self;
         Ok(())
     }
 }
 
-impl TryFrom<u8> for ComboSkipCount {
+impl VersionedTryFrom<u8> for ComboSkipCount {
     type Error = ComboSkipCountTooHigh;
 
-    fn try_from(value: u8) -> Result<Self, Self::Error> {
+    fn try_from(value: u8, _: Version) -> Result<Option<Self>, Self::Error> {
         // limit to 3 bits
         if value > 0b111 {
             Err(ComboSkipCountTooHigh(value))
         } else {
-            Ok(Self(value))
+            Ok(Some(Self(value)))
         }
     }
 }
 
-impl From<ComboSkipCount> for u8 {
-    fn from(count: ComboSkipCount) -> Self {
-        count.0
+impl VersionedFrom<ComboSkipCount> for u8 {
+    fn from(count: ComboSkipCount, _: Version) -> Option<Self> {
+        Some(count.0)
     }
 }
 
@@ -194,12 +194,14 @@ impl VersionedFromStr for SampleSet {
 /// Volume of the sample from `1` to `100`. If [volume][Self::volume] returns `None`, the timing point's volume will be used instead.
 pub struct Volume(Option<u8>);
 
-impl From<Volume> for Integer {
-    fn from(volume: Volume) -> Self {
-        match volume.0 {
+impl VersionedFrom<Volume> for Integer {
+    fn from(volume: Volume, _: Version) -> Option<Self> {
+        let volume = match volume.0 {
             Some(volume) => volume as Integer,
             None => 0,
-        }
+        };
+
+        Some(volume)
     }
 }
 
@@ -348,32 +350,24 @@ impl HitSound {
 impl VersionedFromStr for HitSound {
     type Err = HitSoundParseError;
 
-    fn from_str(s: &str, _: Version) -> Result<Option<Self>, Self::Err> {
-        Ok(Some(HitSound::from(s.parse::<u8>()?)))
+    fn from_str(s: &str, version: Version) -> Result<Option<Self>, Self::Err> {
+        Ok(<HitSound as VersionedFrom<u8>>::from(s.parse()?, version))
     }
 }
 
-impl TryFrom<i32> for HitSound {
-    type Error = HitSoundParseError;
-
-    fn try_from(value: i32) -> Result<Self, Self::Error> {
-        Ok(HitSound::from(u8::try_from(value)?))
-    }
-}
-
-impl From<u8> for HitSound {
-    fn from(value: u8) -> Self {
+impl VersionedFrom<u8> for HitSound {
+    fn from(value: u8, _: Version) -> Option<Self> {
         let normal = nth_bit_state_i64(value as i64, 0);
         let whistle = nth_bit_state_i64(value as i64, 1);
         let finish = nth_bit_state_i64(value as i64, 2);
         let clap = nth_bit_state_i64(value as i64, 3);
 
-        Self {
+        Some(Self {
             normal,
             whistle,
             finish,
             clap,
-        }
+        })
     }
 }
 
@@ -430,36 +424,43 @@ impl Default for SampleIndex {
     }
 }
 
-impl From<usize> for SampleIndex {
-    fn from(index: usize) -> Self {
-        if index == 0 {
+impl VersionedFrom<usize> for SampleIndex {
+    fn from(index: usize, _: Version) -> Option<Self> {
+        let index = if index == 0 {
             Self::TimingPointSampleIndex
         } else {
             Self::Index(NonZeroUsize::new(index).unwrap())
-        }
+        };
+
+        Some(index)
     }
 }
 
-impl From<SampleIndex> for usize {
-    fn from(index: SampleIndex) -> Self {
-        match index {
+impl VersionedFrom<SampleIndex> for usize {
+    fn from(index: SampleIndex, _: Version) -> Option<Self> {
+        let index = match index {
             SampleIndex::TimingPointSampleIndex => 0,
             SampleIndex::Index(index) => index.get(),
-        }
+        };
+
+        Some(index)
     }
 }
 
 impl VersionedToString for SampleIndex {
-    fn to_string(&self, _: Version) -> Option<String> {
-        Some(usize::from(*self).to_string())
+    fn to_string(&self, version: Version) -> Option<String> {
+        <usize as VersionedFrom<SampleIndex>>::from(*self, version).map(|i| i.to_string())
     }
 }
 
 impl VersionedFromStr for SampleIndex {
     type Err = ParseIntError;
 
-    fn from_str(s: &str, _: Version) -> Result<Option<Self>, Self::Err> {
-        Ok(Some(s.parse::<usize>()?.into()))
+    fn from_str(s: &str, version: Version) -> Result<Option<Self>, Self::Err> {
+        Ok(<SampleIndex as VersionedFrom<usize>>::from(
+            s.parse::<usize>()?,
+            version,
+        ))
     }
 }
 
@@ -581,7 +582,7 @@ impl VersionedFromStr for HitSample {
 
 impl VersionedToString for HitSample {
     fn to_string(&self, version: Version) -> Option<String> {
-        let volume: Integer = self.volume.into();
+        let volume: Integer = <i32 as VersionedFrom<Volume>>::from(self.volume, version).unwrap();
         let filename = &self.filename;
 
         match version {

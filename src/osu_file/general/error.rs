@@ -44,6 +44,7 @@ pub enum ParseError {
     InvalidVersion,
 }
 
+// TODO change this
 impl From<()> for ParseError {
     fn from(_: ()) -> Self {
         unreachable!()

@@ -199,8 +199,6 @@ impl VersionedToString for Addition {
     }
 }
 
-// TODO all TryFrom and From impls into versioned types
-
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Easing {

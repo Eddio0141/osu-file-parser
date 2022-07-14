@@ -12,8 +12,8 @@ use nom::{
 
 use crate::{
     osu_file::{
-        FilePath, Integer, InvalidRepr, Version, VersionedFromRepr, VersionedFromStr,
-        VersionedToString,
+        FilePath, Integer, InvalidRepr, Version, VersionedFrom, VersionedFromRepr,
+        VersionedFromStr, VersionedToString, VersionedTryFrom,
     },
     parsers::{comma, comma_field, comma_field_type},
 };
@@ -104,52 +104,54 @@ impl VersionedToString for AudioSample {
 pub struct Volume(Option<u8>);
 
 impl Volume {
-    pub fn new(volume: u8) -> Result<Volume, VolumeSetError> {
-        volume.try_into()
+    pub fn new(volume: u8, version: Version) -> Result<Volume, VolumeSetError> {
+        <Volume as VersionedTryFrom<u8>>::try_from(volume, version).map(|volume| volume.unwrap())
     }
 
     pub fn get(&self) -> u8 {
         self.0.unwrap_or(100)
     }
 
-    pub fn set(&mut self, value: u8) -> Result<(), VolumeSetError> {
-        *self = value.try_into()?;
+    pub fn set(&mut self, value: u8, version: Version) -> Result<(), VolumeSetError> {
+        *self = <Volume as VersionedTryFrom<u8>>::try_from(value, version)
+            .map(|volume| volume.unwrap())?;
 
         Ok(())
     }
 }
 
-impl TryFrom<u8> for Volume {
+impl VersionedTryFrom<u8> for Volume {
     type Error = VolumeSetError;
 
-    fn try_from(value: u8) -> Result<Self, Self::Error> {
+    fn try_from(value: u8, _: Version) -> Result<Option<Self>, Self::Error> {
         if value > 100 {
             Err(VolumeSetError::VolumeTooHigh(value))
         } else if value == 0 {
             Err(VolumeSetError::VolumeTooLow)
         } else {
-            Ok(Volume(Some(value)))
+            Ok(Some(Volume(Some(value))))
         }
     }
 }
 
-impl From<Volume> for u8 {
-    fn from(volume: Volume) -> Self {
-        volume.get()
+impl VersionedFrom<Volume> for u8 {
+    fn from(volume: Volume, _: Version) -> Option<Self> {
+        Some(volume.get())
     }
 }
 
 impl VersionedFromStr for Volume {
     type Err = VolumeParseError;
 
-    fn from_str(s: &str, _: Version) -> Result<Option<Self>, Self::Err> {
-        Ok(Some(Volume::try_from(s.parse::<u8>()?)?))
+    fn from_str(s: &str, version: Version) -> Result<Option<Self>, Self::Err> {
+        <Volume as VersionedTryFrom<u8>>::try_from(s.parse::<u8>()?, version)
+            .map_err(|err| err.into())
     }
 }
 
 impl VersionedToString for Volume {
-    fn to_string(&self, _: Version) -> Option<String> {
-        Some(u8::from(*self).to_string())
+    fn to_string(&self, version: Version) -> Option<String> {
+        <u8 as VersionedFrom<Volume>>::from(*self, version).map(|volume| volume.to_string())
     }
 }
 

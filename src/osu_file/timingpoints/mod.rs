@@ -20,8 +20,8 @@ use crate::{
 };
 
 use super::{
-    Error, Integer, InvalidRepr, Version, VersionedDefault, VersionedFromRepr, VersionedFromStr,
-    VersionedToString,
+    Error, Integer, InvalidRepr, Version, VersionedDefault, VersionedFrom, VersionedFromRepr,
+    VersionedFromStr, VersionedToString, VersionedTryFrom,
 };
 
 pub use self::error::*;
@@ -257,10 +257,15 @@ impl VersionedFromStr for TimingPoint {
     fn from_str(s: &str, version: Version) -> std::result::Result<Option<Self>, Self::Err> {
         let meter_fallback = 4;
         let sample_set_fallback = SampleSet::Normal;
-        let sample_index_fallback = 1.try_into().unwrap();
-        let volume_fallback = Volume::try_from(100).unwrap();
+        let sample_index_fallback =
+            <SampleIndex as VersionedTryFrom<Integer>>::try_from(1, version)
+                .unwrap()
+                .unwrap();
+        let volume_fallback = <Volume as VersionedTryFrom<u8>>::try_from(100, version)
+            .unwrap()
+            .unwrap();
         let uninherited_fallback = true;
-        let effects_fallback = Effects::from(0);
+        let effects_fallback = <Effects as VersionedFrom<u8>>::from(0, version).unwrap();
 
         let (
             _,
@@ -557,30 +562,30 @@ pub struct Effects {
 impl VersionedFromStr for Effects {
     type Err = EffectsParseError;
 
-    fn from_str(s: &str, _: Version) -> Result<Option<Self>, Self::Err> {
+    fn from_str(s: &str, version: Version) -> Result<Option<Self>, Self::Err> {
         let s = s.parse::<u8>().map_err(|err| EffectsParseError {
             source: err,
             value: s.to_string(),
         })?;
 
-        Ok(Some(Self::from(s)))
+        Ok(<Effects as VersionedFrom<u8>>::from(s, version))
     }
 }
 
-impl From<u8> for Effects {
-    fn from(value: u8) -> Self {
+impl VersionedFrom<u8> for Effects {
+    fn from(value: u8, _: Version) -> Option<Self> {
         let kiai_time_enabled = nth_bit_state_i64(value as i64, 0);
         let no_first_barline_in_taiko_mania = nth_bit_state_i64(value as i64, 3);
 
-        Self {
+        Some(Self {
             kiai_time_enabled,
             no_first_barline_in_taiko_mania,
-        }
+        })
     }
 }
 
-impl From<Effects> for u8 {
-    fn from(effects: Effects) -> Self {
+impl VersionedFrom<Effects> for u8 {
+    fn from(effects: Effects, _: Version) -> Option<Self> {
         let mut bit_flag = 0;
 
         if effects.kiai_time_enabled {
@@ -590,13 +595,13 @@ impl From<Effects> for u8 {
             bit_flag |= 0b100;
         }
 
-        bit_flag
+        Some(bit_flag)
     }
 }
 
 impl VersionedToString for Effects {
-    fn to_string(&self, _: Version) -> Option<String> {
-        Some(u8::from(*self).to_string())
+    fn to_string(&self, version: Version) -> Option<String> {
+        <u8 as VersionedFrom<Effects>>::from(*self, version).map(|effects| effects.to_string())
     }
 }
 
@@ -613,45 +618,51 @@ pub enum SampleIndex {
 impl VersionedFromStr for SampleIndex {
     type Err = SampleIndexParseError;
 
-    fn from_str(s: &str, _: Version) -> Result<Option<Self>, Self::Err> {
-        SampleIndex::try_from(s.parse::<Integer>().map_err(|err| SampleIndexParseError {
-            source: Box::new(err),
-            value: s.to_string(),
-        })?)
-        .map(Some)
+    fn from_str(s: &str, version: Version) -> Result<Option<Self>, Self::Err> {
+        <SampleIndex as VersionedTryFrom<Integer>>::try_from(
+            s.parse::<Integer>().map_err(|err| SampleIndexParseError {
+                source: Box::new(err),
+                value: s.to_string(),
+            })?,
+            version,
+        )
     }
 }
 
 // TODO do we accept negative index
-impl TryFrom<Integer> for SampleIndex {
+impl VersionedTryFrom<Integer> for SampleIndex {
     type Error = SampleIndexParseError;
 
-    fn try_from(value: Integer) -> Result<Self, Self::Error> {
+    fn try_from(value: Integer, _: Version) -> Result<Option<Self>, Self::Error> {
         let value = usize::try_from(value).map_err(|err| SampleIndexParseError {
             source: Box::new(err),
             value: value.to_string(),
         })?;
 
-        if value == 0 {
-            Ok(SampleIndex::OsuDefaultHitsounds)
+        let index = if value == 0 {
+            SampleIndex::OsuDefaultHitsounds
         } else {
-            Ok(SampleIndex::Index(NonZeroUsize::try_from(value).unwrap()))
-        }
+            SampleIndex::Index(NonZeroUsize::try_from(value).unwrap())
+        };
+
+        Ok(Some(index))
     }
 }
 
-impl From<SampleIndex> for Integer {
-    fn from(sample_index: SampleIndex) -> Self {
-        match sample_index {
+impl VersionedFrom<SampleIndex> for Integer {
+    fn from(sample_index: SampleIndex, _: Version) -> Option<Self> {
+        let sample_index = match sample_index {
             SampleIndex::OsuDefaultHitsounds => 0,
             SampleIndex::Index(sample_index) => sample_index.get() as Integer,
-        }
+        };
+
+        Some(sample_index)
     }
 }
 
 impl VersionedToString for SampleIndex {
-    fn to_string(&self, _: Version) -> Option<String> {
-        Some(Integer::from(*self).to_string())
+    fn to_string(&self, version: Version) -> Option<String> {
+        <i32 as VersionedFrom<SampleIndex>>::from(*self, version).map(|index| index.to_string())
     }
 }
 
@@ -668,30 +679,30 @@ pub struct Volume(u8);
 impl VersionedFromStr for Volume {
     type Err = VolumeError;
 
-    fn from_str(s: &str, _: Version) -> Result<Option<Self>, Self::Err> {
+    fn from_str(s: &str, version: Version) -> Result<Option<Self>, Self::Err> {
         let s: u8 = s.parse().map_err(|err| VolumeError::VolumeParseError {
             source: err,
             value: s.to_string(),
         })?;
-        Volume::try_from(s).map(Some)
+        <Volume as VersionedTryFrom<u8>>::try_from(s, version)
     }
 }
 
-impl TryFrom<u8> for Volume {
+impl VersionedTryFrom<u8> for Volume {
     type Error = VolumeError;
 
-    fn try_from(value: u8) -> Result<Self, Self::Error> {
+    fn try_from(value: u8, _: Version) -> Result<Option<Self>, Self::Error> {
         if value > 100 {
             Err(VolumeError::VolumeTooHigh(value))
         } else {
-            Ok(Volume(value))
+            Ok(Some(Volume(value)))
         }
     }
 }
 
-impl From<Volume> for u8 {
-    fn from(volume: Volume) -> Self {
-        volume.0
+impl VersionedFrom<Volume> for u8 {
+    fn from(volume: Volume, _: Version) -> Option<Self> {
+        Some(volume.0)
     }
 }
 
