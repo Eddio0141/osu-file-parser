@@ -4,6 +4,7 @@ mod osu_files;
 mod parsers;
 mod storyboard;
 
+use either::Either;
 use pretty_assertions::assert_eq;
 use rust_decimal::Decimal;
 use std::path::{Path, PathBuf};
@@ -208,7 +209,7 @@ fn timing_points_parse_v14() {
     let t = vec![
         TimingPoint::new_uninherited(
             10000,
-            dec!(333.33),
+            Either::Left(dec!(333.33)),
             4,
             timingpoints::SampleSet::BeatmapDefault,
             SampleIndex::OsuDefaultHitsounds,
@@ -220,7 +221,7 @@ fn timing_points_parse_v14() {
         ),
         TimingPoint::new_inherited(
             12000,
-            dec!(4),
+            Either::Left(dec!(-25)),
             4,
             timingpoints::SampleSet::Drum,
             SampleIndex::OsuDefaultHitsounds,
