@@ -243,7 +243,6 @@ pub enum ContinuingSetError {
     "continuing fields 2nd field is none without it being the last item in the continuing fields"
 )]
 pub struct InvalidSecondFieldOption;
-// TODO turn struct error into enum with non_exhaustive
 
 #[derive(Debug, Error)]
 #[non_exhaustive]

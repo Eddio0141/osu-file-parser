@@ -152,7 +152,6 @@ impl VersionedFromStr for Colour {
                     if let nom::error::VerboseErrorKind::Context(context) = e {
                         if context == &rgb_parse_error {
                             // re-parse to get actual error message
-                            // TODO test this
 
                             let err = Rgb::from_str(i, MIN_VERSION).unwrap_err();
                             return Err(err.into());
