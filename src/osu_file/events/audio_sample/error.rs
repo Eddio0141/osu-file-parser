@@ -6,7 +6,7 @@ use thiserror::Error;
 use crate::helper::macros::verbose_error_to_error;
 
 #[derive(Debug, Error, IntoStaticStr, EnumString)]
-pub enum AudioSampleParseError {
+pub enum ParseAudioSampleError {
     #[error("Missing `time` field")]
     MissingTime,
     #[error("Invalid `time` value")]
@@ -25,7 +25,7 @@ pub enum AudioSampleParseError {
     MissingFilepath,
 }
 
-verbose_error_to_error!(AudioSampleParseError);
+verbose_error_to_error!(ParseAudioSampleError);
 
 #[derive(Debug, Error)]
 pub enum VolumeSetError {
@@ -38,7 +38,7 @@ pub enum VolumeSetError {
 }
 
 #[derive(Debug, Error)]
-pub enum VolumeParseError {
+pub enum ParseVolumeError {
     #[error(transparent)]
     ParseIntError(#[from] ParseIntError),
     #[error(transparent)]

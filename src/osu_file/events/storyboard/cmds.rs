@@ -479,26 +479,26 @@ impl VersionedToString for Colours {
 }
 
 impl VersionedFromStr for Command {
-    type Err = CommandParseError;
+    type Err = ParseCommandError;
 
     fn from_str(s: &str, version: Version) -> std::result::Result<Option<Self>, Self::Err> {
         let indentation = take_while(|c: char| c == ' ' || c == '_');
         let start_time = || {
             preceded(
-                context(CommandParseError::MissingStartTime.into(), cut(comma())),
+                context(ParseCommandError::MissingStartTime.into(), cut(comma())),
                 context(
-                    CommandParseError::InvalidStartTime.into(),
+                    ParseCommandError::InvalidStartTime.into(),
                     cut(comma_field_type()),
                 ),
             )
         };
         let end_time = || {
             preceded(
-                context(CommandParseError::MissingEndTime.into(), cut(comma())),
+                context(ParseCommandError::MissingEndTime.into(), cut(comma())),
                 alt((
                     verify(comma_field(), |s: &str| s.trim().is_empty()).map(|_| None),
                     cut(
-                        context(CommandParseError::InvalidEndTime.into(), comma_field_type())
+                        context(ParseCommandError::InvalidEndTime.into(), comma_field_type())
                             .map(Some),
                     ),
                 )),
@@ -506,9 +506,9 @@ impl VersionedFromStr for Command {
         };
         let easing = || {
             cut(preceded(
-                context(CommandParseError::MissingEasing.into(), comma()),
+                context(ParseCommandError::MissingEasing.into(), comma()),
                 context(
-                    CommandParseError::InvalidEasing.into(),
+                    ParseCommandError::InvalidEasing.into(),
                     map_res(comma_field_type(), |easing| {
                         Easing::from_repr(easing, version).map(|easing| easing.unwrap())
                     }),
@@ -567,9 +567,9 @@ impl VersionedFromStr for Command {
             cut(tuple((
                 start_time(),
                 preceded(
-                    context(CommandParseError::MissingLoopCount.into(), comma()),
+                    context(ParseCommandError::MissingLoopCount.into(), comma()),
                     context(
-                        CommandParseError::InvalidLoopCount.into(),
+                        ParseCommandError::InvalidLoopCount.into(),
                         map_res(rest, |s: &str| s.parse()),
                     ),
                 ),
@@ -590,7 +590,7 @@ impl VersionedFromStr for Command {
             let trigger_group_number = preceded(
                 tuple((comma(), comma())),
                 context(
-                    CommandParseError::InvalidGroupNumber.into(),
+                    ParseCommandError::InvalidGroupNumber.into(),
                     cut(consume_rest_type()),
                 ),
             )
@@ -598,7 +598,7 @@ impl VersionedFromStr for Command {
             let trigger_end_time = preceded(
                 comma(),
                 context(
-                    CommandParseError::InvalidEndTime.into(),
+                    ParseCommandError::InvalidEndTime.into(),
                     cut(consume_rest_type()),
                 ),
             )
@@ -608,7 +608,7 @@ impl VersionedFromStr for Command {
                 preceded(
                     comma(),
                     context(
-                        CommandParseError::InvalidGroupNumber.into(),
+                        ParseCommandError::InvalidGroupNumber.into(),
                         cut(consume_rest_type()),
                     ),
                 ),
@@ -618,11 +618,11 @@ impl VersionedFromStr for Command {
             preceded(
                 tuple((
                     tag("T"),
-                    context(CommandParseError::MissingTriggerType.into(), cut(comma())),
+                    context(ParseCommandError::MissingTriggerType.into(), cut(comma())),
                 )),
                 cut(tuple((
                     context(
-                        CommandParseError::InvalidTriggerType.into(),
+                        ParseCommandError::InvalidTriggerType.into(),
                         map_res(comma_field(), |s| {
                             TriggerType::from_str(s, version).map(|t| t.unwrap())
                         }),
@@ -670,20 +670,20 @@ impl VersionedFromStr for Command {
                 tuple((
                     start_time_end_time_easing(),
                     cut(preceded(
-                        context(CommandParseError::MissingRed.into(), comma()),
-                        context(CommandParseError::InvalidRed.into(), comma_field_type()),
+                        context(ParseCommandError::MissingRed.into(), comma()),
+                        context(ParseCommandError::InvalidRed.into(), comma_field_type()),
                     )),
                     cut(preceded(
-                        context(CommandParseError::MissingGreen.into(), comma()),
-                        context(CommandParseError::InvalidGreen.into(), comma_field_type()),
+                        context(ParseCommandError::MissingGreen.into(), comma()),
+                        context(ParseCommandError::InvalidGreen.into(), comma_field_type()),
                     )),
                     cut(preceded(
-                        context(CommandParseError::MissingBlue.into(), comma()),
-                        context(CommandParseError::InvalidBlue.into(), comma_field_type()),
+                        context(ParseCommandError::MissingBlue.into(), comma()),
+                        context(ParseCommandError::InvalidBlue.into(), comma_field_type()),
                     )),
                     terminated(
                         continuing_colours,
-                        context(CommandParseError::InvalidContinuingColours.into(), cut(eof)),
+                        context(ParseCommandError::InvalidContinuingColours.into(), cut(eof)),
                     ),
                 )),
             )
@@ -710,16 +710,16 @@ impl VersionedFromStr for Command {
                 tuple((
                     start_time_end_time_easing(),
                     cut(preceded(
-                        context(CommandParseError::MissingParameterType.into(), comma()),
+                        context(ParseCommandError::MissingParameterType.into(), comma()),
                         context(
-                            CommandParseError::InvalidParameterType.into(),
+                            ParseCommandError::InvalidParameterType.into(),
                             comma_field_versioned_type(version),
                         ),
                     )),
                     terminated(
                         continuing_parameters,
                         context(
-                            CommandParseError::InvalidContinuingParameters.into(),
+                            ParseCommandError::InvalidContinuingParameters.into(),
                             cut(eof),
                         ),
                     ),
@@ -739,11 +739,11 @@ impl VersionedFromStr for Command {
         };
         let move_ = continuing_decimal_two_fields(
             "M",
-            CommandParseError::MissingMoveX.into(),
-            CommandParseError::InvalidMoveX.into(),
-            CommandParseError::MissingMoveY.into(),
-            CommandParseError::InvalidMoveY.into(),
-            CommandParseError::InvalidContinuingMove.into(),
+            ParseCommandError::MissingMoveX.into(),
+            ParseCommandError::InvalidMoveX.into(),
+            ParseCommandError::MissingMoveY.into(),
+            ParseCommandError::InvalidMoveY.into(),
+            ParseCommandError::InvalidContinuingMove.into(),
         )
         .map(
             |((easing, start_time, end_time), start_x, start_y, continuing)| Command {
@@ -760,11 +760,11 @@ impl VersionedFromStr for Command {
         );
         let vector_scale = continuing_decimal_two_fields(
             "V",
-            CommandParseError::MissingScaleX.into(),
-            CommandParseError::InvalidScaleX.into(),
-            CommandParseError::MissingScaleY.into(),
-            CommandParseError::InvalidScaleY.into(),
-            CommandParseError::InvalidContinuingScales.into(),
+            ParseCommandError::MissingScaleX.into(),
+            ParseCommandError::InvalidScaleX.into(),
+            ParseCommandError::MissingScaleY.into(),
+            ParseCommandError::InvalidScaleY.into(),
+            ParseCommandError::InvalidContinuingScales.into(),
         )
         .map(
             |((easing, start_time, end_time), start_x, start_y, continuing)| Command {
@@ -781,9 +781,9 @@ impl VersionedFromStr for Command {
         );
         let fade = continuing_decimal_fields(
             "F",
-            CommandParseError::MissingStartOpacity.into(),
-            CommandParseError::InvalidStartOpacity.into(),
-            CommandParseError::InvalidContinuingOpacities.into(),
+            ParseCommandError::MissingStartOpacity.into(),
+            ParseCommandError::InvalidStartOpacity.into(),
+            ParseCommandError::InvalidContinuingOpacities.into(),
         )
         .map(
             |((easing, start_time, end_time), start_opacity, continuing_opacities)| Command {
@@ -798,9 +798,9 @@ impl VersionedFromStr for Command {
         );
         let move_x = continuing_decimal_fields(
             "MX",
-            CommandParseError::MissingMoveX.into(),
-            CommandParseError::InvalidMoveX.into(),
-            CommandParseError::InvalidContinuingMove.into(),
+            ParseCommandError::MissingMoveX.into(),
+            ParseCommandError::InvalidMoveX.into(),
+            ParseCommandError::InvalidContinuingMove.into(),
         )
         .map(
             |((easing, start_time, end_time), start_x, continuing_x)| Command {
@@ -815,9 +815,9 @@ impl VersionedFromStr for Command {
         );
         let move_y = continuing_decimal_fields(
             "MY",
-            CommandParseError::MissingMoveY.into(),
-            CommandParseError::InvalidMoveY.into(),
-            CommandParseError::InvalidContinuingMove.into(),
+            ParseCommandError::MissingMoveY.into(),
+            ParseCommandError::InvalidMoveY.into(),
+            ParseCommandError::InvalidContinuingMove.into(),
         )
         .map(
             |((easing, start_time, end_time), start_y, continuing_y)| Command {
@@ -832,9 +832,9 @@ impl VersionedFromStr for Command {
         );
         let scale = continuing_decimal_fields(
             "S",
-            CommandParseError::MissingStartScale.into(),
-            CommandParseError::InvalidStartScale.into(),
-            CommandParseError::InvalidContinuingScales.into(),
+            ParseCommandError::MissingStartScale.into(),
+            ParseCommandError::InvalidStartScale.into(),
+            ParseCommandError::InvalidContinuingScales.into(),
         )
         .map(
             |((easing, start_time, end_time), start_scale, continuing_scales)| Command {
@@ -849,9 +849,9 @@ impl VersionedFromStr for Command {
         );
         let rotate = continuing_decimal_fields(
             "R",
-            CommandParseError::MissingStartRotation.into(),
-            CommandParseError::InvalidStartRotation.into(),
-            CommandParseError::InvalidContinuingRotation.into(),
+            ParseCommandError::MissingStartRotation.into(),
+            ParseCommandError::InvalidStartRotation.into(),
+            ParseCommandError::InvalidContinuingRotation.into(),
         )
         .map(
             |((easing, start_time, end_time), start_rotation, continuing_rotations)| Command {
@@ -880,7 +880,7 @@ impl VersionedFromStr for Command {
                 parameter,
                 move_,
                 vector_scale,
-                context(CommandParseError::UnknownCommandType.into(), fail),
+                context(ParseCommandError::UnknownCommandType.into(), fail),
             )),
         )(s)?;
 

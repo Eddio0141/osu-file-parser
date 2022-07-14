@@ -28,7 +28,7 @@ pub enum Layer {
 }
 
 impl VersionedFromStr for Layer {
-    type Err = LayerParseError;
+    type Err = ParseLayerError;
 
     fn from_str(s: &str, _: Version) -> std::result::Result<Option<Self>, Self::Err> {
         match s {
@@ -36,7 +36,7 @@ impl VersionedFromStr for Layer {
             "Fail" => Ok(Some(Layer::Fail)),
             "Pass" => Ok(Some(Layer::Pass)),
             "Foreground" => Ok(Some(Layer::Foreground)),
-            _ => Err(LayerParseError::UnknownVariant),
+            _ => Err(ParseLayerError::UnknownVariant),
         }
     }
 }
@@ -221,30 +221,30 @@ impl Object {
 
 // it will reject commands since push_cmd is used for that case
 impl VersionedFromStr for Object {
-    type Err = ObjectParseError;
+    type Err = ParseObjectError;
 
     fn from_str(s: &str, version: Version) -> Result<Option<Self>, Self::Err> {
         let layer = || {
             preceded(
-                context(ObjectParseError::MissingLayer.into(), comma()),
+                context(ParseObjectError::MissingLayer.into(), comma()),
                 context(
-                    ObjectParseError::InvalidLayer.into(),
+                    ParseObjectError::InvalidLayer.into(),
                     comma_field_versioned_type(version),
                 ),
             )
         };
         let origin = || {
             preceded(
-                context(ObjectParseError::MissingOrigin.into(), comma()),
+                context(ParseObjectError::MissingOrigin.into(), comma()),
                 context(
-                    ObjectParseError::InvalidOrigin.into(),
+                    ParseObjectError::InvalidOrigin.into(),
                     comma_field_versioned_type(version),
                 ),
             )
         };
         let file_path = || {
             preceded(
-                context(ObjectParseError::MissingFilePath.into(), comma()),
+                context(ParseObjectError::MissingFilePath.into(), comma()),
                 comma_field(),
             )
             .map(|p| p.into())
@@ -252,16 +252,16 @@ impl VersionedFromStr for Object {
         let position = || {
             tuple((
                 preceded(
-                    context(ObjectParseError::MissingPositionX.into(), comma()),
+                    context(ParseObjectError::MissingPositionX.into(), comma()),
                     context(
-                        ObjectParseError::InvalidPositionX.into(),
+                        ParseObjectError::InvalidPositionX.into(),
                         comma_field_type(),
                     ),
                 ),
                 preceded(
-                    context(ObjectParseError::MissingPositionY.into(), comma()),
+                    context(ParseObjectError::MissingPositionY.into(), comma()),
                     context(
-                        ObjectParseError::InvalidPositionY.into(),
+                        ParseObjectError::InvalidPositionY.into(),
                         comma_field_type(),
                     ),
                 ),
@@ -269,24 +269,24 @@ impl VersionedFromStr for Object {
             .map(|(x, y)| Position { x, y })
         };
         let frame_count = preceded(
-            context(ObjectParseError::MissingFrameCount.into(), comma()),
+            context(ParseObjectError::MissingFrameCount.into(), comma()),
             context(
-                ObjectParseError::InvalidFrameCount.into(),
+                ParseObjectError::InvalidFrameCount.into(),
                 comma_field_type(),
             ),
         );
         let frame_delay = preceded(
-            context(ObjectParseError::MissingFrameDelay.into(), comma()),
+            context(ParseObjectError::MissingFrameDelay.into(), comma()),
             context(
-                ObjectParseError::InvalidFrameDelay.into(),
+                ParseObjectError::InvalidFrameDelay.into(),
                 comma_field_type(),
             ),
         );
         let loop_type = alt((
             preceded(
-                context(ObjectParseError::MissingLoopType.into(), comma()),
+                context(ParseObjectError::MissingLoopType.into(), comma()),
                 context(
-                    ObjectParseError::InvalidLoopType.into(),
+                    ParseObjectError::InvalidLoopType.into(),
                     consume_rest_versioned_type(version),
                 ),
             ),
@@ -332,7 +332,7 @@ impl VersionedFromStr for Object {
                     commands: Vec::new(),
                 },
             ),
-            context(ObjectParseError::UnknownObjectType.into(), fail),
+            context(ParseObjectError::UnknownObjectType.into(), fail),
         ))(s)?;
 
         Ok(Some(object))
@@ -429,7 +429,7 @@ impl VersionedToString for Origin {
 }
 
 impl VersionedFromStr for Origin {
-    type Err = OriginParseError;
+    type Err = ParseOriginError;
 
     fn from_str(s: &str, _: Version) -> std::result::Result<Option<Self>, Self::Err> {
         match s {
@@ -443,7 +443,7 @@ impl VersionedFromStr for Origin {
             "CentreRight" => Ok(Some(Origin::CentreRight)),
             "BottomLeft" => Ok(Some(Origin::BottomLeft)),
             "BottomRight" => Ok(Some(Origin::BottomRight)),
-            _ => Err(OriginParseError::UnknownVariant),
+            _ => Err(ParseOriginError::UnknownVariant),
         }
     }
 }
@@ -467,13 +467,13 @@ impl VersionedToString for LoopType {
 }
 
 impl VersionedFromStr for LoopType {
-    type Err = LoopTypeParseError;
+    type Err = ParseLoopTypeError;
 
     fn from_str(s: &str, _: Version) -> std::result::Result<Option<Self>, Self::Err> {
         match s {
             "LoopForever" => Ok(Some(LoopType::LoopForever)),
             "LoopOnce" => Ok(Some(LoopType::LoopOnce)),
-            _ => Err(LoopTypeParseError::UnknownVariant),
+            _ => Err(ParseLoopTypeError::UnknownVariant),
         }
     }
 }

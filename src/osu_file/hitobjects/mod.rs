@@ -153,19 +153,19 @@ impl HitObject {
 const OLD_VERSION_TIME_OFFSET: Integer = 24;
 
 impl VersionedFromStr for HitObject {
-    type Err = HitObjectParseError;
+    type Err = ParseHitObjectError;
 
     fn from_str(s: &str, version: Version) -> std::result::Result<Option<Self>, Self::Err> {
         let hitsound = context(
-            HitObjectParseError::InvalidHitSound.into(),
+            ParseHitObjectError::InvalidHitSound.into(),
             comma_field_versioned_type(version),
         );
         let mut hitsample = alt((
             nothing().map(|_| None),
             preceded(
-                context(HitObjectParseError::MissingHitSample.into(), comma()),
+                context(ParseHitObjectError::MissingHitSample.into(), comma()),
                 context(
-                    HitObjectParseError::InvalidHitSample.into(),
+                    ParseHitObjectError::InvalidHitSample.into(),
                     map_res(rest, |s| {
                         HitSample::from_str(s, version).map(|v| v.unwrap())
                     }),
@@ -176,16 +176,16 @@ impl VersionedFromStr for HitObject {
 
         let (s, (position, time, obj_type, hitsound)) = tuple((
             tuple((
-                context(HitObjectParseError::InvalidX.into(), comma_field_type()),
+                context(ParseHitObjectError::InvalidX.into(), comma_field_type()),
                 preceded(
-                    context(HitObjectParseError::MissingY.into(), comma()),
-                    context(HitObjectParseError::InvalidY.into(), comma_field_type()),
+                    context(ParseHitObjectError::MissingY.into(), comma()),
+                    context(ParseHitObjectError::InvalidY.into(), comma_field_type()),
                 ),
             ))
             .map(|(x, y)| (Position { x, y })),
             preceded(
-                context(HitObjectParseError::MissingTime.into(), comma()),
-                context(HitObjectParseError::InvalidTime.into(), comma_field_type()),
+                context(ParseHitObjectError::MissingTime.into(), comma()),
+                context(ParseHitObjectError::InvalidTime.into(), comma_field_type()),
             )
             // version 3 has a slight time delay of 24ms
             .map(|t| {
@@ -196,14 +196,14 @@ impl VersionedFromStr for HitObject {
                 }
             }),
             preceded(
-                context(HitObjectParseError::MissingObjType.into(), comma()),
+                context(ParseHitObjectError::MissingObjType.into(), comma()),
                 context(
-                    HitObjectParseError::InvalidObjType.into(),
+                    ParseHitObjectError::InvalidObjType.into(),
                     comma_field_type::<_, Integer>(),
                 ),
             ),
             preceded(
-                context(HitObjectParseError::MissingHitSound.into(), comma()),
+                context(ParseHitObjectError::MissingHitSound.into(), comma()),
                 hitsound,
             ),
         ))(s)?;
@@ -250,18 +250,18 @@ impl VersionedFromStr for HitObject {
                 ),
             ) = tuple((
                 preceded(
-                    context(HitObjectParseError::MissingCurveType.into(), comma()),
+                    context(ParseHitObjectError::MissingCurveType.into(), comma()),
                     context(
-                        HitObjectParseError::InvalidCurveType.into(),
+                        ParseHitObjectError::InvalidCurveType.into(),
                         map_res(is_not("|"), |f: &str| {
                             CurveType::from_str(f, version).map(|c| c.unwrap())
                         }),
                     ),
                 ),
                 preceded(
-                    context(HitObjectParseError::MissingCurvePoint.into(), pipe),
+                    context(ParseHitObjectError::MissingCurvePoint.into(), pipe),
                     context(
-                        HitObjectParseError::InvalidCurvePoint.into(),
+                        ParseHitObjectError::InvalidCurvePoint.into(),
                         pipe_vec_versioned_map(version).map(|mut v| {
                             if version == 3 && !v.is_empty() {
                                 v.remove(0);
@@ -271,16 +271,16 @@ impl VersionedFromStr for HitObject {
                     ),
                 ),
                 preceded(
-                    context(HitObjectParseError::MissingSlidesCount.into(), comma()),
+                    context(ParseHitObjectError::MissingSlidesCount.into(), comma()),
                     context(
-                        HitObjectParseError::InvalidSlidesCount.into(),
+                        ParseHitObjectError::InvalidSlidesCount.into(),
                         comma_field_type(),
                     ),
                 ),
                 preceded(
-                    context(HitObjectParseError::MissingLength.into(), comma()),
+                    context(ParseHitObjectError::MissingLength.into(), comma()),
                     context(
-                        HitObjectParseError::InvalidLength.into(),
+                        ParseHitObjectError::InvalidLength.into(),
                         comma_field_type(),
                     ),
                 ),
@@ -288,9 +288,9 @@ impl VersionedFromStr for HitObject {
                     nothing().map(|_| (Vec::new(), Vec::new(), None, true, true)),
                     tuple((
                         preceded(
-                            context(HitObjectParseError::MissingEdgeSound.into(), comma()),
+                            context(ParseHitObjectError::MissingEdgeSound.into(), comma()),
                             context(
-                                HitObjectParseError::InvalidEdgeSound.into(),
+                                ParseHitObjectError::InvalidEdgeSound.into(),
                                 pipe_vec_versioned_map(version),
                             ),
                         ),
@@ -298,9 +298,9 @@ impl VersionedFromStr for HitObject {
                             nothing().map(|_| (Vec::new(), None, true)),
                             tuple((
                                 preceded(
-                                    context(HitObjectParseError::MissingEdgeSet.into(), comma()),
+                                    context(ParseHitObjectError::MissingEdgeSet.into(), comma()),
                                     context(
-                                        HitObjectParseError::InvalidEdgeSet.into(),
+                                        ParseHitObjectError::InvalidEdgeSet.into(),
                                         pipe_vec_versioned_map(version),
                                     ),
                                 ),
@@ -345,9 +345,9 @@ impl VersionedFromStr for HitObject {
             // spinner
             let (_, (end_time, hitsample)) = tuple((
                 preceded(
-                    context(HitObjectParseError::MissingEndTime.into(), comma()),
+                    context(ParseHitObjectError::MissingEndTime.into(), comma()),
                     context(
-                        HitObjectParseError::InvalidEndTime.into(),
+                        ParseHitObjectError::InvalidEndTime.into(),
                         comma_field_type(),
                     ),
                 )
@@ -376,9 +376,9 @@ impl VersionedFromStr for HitObject {
             let hitsample = alt((
                 nothing().map(|_| None),
                 preceded(
-                    context(HitObjectParseError::MissingHitSample.into(), char(':')),
+                    context(ParseHitObjectError::MissingHitSample.into(), char(':')),
                     context(
-                        HitObjectParseError::InvalidHitSample.into(),
+                        ParseHitObjectError::InvalidHitSample.into(),
                         map_res(rest, |s| {
                             HitSample::from_str(s, version).map(|v| v.unwrap())
                         }),
@@ -387,7 +387,7 @@ impl VersionedFromStr for HitObject {
                 .map(Some),
             ));
             let end_time = context(
-                HitObjectParseError::InvalidEndTime.into(),
+                ParseHitObjectError::InvalidEndTime.into(),
                 map_res(take_until(":"), |s: &str| s.parse()),
             )
             .map(|v| {
@@ -399,7 +399,7 @@ impl VersionedFromStr for HitObject {
             });
             let (_, (end_time, hitsample)) = tuple((
                 preceded(
-                    context(HitObjectParseError::MissingEndTime.into(), comma()),
+                    context(ParseHitObjectError::MissingEndTime.into(), comma()),
                     end_time,
                 ),
                 hitsample,
@@ -415,7 +415,7 @@ impl VersionedFromStr for HitObject {
                 hitsample,
             }
         } else {
-            return Err(HitObjectParseError::UnknownObjType);
+            return Err(ParseHitObjectError::UnknownObjType);
         };
 
         Ok(Some(hitobject))

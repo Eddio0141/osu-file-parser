@@ -19,17 +19,17 @@ pub enum ParseError {
     ParseZeroOneBoolError(#[from] ParseZeroOneBoolError),
     /// A field in `General` failed to parse as a `CountdownSpeed`.
     #[error(transparent)]
-    CountdownSpeedParseError(#[from] ParseCountdownSpeedError),
+    ParseCountdownSpeedError(#[from] ParseCountdownSpeedError),
     /// A field in `General` failed to parse as an enum string.
     #[error(transparent)]
-    StrumParseError(#[from] strum::ParseError),
+    ParseStrumError(#[from] strum::ParseError),
     /// A field in `General` failed to parse as a `GameMode`.
     #[error(transparent)]
-    GameModeParseError(#[from] ParseGameModeError),
+    ParseGameModeError(#[from] ParseGameModeError),
     #[error(transparent)]
-    SampleSetParseError(#[from] ParseSampleSetError),
+    ParseSampleSetError(#[from] ParseSampleSetError),
     #[error(transparent)]
-    OverlayPositionParseError(#[from] OverlayPositionParseError),
+    ParseOverlayPositionError(#[from] ParseOverlayPositionError),
     /// When the line isn't in a `key: value` format.
     #[error("Invalid colon set, expected format of `key: value`")]
     InvalidColonSet,
@@ -76,7 +76,7 @@ pub enum ParseCountdownSpeedError {
 
 #[derive(Debug, Error)]
 #[non_exhaustive]
-pub enum OverlayPositionParseError {
+pub enum ParseOverlayPositionError {
     #[error("Unknown `OverlayPosition` variant")]
     UnknownVariant,
 }

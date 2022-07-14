@@ -19,7 +19,7 @@ pub enum TriggerType {
 }
 
 impl VersionedFromStr for TriggerType {
-    type Err = TriggerTypeParseError;
+    type Err = ParseTriggerTypeError;
 
     fn from_str(s: &str, version: Version) -> Result<Option<Self>, Self::Err> {
         let s = s.trim();
@@ -53,7 +53,7 @@ impl VersionedFromStr for TriggerType {
                     };
 
                     if fields.len() > 4 {
-                        return Err(TriggerTypeParseError::TooManyHitSoundFields(fields.len()));
+                        return Err(ParseTriggerTypeError::TooManyHitSoundFields(fields.len()));
                     }
 
                     let mut field_parse_attempt_index = 0;
@@ -86,7 +86,7 @@ impl VersionedFromStr for TriggerType {
                                     field_parse_attempt_index += 1;
                                     break;
                                 } else {
-                                    return Err(TriggerTypeParseError::UnknownHitSoundType(s.to_string()))
+                                    return Err(ParseTriggerTypeError::UnknownHitSoundType(s.to_string()))
                                 }
                                 _ => unreachable!("The check for field size is already done so this is impossible to reach")
                             }
@@ -102,7 +102,7 @@ impl VersionedFromStr for TriggerType {
                     }))
                 }
             },
-            None => Err(TriggerTypeParseError::UnknownTriggerType(s.to_string())),
+            None => Err(ParseTriggerTypeError::UnknownTriggerType(s.to_string())),
         }
     }
 }
@@ -140,7 +140,7 @@ pub enum SampleSet {
 }
 
 impl VersionedFromStr for SampleSet {
-    type Err = SampleSetParseError;
+    type Err = ParseSampleSetError;
 
     fn from_str(s: &str, _: Version) -> std::result::Result<Option<Self>, Self::Err> {
         match s {
@@ -148,7 +148,7 @@ impl VersionedFromStr for SampleSet {
             "Normal" => Ok(Some(SampleSet::Normal)),
             "Soft" => Ok(Some(SampleSet::Soft)),
             "Drum" => Ok(Some(SampleSet::Drum)),
-            _ => Err(SampleSetParseError::UnknownVariant),
+            _ => Err(ParseSampleSetError::UnknownVariant),
         }
     }
 }
@@ -175,14 +175,14 @@ pub enum Addition {
 }
 
 impl VersionedFromStr for Addition {
-    type Err = AdditionParseError;
+    type Err = ParseAdditionError;
 
     fn from_str(s: &str, _: Version) -> std::result::Result<Option<Self>, Self::Err> {
         match s {
             "Whistle" => Ok(Some(Addition::Whistle)),
             "Finish" => Ok(Some(Addition::Finish)),
             "Clap" => Ok(Some(Addition::Clap)),
-            _ => Err(AdditionParseError::UnknownVariant),
+            _ => Err(ParseAdditionError::UnknownVariant),
         }
     }
 }
@@ -303,14 +303,14 @@ impl VersionedToString for Parameter {
 }
 
 impl VersionedFromStr for Parameter {
-    type Err = ParameterParseError;
+    type Err = ParseParameterError;
 
     fn from_str(s: &str, _: Version) -> std::result::Result<Option<Self>, Self::Err> {
         match s {
             "H" => Ok(Some(Parameter::ImageFlipHorizontal)),
             "V" => Ok(Some(Parameter::ImageFlipVertical)),
             "A" => Ok(Some(Parameter::UseAdditiveColourBlending)),
-            _ => Err(ParameterParseError::UnknownVariant),
+            _ => Err(ParseParameterError::UnknownVariant),
         }
     }
 }

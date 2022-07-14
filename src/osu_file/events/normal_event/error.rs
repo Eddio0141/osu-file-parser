@@ -5,7 +5,7 @@ use crate::helper::macros::verbose_error_to_error;
 
 #[non_exhaustive]
 #[derive(Debug, Error, IntoStaticStr, EnumString)]
-pub enum BackgroundParseError {
+pub enum ParseBackgroundError {
     #[error("Wrong event type")]
     WrongEventType,
     #[error("Missing `start_time` field")]
@@ -24,11 +24,11 @@ pub enum BackgroundParseError {
     InvalidY,
 }
 
-verbose_error_to_error!(BackgroundParseError);
+verbose_error_to_error!(ParseBackgroundError);
 
 #[non_exhaustive]
 #[derive(Debug, Error, IntoStaticStr, EnumString)]
-pub enum VideoParseError {
+pub enum ParseVideoError {
     #[error("Wrong event type")]
     WrongEventType,
     #[error("Missing `start_time` field")]
@@ -47,11 +47,11 @@ pub enum VideoParseError {
     InvalidY,
 }
 
-verbose_error_to_error!(VideoParseError);
+verbose_error_to_error!(ParseVideoError);
 
 #[non_exhaustive]
 #[derive(Debug, Error, IntoStaticStr, EnumString)]
-pub enum BreakParseError {
+pub enum ParseBreakError {
     #[error("Wrong event type")]
     WrongEventType,
     #[error("Missing `start_time` field")]
@@ -64,11 +64,11 @@ pub enum BreakParseError {
     InvalidEndTime,
 }
 
-verbose_error_to_error!(BreakParseError);
+verbose_error_to_error!(ParseBreakError);
 
 #[non_exhaustive]
 #[derive(Debug, Error, IntoStaticStr, EnumString)]
-pub enum ColourTransformationParseError {
+pub enum ParseColourTransformationError {
     #[error("Wrong event type")]
     WrongEventType,
     #[error("Missing `start_time` field")]
@@ -93,4 +93,4 @@ pub enum ColourTransformationParseError {
     InvalidBlue,
 }
 
-verbose_error_to_error!(ColourTransformationParseError);
+verbose_error_to_error!(ParseColourTransformationError);

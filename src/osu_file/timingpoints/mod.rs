@@ -252,7 +252,7 @@ impl TimingPoint {
 const OLD_VERSION_TIME_OFFSET: Decimal = dec!(24);
 
 impl VersionedFromStr for TimingPoint {
-    type Err = TimingPointParseError;
+    type Err = ParseTimingPointError;
 
     fn from_str(s: &str, version: Version) -> std::result::Result<Option<Self>, Self::Err> {
         let meter_fallback = 4;
@@ -280,7 +280,7 @@ impl VersionedFromStr for TimingPoint {
             ),
         ) = tuple((
             context(
-                TimingPointParseError::InvalidTime.into(),
+                ParseTimingPointError::InvalidTime.into(),
                 comma_field_type(),
             )
             .map(|t| {
@@ -291,7 +291,7 @@ impl VersionedFromStr for TimingPoint {
                 }
             }),
             preceded(
-                context(TimingPointParseError::MissingBeatLength.into(), comma()),
+                context(ParseTimingPointError::MissingBeatLength.into(), comma()),
                 alt((
                     preceded(verify(success(0), |_| version == 3), rest).map(|beat_length| {
                         (
@@ -307,26 +307,26 @@ impl VersionedFromStr for TimingPoint {
                     tuple((
                         comma_field(),
                         preceded(
-                            context(TimingPointParseError::MissingMeter.into(), comma()),
+                            context(ParseTimingPointError::MissingMeter.into(), comma()),
                             context(
-                                TimingPointParseError::InvalidMeter.into(),
+                                ParseTimingPointError::InvalidMeter.into(),
                                 comma_field_type(),
                             ),
                         ),
                         preceded(
-                            context(TimingPointParseError::MissingSampleSet.into(), comma()),
+                            context(ParseTimingPointError::MissingSampleSet.into(), comma()),
                             context(
-                                TimingPointParseError::InvalidSampleSet.into(),
+                                ParseTimingPointError::InvalidSampleSet.into(),
                                 comma_field_versioned_type(version),
                             ),
                         ),
                         preceded(
-                            context(TimingPointParseError::MissingSampleIndex.into(), comma()),
+                            context(ParseTimingPointError::MissingSampleIndex.into(), comma()),
                             alt((
                                 preceded(
                                     verify(success(0), |_| version == 4),
                                     context(
-                                        TimingPointParseError::InvalidSampleIndex.into(),
+                                        ParseTimingPointError::InvalidSampleIndex.into(),
                                         cut(consume_rest_versioned_type(version)),
                                     ),
                                 )
@@ -338,19 +338,19 @@ impl VersionedFromStr for TimingPoint {
                                 }),
                                 tuple((
                                     context(
-                                        TimingPointParseError::InvalidSampleIndex.into(),
+                                        ParseTimingPointError::InvalidSampleIndex.into(),
                                         comma_field_versioned_type(version),
                                     ),
                                     preceded(
                                         context(
-                                            TimingPointParseError::MissingVolume.into(),
+                                            ParseTimingPointError::MissingVolume.into(),
                                             comma(),
                                         ),
                                         alt((
                                             preceded(
                                                 verify(success(0), |_| version == 5),
                                                 context(
-                                                    TimingPointParseError::InvalidVolume.into(),
+                                                    ParseTimingPointError::InvalidVolume.into(),
                                                     cut(consume_rest_versioned_type(version)),
                                                 ),
                                             )
@@ -361,29 +361,29 @@ impl VersionedFromStr for TimingPoint {
                                             ),
                                             tuple((
                                                 context(
-                                                    TimingPointParseError::InvalidVolume.into(),
+                                                    ParseTimingPointError::InvalidVolume.into(),
                                                     comma_field_versioned_type(version),
                                                 ),
                                                 preceded(
                                                     context(
-                                                        TimingPointParseError::MissingUninherited
+                                                        ParseTimingPointError::MissingUninherited
                                                             .into(),
                                                         comma(),
                                                     ),
                                                     context(
-                                                        TimingPointParseError::InvalidUninherited
+                                                        ParseTimingPointError::InvalidUninherited
                                                             .into(),
                                                         map_res(comma_field(), parse_zero_one_bool),
                                                     ),
                                                 ),
                                                 preceded(
                                                     context(
-                                                        TimingPointParseError::MissingEffects
+                                                        ParseTimingPointError::MissingEffects
                                                             .into(),
                                                         comma(),
                                                     ),
                                                     context(
-                                                        TimingPointParseError::InvalidEffects
+                                                        ParseTimingPointError::InvalidEffects
                                                             .into(),
                                                         consume_rest_versioned_type(version),
                                                     ),
@@ -518,10 +518,10 @@ impl VersionedDefault for SampleSet {
 }
 
 impl VersionedFromStr for SampleSet {
-    type Err = SampleSetParseError;
+    type Err = ParseSampleSetError;
 
     fn from_str(s: &str, version: Version) -> Result<Option<Self>, Self::Err> {
-        SampleSet::from_repr(s.parse()?, version).map_err(|_| SampleSetParseError::UnknownSampleSet)
+        SampleSet::from_repr(s.parse()?, version).map_err(|_| ParseSampleSetError::UnknownSampleSet)
     }
 }
 
@@ -540,7 +540,7 @@ pub struct Effects {
 }
 
 impl VersionedFromStr for Effects {
-    type Err = EffectsParseError;
+    type Err = ParseEffectsError;
 
     fn from_str(s: &str, version: Version) -> Result<Option<Self>, Self::Err> {
         Ok(<Effects as VersionedFrom<u8>>::from(s.parse()?, version))
@@ -591,7 +591,7 @@ pub enum SampleIndex {
 }
 
 impl VersionedFromStr for SampleIndex {
-    type Err = SampleIndexParseError;
+    type Err = ParseSampleIndexError;
 
     fn from_str(s: &str, version: Version) -> Result<Option<Self>, Self::Err> {
         <SampleIndex as VersionedTryFrom<Integer>>::try_from(s.parse()?, version)
@@ -600,7 +600,7 @@ impl VersionedFromStr for SampleIndex {
 
 // TODO do we accept negative index
 impl VersionedTryFrom<Integer> for SampleIndex {
-    type Error = SampleIndexParseError;
+    type Error = ParseSampleIndexError;
 
     fn try_from(value: Integer, _: Version) -> Result<Option<Self>, Self::Error> {
         let value = usize::try_from(value)?;

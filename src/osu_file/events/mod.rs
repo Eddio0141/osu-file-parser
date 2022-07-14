@@ -13,7 +13,7 @@ use crate::helper::trait_ext::MapOptStringNewLine;
 use crate::parsers::comma;
 
 use self::storyboard::cmds::Command;
-use self::storyboard::{error::ObjectParseError, sprites::Object};
+use self::storyboard::{error::ParseObjectError, sprites::Object};
 
 use super::Version;
 use super::{types::Error, Integer, VersionedDefault, VersionedFromStr, VersionedToString};
@@ -121,32 +121,32 @@ impl VersionedFromStr for Events {
                         let res = match type_ {
                             NormalEventType::Background => Background::from_str(line, version)
                                 .map(|e| e.map(Event::Background))
-                                .map_err(ParseError::BackgroundParseError),
+                                .map_err(ParseError::ParseBackgroundError),
                             NormalEventType::Video => Video::from_str(line, version)
                                 .map(|e| e.map(Event::Video))
-                                .map_err(ParseError::VideoParseError),
+                                .map_err(ParseError::ParseVideoError),
                             NormalEventType::Break => Break::from_str(line, version)
                                 .map(|e| e.map(Event::Break))
-                                .map_err(ParseError::BreakParseError),
+                                .map_err(ParseError::ParseBreakError),
                             NormalEventType::ColourTransformation => {
                                 ColourTransformation::from_str(line, version)
                                     .map(|e| e.map(Event::ColourTransformation))
-                                    .map_err(ParseError::ColourTransformationParseError)
+                                    .map_err(ParseError::ParseColourTransformationError)
                             }
                             NormalEventType::Other => {
                                 // is it a storyboard object?
                                 match Object::from_str(line, version) {
                                     Ok(e) => Ok(e.map(Event::StoryboardObject)),
                                     Err(err) => {
-                                        if let ObjectParseError::UnknownObjectType = err {
+                                        if let ParseObjectError::UnknownObjectType = err {
                                             // try AudioSample
                                             AudioSample::from_str(line, version)
                                                 .map(|e| e.map(Event::AudioSample))
                                                 .map_err(|err| {
-                                                    ParseError::AudioSampleParseError(err)
+                                                    ParseError::ParseAudioSampleError(err)
                                                 })
                                         } else {
-                                            Err(ParseError::StoryboardObjectParseError(err))
+                                            Err(ParseError::ParseStoryboardObjectError(err))
                                         }
                                     }
                                 }

@@ -117,7 +117,7 @@ pub struct Variable {
 }
 
 impl VersionedFromStr for Variable {
-    type Err = VariableParseError;
+    type Err = ParseVariableError;
 
     fn from_str(s: &str, _: Version) -> Result<Option<Self>, Self::Err> {
         let header = tag("$");
@@ -127,11 +127,11 @@ impl VersionedFromStr for Variable {
 
         let (_, (name, value)) = tuple((
             preceded(
-                context(VariableParseError::MissingHeader.into(), header),
+                context(ParseVariableError::MissingHeader.into(), header),
                 value_name,
             ),
             preceded(
-                context(VariableParseError::MissingEquals.into(), equals),
+                context(ParseVariableError::MissingEquals.into(), equals),
                 value,
             ),
         ))(s)?;

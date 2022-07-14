@@ -7,12 +7,12 @@ use crate::helper::macros::verbose_error_to_error;
 
 #[derive(Debug, Error)]
 #[error(transparent)]
-pub struct ParseError(#[from] TimingPointParseError);
+pub struct ParseError(#[from] ParseTimingPointError);
 
 /// Error used when there was a problem parsing the [`TimingPoint`][super::TimingPoint].
 #[derive(Debug, Error, EnumString, IntoStaticStr)]
 #[non_exhaustive]
-pub enum TimingPointParseError {
+pub enum ParseTimingPointError {
     /// Invalid `time` value.
     #[error("Invalid `time` value")]
     InvalidTime,
@@ -60,12 +60,12 @@ pub enum TimingPointParseError {
     InvalidUninherited,
 }
 
-verbose_error_to_error!(TimingPointParseError);
+verbose_error_to_error!(ParseTimingPointError);
 
 /// There was some problem parsing the [`SampleSet`][super::SampleSet].
 #[derive(Debug, Error, PartialEq)]
 #[non_exhaustive]
-pub enum SampleSetParseError {
+pub enum ParseSampleSetError {
     /// The value failed to parse from a `str`.
     #[error(transparent)]
     ParseIntError(#[from] ParseIntError),
@@ -77,10 +77,10 @@ pub enum SampleSetParseError {
 /// There was a problem parsing `str` as [`Effects`][super::Effects].
 #[derive(Debug, Error)]
 #[error(transparent)]
-pub struct EffectsParseError(#[from] ParseIntError);
+pub struct ParseEffectsError(#[from] ParseIntError);
 
 #[derive(Debug, Error)]
-pub enum SampleIndexParseError {
+pub enum ParseSampleIndexError {
     #[error(transparent)]
     ParseIntError(#[from] ParseIntError),
     #[error(transparent)]
@@ -96,5 +96,5 @@ pub enum VolumeError {
     VolumeTooHigh(u8),
     /// There was a problem parsing the `str` as [`Volume`][super::Volume].
     #[error(transparent)]
-    VolumeParseError(#[from] ParseIntError),
+    ParseVolumeError(#[from] ParseIntError),
 }

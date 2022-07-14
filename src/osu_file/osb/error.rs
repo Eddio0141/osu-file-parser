@@ -14,20 +14,20 @@ pub enum ParseError {
     UnknownSection,
     #[error(transparent)]
     #[strum(disabled)]
-    VariableParseError(#[from] VariableParseError),
+    ParseVariableError(#[from] ParseVariableError),
     #[error(transparent)]
     #[strum(disabled)]
-    EventsParseError(#[from] events::ParseError),
+    ParseEventsError(#[from] events::ParseError),
 }
 
 verbose_error_to_error!(ParseError);
 
 #[derive(Debug, Error, EnumString, IntoStaticStr)]
-pub enum VariableParseError {
+pub enum ParseVariableError {
     #[error("Missing the header `$`")]
     MissingHeader,
     #[error("Missing `=` for assignment")]
     MissingEquals,
 }
 
-verbose_error_to_error!(VariableParseError);
+verbose_error_to_error!(ParseVariableError);

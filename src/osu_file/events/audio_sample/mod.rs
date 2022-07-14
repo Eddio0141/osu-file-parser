@@ -27,19 +27,19 @@ pub struct AudioSample {
 }
 
 impl VersionedFromStr for AudioSample {
-    type Err = AudioSampleParseError;
+    type Err = ParseAudioSampleError;
 
     fn from_str(s: &str, version: Version) -> Result<Option<Self>, Self::Err> {
-        let header = context(AudioSampleParseError::WrongEvent.into(), tag("Sample"));
+        let header = context(ParseAudioSampleError::WrongEvent.into(), tag("Sample"));
         let time = context(
-            AudioSampleParseError::InvalidTime.into(),
+            ParseAudioSampleError::InvalidTime.into(),
             comma_field_type(),
         );
         let layer = context(
-            AudioSampleParseError::InvalidLayer.into(),
+            ParseAudioSampleError::InvalidLayer.into(),
             map_res(
                 context(
-                    AudioSampleParseError::InvalidLayer.into(),
+                    ParseAudioSampleError::InvalidLayer.into(),
                     comma_field_type(),
                 ),
                 // for now all of those unwraps are safe, can change on the future versions though
@@ -50,10 +50,10 @@ impl VersionedFromStr for AudioSample {
         let volume = alt((
             eof.map(|_| Volume::default()),
             preceded(
-                context(AudioSampleParseError::MissingVolume.into(), comma()),
+                context(ParseAudioSampleError::MissingVolume.into(), comma()),
                 context(
-                    AudioSampleParseError::InvalidVolume.into(),
-                    map_res::<_, _, _, _, VolumeParseError, _, _>(comma_field(), |s| {
+                    ParseAudioSampleError::InvalidVolume.into(),
+                    map_res::<_, _, _, _, ParseVolumeError, _, _>(comma_field(), |s| {
                         Ok(Volume::from_str(s, version)?.unwrap())
                     }),
                 ),
@@ -64,16 +64,16 @@ impl VersionedFromStr for AudioSample {
             preceded(
                 tuple((
                     header,
-                    context(AudioSampleParseError::MissingTime.into(), comma()),
+                    context(ParseAudioSampleError::MissingTime.into(), comma()),
                 )),
                 time,
             ),
             preceded(
-                context(AudioSampleParseError::MissingLayer.into(), comma()),
+                context(ParseAudioSampleError::MissingLayer.into(), comma()),
                 layer,
             ),
             preceded(
-                context(AudioSampleParseError::MissingFilepath.into(), comma()),
+                context(ParseAudioSampleError::MissingFilepath.into(), comma()),
                 filepath,
             ),
             volume,
@@ -141,7 +141,7 @@ impl VersionedFrom<Volume> for u8 {
 }
 
 impl VersionedFromStr for Volume {
-    type Err = VolumeParseError;
+    type Err = ParseVolumeError;
 
     fn from_str(s: &str, version: Version) -> Result<Option<Self>, Self::Err> {
         <Volume as VersionedTryFrom<u8>>::try_from(s.parse::<u8>()?, version)

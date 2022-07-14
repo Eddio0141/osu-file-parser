@@ -63,22 +63,22 @@ pub struct EdgeSet {
 }
 
 impl VersionedFromStr for EdgeSet {
-    type Err = ColonSetParseError;
+    type Err = ParseColonSetError;
 
     fn from_str(s: &str, version: Version) -> Result<Option<Self>, Self::Err> {
         let s = s.split(':').collect::<Vec<_>>();
 
         if s.len() > 2 {
-            return Err(ColonSetParseError::MoreThanTwoItems);
+            return Err(ParseColonSetError::MoreThanTwoItems);
         }
 
-        let normal_set = s.get(0).ok_or(ColonSetParseError::MissingFirstItem)?;
-        let addition_set = s.get(1).ok_or(ColonSetParseError::MissingSecondItem)?;
+        let normal_set = s.get(0).ok_or(ParseColonSetError::MissingFirstItem)?;
+        let addition_set = s.get(1).ok_or(ParseColonSetError::MissingSecondItem)?;
 
         let normal_set = SampleSet::from_str(normal_set, version)
-            .map_err(|_| ColonSetParseError::FirstItemParseError)?;
+            .map_err(|_| ParseColonSetError::ParseFirstItemError)?;
         let addition_set = SampleSet::from_str(addition_set, version)
-            .map_err(|_| ColonSetParseError::SecondItemParseError)?;
+            .map_err(|_| ParseColonSetError::ParseSecondItemError)?;
 
         Ok(Some(Self {
             normal_set: normal_set.unwrap(),
@@ -102,24 +102,24 @@ impl VersionedToString for EdgeSet {
 pub struct CurvePoint(pub Position);
 
 impl VersionedFromStr for CurvePoint {
-    type Err = ColonSetParseError;
+    type Err = ParseColonSetError;
 
     fn from_str(s: &str, _: Version) -> Result<Option<Self>, Self::Err> {
         let s = s.split(':').collect::<Vec<_>>();
 
         if s.len() > 2 {
-            return Err(ColonSetParseError::MoreThanTwoItems);
+            return Err(ParseColonSetError::MoreThanTwoItems);
         }
 
-        let x = s.get(0).ok_or(ColonSetParseError::MissingFirstItem)?;
-        let y = s.get(1).ok_or(ColonSetParseError::MissingSecondItem)?;
+        let x = s.get(0).ok_or(ParseColonSetError::MissingFirstItem)?;
+        let y = s.get(1).ok_or(ParseColonSetError::MissingSecondItem)?;
 
         let x = x
             .parse()
-            .map_err(|_| ColonSetParseError::FirstItemParseError)?;
+            .map_err(|_| ParseColonSetError::ParseFirstItemError)?;
         let y = y
             .parse()
-            .map_err(|_| ColonSetParseError::SecondItemParseError)?;
+            .map_err(|_| ParseColonSetError::ParseSecondItemError)?;
 
         let position = Position { x, y };
 
@@ -160,7 +160,7 @@ impl VersionedToString for SampleSet {
 }
 
 impl VersionedFromStr for SampleSet {
-    type Err = SampleSetParseError;
+    type Err = ParseSampleSetError;
 
     fn from_str(s: &str, _: Version) -> Result<Option<Self>, Self::Err> {
         let s = s.parse()?;
@@ -170,7 +170,7 @@ impl VersionedFromStr for SampleSet {
             1 => Ok(Some(Self::NormalSet)),
             2 => Ok(Some(Self::SoftSet)),
             3 => Ok(Some(Self::DrumSet)),
-            _ => Err(SampleSetParseError::UnknownType(s)),
+            _ => Err(ParseSampleSetError::UnknownType(s)),
         }
     }
 }
@@ -200,12 +200,12 @@ impl Volume {
     /// Creates a new instance of `Volume`.
     /// - Requires the `volume` to be in range of `1` ~ `100`.
     /// - Setting the `volume` to be `None` will use the timingpoint's volume instead.
-    pub fn new(volume: Option<u8>) -> Result<Volume, VolumeParseError> {
+    pub fn new(volume: Option<u8>) -> Result<Volume, ParseVolumeError> {
         if let Some(volume) = volume {
             if volume == 0 {
-                Err(VolumeParseError::VolumeTooLow)
+                Err(ParseVolumeError::VolumeTooLow)
             } else if volume > 100 {
-                Err(VolumeParseError::VolumeTooHigh(volume))
+                Err(ParseVolumeError::VolumeTooHigh(volume))
             } else {
                 Ok(Volume(Some(volume)))
             }
@@ -244,7 +244,7 @@ impl Volume {
 }
 
 impl VersionedFromStr for Volume {
-    type Err = VolumeParseError;
+    type Err = ParseVolumeError;
 
     fn from_str(s: &str, _: Version) -> Result<Option<Self>, Self::Err> {
         let volume = s.parse::<u8>()?;
@@ -339,7 +339,7 @@ impl HitSound {
 }
 
 impl VersionedFromStr for HitSound {
-    type Err = HitSoundParseError;
+    type Err = ParseHitSoundError;
 
     fn from_str(s: &str, version: Version) -> Result<Option<Self>, Self::Err> {
         Ok(<HitSound as VersionedFrom<u8>>::from(s.parse()?, version))
@@ -377,7 +377,7 @@ pub enum CurveType {
 }
 
 impl VersionedFromStr for CurveType {
-    type Err = CurveTypeParseError;
+    type Err = ParseCurveTypeError;
 
     fn from_str(s: &str, _: Version) -> std::result::Result<Option<Self>, Self::Err> {
         match s {
@@ -385,7 +385,7 @@ impl VersionedFromStr for CurveType {
             "C" => Ok(Some(CurveType::Centripetal)),
             "L" => Ok(Some(CurveType::Linear)),
             "P" => Ok(Some(CurveType::PerfectCircle)),
-            _ => Err(CurveTypeParseError::UnknownVariant),
+            _ => Err(ParseCurveTypeError::UnknownVariant),
         }
     }
 }
@@ -467,7 +467,7 @@ pub struct HitSample {
 }
 
 impl VersionedFromStr for HitSample {
-    type Err = HitSampleParseError;
+    type Err = ParseHitSampleError;
 
     fn from_str(s: &str, version: Version) -> std::result::Result<Option<Self>, Self::Err> {
         // TODO does the 4th and 5th field exist from v12 onwards?
@@ -475,7 +475,7 @@ impl VersionedFromStr for HitSample {
         let field_separator = || tag(":");
         let sample_set = || {
             context(
-                HitSampleParseError::InvalidSampleSet.into(),
+                ParseHitSampleError::InvalidSampleSet.into(),
                 map_res(field(), |v: &str| {
                     SampleSet::from_str(v, version).map(|s| s.unwrap())
                 })
@@ -495,7 +495,7 @@ impl VersionedFromStr for HitSample {
                     nothing().map(|_| None),
                     preceded(
                         context(
-                            HitSampleParseError::MissingSeparator.into(),
+                            ParseHitSampleError::MissingSeparator.into(),
                             field_separator(),
                         ),
                         sample_set(),
@@ -507,11 +507,11 @@ impl VersionedFromStr for HitSample {
                     nothing().map(|_| None),
                     preceded(
                         context(
-                            HitSampleParseError::MissingSeparator.into(),
+                            ParseHitSampleError::MissingSeparator.into(),
                             field_separator(),
                         ),
                         context(
-                            HitSampleParseError::InvalidIndex.into(),
+                            ParseHitSampleError::InvalidIndex.into(),
                             map_res(field(), |v: &str| {
                                 SampleIndex::from_str(v, version).map(|i| i.unwrap())
                             })
@@ -525,11 +525,11 @@ impl VersionedFromStr for HitSample {
                     nothing().map(|_| None),
                     preceded(
                         context(
-                            HitSampleParseError::MissingSeparator.into(),
+                            ParseHitSampleError::MissingSeparator.into(),
                             field_separator(),
                         ),
                         context(
-                            HitSampleParseError::InvalidVolume.into(),
+                            ParseHitSampleError::InvalidVolume.into(),
                             map_res(field(), |v: &str| {
                                 Volume::from_str(v, version).map(|v| v.unwrap())
                             })
@@ -543,7 +543,7 @@ impl VersionedFromStr for HitSample {
                     nothing().map(|_| None),
                     preceded(
                         context(
-                            HitSampleParseError::MissingSeparator.into(),
+                            ParseHitSampleError::MissingSeparator.into(),
                             field_separator(),
                         ),
                         field().map(Some),

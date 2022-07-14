@@ -5,12 +5,12 @@ use crate::helper::macros::verbose_error_to_error;
 
 #[derive(Debug, Error)]
 #[error(transparent)]
-pub struct ParseError(#[from] ColourParseError);
+pub struct ParseError(#[from] ParseColourError);
 
 /// Error used when there was a problem parsing a `str` as a `Colour`.
 #[derive(Debug, Error, EnumString, IntoStaticStr)]
 #[non_exhaustive]
-pub enum ColourParseError {
+pub enum ParseColourError {
     /// Invalid additive combo count.
     #[error("Invalid additive combo count")]
     InvalidComboCount,
@@ -19,16 +19,16 @@ pub enum ColourParseError {
     InvalidColonSeparator,
     #[error(transparent)]
     #[strum(disabled)]
-    RgbParseError(#[from] RgbParseError),
+    ParseRgbError(#[from] ParseRgbError),
     /// Unknown colour type.
     #[error("Unknown colour type")]
     UnknownColourType,
 }
 
-verbose_error_to_error!(ColourParseError);
+verbose_error_to_error!(ParseColourError);
 
 #[derive(Debug, Error, EnumString, IntoStaticStr)]
-pub enum RgbParseError {
+pub enum ParseRgbError {
     /// Invalid red value.
     #[error("Invalid red value")]
     InvalidRed,
@@ -46,4 +46,4 @@ pub enum RgbParseError {
     MissingBlue,
 }
 
-verbose_error_to_error!(RgbParseError);
+verbose_error_to_error!(ParseRgbError);

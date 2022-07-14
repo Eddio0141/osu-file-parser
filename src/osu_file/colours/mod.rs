@@ -83,7 +83,7 @@ pub enum Colour {
 }
 
 impl VersionedFromStr for Colour {
-    type Err = ColourParseError;
+    type Err = ParseColourError;
 
     fn from_str(s: &str, version: Version) -> Result<Option<Self>, Self::Err> {
         let separator = || tuple((space0, tag(":"), space0));
@@ -104,10 +104,10 @@ impl VersionedFromStr for Colour {
         let combo = tuple((
             preceded(
                 combo_type,
-                context(ColourParseError::InvalidComboCount.into(), cut(combo_count)),
+                context(ParseColourError::InvalidComboCount.into(), cut(combo_count)),
             ),
             cut(preceded(
-                context(ColourParseError::InvalidColonSeparator.into(), separator()),
+                context(ParseColourError::InvalidColonSeparator.into(), separator()),
                 rgb(),
             )),
         ))
@@ -117,7 +117,7 @@ impl VersionedFromStr for Colour {
             tuple((
                 slider_track_override_type,
                 context(
-                    ColourParseError::InvalidColonSeparator.into(),
+                    ParseColourError::InvalidColonSeparator.into(),
                     cut(separator()),
                 ),
             )),
@@ -129,7 +129,7 @@ impl VersionedFromStr for Colour {
             tuple((
                 slider_border_type,
                 context(
-                    ColourParseError::InvalidColonSeparator.into(),
+                    ParseColourError::InvalidColonSeparator.into(),
                     cut(separator()),
                 ),
             )),
@@ -141,7 +141,7 @@ impl VersionedFromStr for Colour {
             combo,
             slide_track_override,
             slider_border,
-            context(ColourParseError::UnknownColourType.into(), fail),
+            context(ParseColourError::UnknownColourType.into(), fail),
         ))(s)
         .finish();
 

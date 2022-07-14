@@ -14,7 +14,7 @@ pub enum CommandPushError {
 
 #[derive(Debug, Error, IntoStaticStr, EnumString)]
 #[non_exhaustive]
-pub enum ObjectParseError {
+pub enum ParseObjectError {
     #[error("Unknown object type")]
     UnknownObjectType,
     #[error("Missing layer field")]
@@ -49,7 +49,7 @@ pub enum ObjectParseError {
     InvalidLoopType,
 }
 
-verbose_error_to_error!(ObjectParseError);
+verbose_error_to_error!(ParseObjectError);
 
 #[derive(Debug, Error)]
 #[error("The filepath needs to be a path relative to where the .osu file is, not a full path such as `C:\\folder\\image.png`")]
@@ -57,16 +57,16 @@ pub struct FilePathNotRelative;
 
 #[derive(Debug, Error)]
 #[non_exhaustive]
-pub enum EasingParseError {
+pub enum ParseEasingError {
     #[error(transparent)]
-    ValueParseError(#[from] ParseIntError),
+    ParseValueError(#[from] ParseIntError),
     #[error("Unknown easing type {0}")]
     UnknownEasingType(usize),
 }
 
 #[derive(Debug, Error, EnumString, IntoStaticStr)]
 #[non_exhaustive]
-pub enum CommandParseError {
+pub enum ParseCommandError {
     /// Unknown command type
     #[error("Unknown command type")]
     UnknownCommandType,
@@ -192,15 +192,15 @@ pub enum CommandParseError {
     InvalidContinuingRotation,
 }
 
-verbose_error_to_error!(CommandParseError);
+verbose_error_to_error!(ParseCommandError);
 
 #[derive(Debug, Error)]
 #[non_exhaustive]
-pub enum TriggerTypeParseError {
+pub enum ParseTriggerTypeError {
     #[error("There are too many `HitSound` fields: {0}")]
     TooManyHitSoundFields(usize),
     #[error("There was a problem parsing a field")]
-    FieldParseError {
+    ParseFieldError {
         #[from]
         source: ParseIntError,
     },
@@ -246,42 +246,42 @@ pub struct InvalidSecondFieldOption;
 
 #[derive(Debug, Error)]
 #[non_exhaustive]
-pub enum ParameterParseError {
+pub enum ParseParameterError {
     #[error("Unknown `Parameter` variant")]
     UnknownVariant,
 }
 
 #[derive(Debug, Error)]
 #[non_exhaustive]
-pub enum AdditionParseError {
+pub enum ParseAdditionError {
     #[error("Unknown `Addition` variant")]
     UnknownVariant,
 }
 
 #[derive(Debug, Error)]
 #[non_exhaustive]
-pub enum SampleSetParseError {
+pub enum ParseSampleSetError {
     #[error("Unknown `SampleSet` variant")]
     UnknownVariant,
 }
 
 #[derive(Debug, Error)]
 #[non_exhaustive]
-pub enum OriginParseError {
+pub enum ParseOriginError {
     #[error("Unknown `Origin` variant")]
     UnknownVariant,
 }
 
 #[derive(Debug, Error)]
 #[non_exhaustive]
-pub enum LoopTypeParseError {
+pub enum ParseLoopTypeError {
     #[error("Unknown `LoopType` variant")]
     UnknownVariant,
 }
 
 #[derive(Debug, Error)]
 #[non_exhaustive]
-pub enum LayerParseError {
+pub enum ParseLayerError {
     #[error("Unknown `Layer` variant")]
     UnknownVariant,
 }

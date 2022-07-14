@@ -214,7 +214,7 @@ impl VersionedToString for OverlayPosition {
 }
 
 impl VersionedFromStr for OverlayPosition {
-    type Err = OverlayPositionParseError;
+    type Err = ParseOverlayPositionError;
 
     fn from_str(s: &str, version: Version) -> std::result::Result<Option<Self>, Self::Err> {
         match version {
@@ -223,7 +223,7 @@ impl VersionedFromStr for OverlayPosition {
                 "NoChange" => Ok(Some(OverlayPosition::NoChange)),
                 "Below" => Ok(Some(OverlayPosition::Below)),
                 "Above" => Ok(Some(OverlayPosition::Above)),
-                _ => Err(OverlayPositionParseError::UnknownVariant),
+                _ => Err(ParseOverlayPositionError::UnknownVariant),
             },
         }
     }

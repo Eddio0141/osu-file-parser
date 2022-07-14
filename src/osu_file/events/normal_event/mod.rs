@@ -46,29 +46,29 @@ pub struct Background {
 pub const BACKGROUND_HEADER: &str = "0";
 
 impl VersionedFromStr for Background {
-    type Err = BackgroundParseError;
+    type Err = ParseBackgroundError;
 
     fn from_str(s: &str, _: Version) -> std::result::Result<Option<Self>, Self::Err> {
         let (_, (start_time, (filename, position))) = preceded(
             tuple((
                 context(
-                    BackgroundParseError::WrongEventType.into(),
+                    ParseBackgroundError::WrongEventType.into(),
                     tag(BACKGROUND_HEADER),
                 ),
-                context(BackgroundParseError::MissingStartTime.into(), comma()),
+                context(ParseBackgroundError::MissingStartTime.into(), comma()),
             )),
             tuple((
                 context(
-                    BackgroundParseError::InvalidStartTime.into(),
+                    ParseBackgroundError::InvalidStartTime.into(),
                     comma_field_type(),
                 ),
                 preceded(
-                    context(BackgroundParseError::MissingFileName.into(), comma()),
+                    context(ParseBackgroundError::MissingFileName.into(), comma()),
                     file_name_and_position(
-                        BackgroundParseError::MissingX.into(),
-                        BackgroundParseError::InvalidX.into(),
-                        BackgroundParseError::MissingY.into(),
-                        BackgroundParseError::InvalidY.into(),
+                        ParseBackgroundError::MissingX.into(),
+                        ParseBackgroundError::InvalidX.into(),
+                        ParseBackgroundError::MissingY.into(),
+                        ParseBackgroundError::InvalidY.into(),
                     ),
                 ),
             )),
@@ -116,28 +116,28 @@ pub const VIDEO_HEADER: &str = "1";
 pub const VIDEO_HEADER_LONG: &str = "Video";
 
 impl VersionedFromStr for Video {
-    type Err = VideoParseError;
+    type Err = ParseVideoError;
 
     fn from_str(s: &str, version: Version) -> std::result::Result<Option<Self>, Self::Err> {
         let (_, (short_hand, start_time, (file_name, position))) = tuple((
             alt((
                 tag(VIDEO_HEADER).map(|_| true),
                 context(
-                    VideoParseError::WrongEventType.into(),
+                    ParseVideoError::WrongEventType.into(),
                     tag(VIDEO_HEADER_LONG).map(|_| false),
                 ),
             )),
             preceded(
-                context(VideoParseError::MissingStartTime.into(), comma()),
-                start_time_offset(VideoParseError::InvalidStartTime.into(), version),
+                context(ParseVideoError::MissingStartTime.into(), comma()),
+                start_time_offset(ParseVideoError::InvalidStartTime.into(), version),
             ),
             preceded(
-                context(VideoParseError::MissingFileName.into(), comma()),
+                context(ParseVideoError::MissingFileName.into(), comma()),
                 file_name_and_position(
-                    VideoParseError::MissingX.into(),
-                    VideoParseError::InvalidX.into(),
-                    VideoParseError::MissingY.into(),
-                    VideoParseError::InvalidY.into(),
+                    ParseVideoError::MissingX.into(),
+                    ParseVideoError::InvalidX.into(),
+                    ParseVideoError::MissingY.into(),
+                    ParseVideoError::InvalidY.into(),
                 ),
             ),
         ))(s)?;
@@ -189,24 +189,24 @@ pub const BREAK_HEADER: &str = "2";
 pub const BREAK_HEADER_LONG: &str = "Break";
 
 impl VersionedFromStr for Break {
-    type Err = BreakParseError;
+    type Err = ParseBreakError;
 
     fn from_str(s: &str, version: Version) -> std::result::Result<Option<Self>, Self::Err> {
         let (_, (short_hand, start_time, end_time)) = tuple((
             alt((
                 tag(BREAK_HEADER).map(|_| true),
                 context(
-                    BreakParseError::WrongEventType.into(),
+                    ParseBreakError::WrongEventType.into(),
                     tag(BREAK_HEADER_LONG).map(|_| false),
                 ),
             )),
             preceded(
-                context(BreakParseError::MissingStartTime.into(), comma()),
-                start_time_offset(BreakParseError::InvalidStartTime.into(), version),
+                context(ParseBreakError::MissingStartTime.into(), comma()),
+                start_time_offset(ParseBreakError::InvalidStartTime.into(), version),
             ),
             preceded(
-                context(BreakParseError::MissingEndTime.into(), comma()),
-                end_time(BreakParseError::InvalidEndTime.into(), version),
+                context(ParseBreakError::MissingEndTime.into(), comma()),
+                end_time(ParseBreakError::InvalidEndTime.into(), version),
             ),
         ))(s)?;
 
@@ -244,44 +244,44 @@ pub struct ColourTransformation {
 pub const COLOUR_TRANSFORMATION_HEADER: &str = "3";
 
 impl VersionedFromStr for ColourTransformation {
-    type Err = ColourTransformationParseError;
+    type Err = ParseColourTransformationError;
 
     fn from_str(s: &str, version: Version) -> std::result::Result<Option<Self>, Self::Err> {
         let (_, (start_time, red, green, blue)) = tuple((
             preceded(
                 tuple((
                     context(
-                        ColourTransformationParseError::WrongEventType.into(),
+                        ParseColourTransformationError::WrongEventType.into(),
                         tag(COLOUR_TRANSFORMATION_HEADER),
                     ),
                     context(
-                        ColourTransformationParseError::MissingStartTime.into(),
+                        ParseColourTransformationError::MissingStartTime.into(),
                         comma(),
                     ),
                 )),
                 start_time_offset(
-                    ColourTransformationParseError::InvalidStartTime.into(),
+                    ParseColourTransformationError::InvalidStartTime.into(),
                     version,
                 ),
             ),
             preceded(
-                context(ColourTransformationParseError::MissingRed.into(), comma()),
+                context(ParseColourTransformationError::MissingRed.into(), comma()),
                 context(
-                    ColourTransformationParseError::InvalidRed.into(),
+                    ParseColourTransformationError::InvalidRed.into(),
                     comma_field_type(),
                 ),
             ),
             preceded(
-                context(ColourTransformationParseError::MissingGreen.into(), comma()),
+                context(ParseColourTransformationError::MissingGreen.into(), comma()),
                 context(
-                    ColourTransformationParseError::InvalidGreen.into(),
+                    ParseColourTransformationError::InvalidGreen.into(),
                     comma_field_type(),
                 ),
             ),
             preceded(
-                context(ColourTransformationParseError::MissingBlue.into(), comma()),
+                context(ParseColourTransformationError::MissingBlue.into(), comma()),
                 context(
-                    ColourTransformationParseError::InvalidBlue.into(),
+                    ParseColourTransformationError::InvalidBlue.into(),
                     consume_rest_type(),
                 ),
             ),

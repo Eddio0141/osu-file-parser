@@ -19,28 +19,28 @@ pub struct Rgb {
 }
 
 impl VersionedFromStr for Rgb {
-    type Err = RgbParseError;
+    type Err = ParseRgbError;
 
     fn from_str(s: &str, _: Version) -> Result<Option<Self>, Self::Err> {
         let byte = || map_res(digit1, |s: &str| s.parse());
 
         let (_, (red, green, blue)) = tuple((
-            preceded(space0, context(RgbParseError::InvalidRed.into(), byte())),
+            preceded(space0, context(ParseRgbError::InvalidRed.into(), byte())),
             preceded(
                 tuple((
                     space0,
-                    context(RgbParseError::MissingGreen.into(), comma()),
+                    context(ParseRgbError::MissingGreen.into(), comma()),
                     space0,
                 )),
-                context(RgbParseError::InvalidGreen.into(), byte()),
+                context(ParseRgbError::InvalidGreen.into(), byte()),
             ),
             preceded(
                 tuple((
                     space0,
-                    context(RgbParseError::MissingBlue.into(), comma()),
+                    context(ParseRgbError::MissingBlue.into(), comma()),
                     space0,
                 )),
-                context(RgbParseError::InvalidBlue.into(), consume_rest_type()),
+                context(ParseRgbError::InvalidBlue.into(), consume_rest_type()),
             ),
         ))(s)?;
 

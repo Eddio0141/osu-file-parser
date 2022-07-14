@@ -9,7 +9,7 @@ use crate::helper::macros::verbose_error_to_error;
 
 #[derive(Debug, Error)]
 #[error(transparent)]
-pub struct ParseError(#[from] HitObjectParseError);
+pub struct ParseError(#[from] ParseHitObjectError);
 
 #[derive(Debug, Error)]
 #[error("Expected combo skip count to be 3 bits, got {0}")]
@@ -18,7 +18,7 @@ pub struct ComboSkipCountTooHigh(pub u8);
 #[derive(Debug, Error)]
 #[non_exhaustive]
 /// Error used when there was a problem parsing a `str` having a `F:S` format.
-pub enum ColonSetParseError {
+pub enum ParseColonSetError {
     /// When the first item is missing.
     #[error("Missing the first item in the colon set, Colon set requires to have the format `first:second`")]
     MissingFirstItem,
@@ -32,16 +32,16 @@ pub enum ColonSetParseError {
     MoreThanTwoItems,
     /// When the first item failed to parse.
     #[error("Failed to parse the first item")]
-    FirstItemParseError,
+    ParseFirstItemError,
     /// When the second item failed to parse.
     #[error("Failed to parse the second item")]
-    SecondItemParseError,
+    ParseSecondItemError,
 }
 
 #[derive(Debug, Error, EnumString, IntoStaticStr)]
 #[non_exhaustive]
 /// Error used when there was a problem parsing a `str` into a [`HitObject`][super::HitObject].
-pub enum HitObjectParseError {
+pub enum ParseHitObjectError {
     /// Invalid `hit_sound` value.
     #[error("Invalid `hit_sound` value")]
     InvalidHitSound,
@@ -125,12 +125,12 @@ pub enum HitObjectParseError {
     UnknownObjType,
 }
 
-verbose_error_to_error!(HitObjectParseError);
+verbose_error_to_error!(ParseHitObjectError);
 
 #[derive(Debug, Error, EnumString, IntoStaticStr)]
 #[non_exhaustive]
 /// Error used when there was a problem parsing a `str` into a [`hitsample`][super::types::HitSample].
-pub enum HitSampleParseError {
+pub enum ParseHitSampleError {
     #[error("Invalid `sample_set` value")]
     InvalidSampleSet,
     #[error("Invalid `index` value")]
@@ -141,18 +141,18 @@ pub enum HitSampleParseError {
     MissingSeparator,
 }
 
-verbose_error_to_error!(HitSampleParseError);
+verbose_error_to_error!(ParseHitSampleError);
 
 #[derive(Debug, Error)]
 #[non_exhaustive]
 /// Error used when there was a problem parsing a `str` into a [`sampleset`][super::types::SampleSet].
-pub enum SampleSetParseError {
+pub enum ParseSampleSetError {
     /// The `str` had a value higher than 3.
     #[error("Invalid `SampleSet` type: {0}")]
     UnknownType(usize),
     /// There was a problem parsing a `str` as an integer first.
     #[error("There was a problem parsing the `str` into an integer first")]
-    ValueParseError(#[from] ParseIntError),
+    ParseValueError(#[from] ParseIntError),
 }
 
 #[derive(Debug, Error)]
@@ -172,7 +172,7 @@ pub enum VolumeSetError {
 #[derive(Debug, Error)]
 #[non_exhaustive]
 /// Error used when there was a problem parsing a `volume` from a `str`.
-pub enum VolumeParseError {
+pub enum ParseVolumeError {
     /// The volume was too high, being higher than `100`.
     #[error("The volume was too high. Expected 1 ~ 100, got {0}")]
     VolumeTooHigh(u8),
@@ -187,13 +187,13 @@ pub enum VolumeParseError {
 }
 
 #[derive(Debug, Error)]
-pub enum CurveTypeParseError {
+pub enum ParseCurveTypeError {
     #[error("Unknown `CurveType` variant")]
     UnknownVariant,
 }
 
 #[derive(Debug, Error)]
-pub enum HitSoundParseError {
+pub enum ParseHitSoundError {
     #[error(transparent)]
     ParseIntError(#[from] ParseIntError),
     #[error(transparent)]

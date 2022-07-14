@@ -311,49 +311,49 @@ pub enum ParseError {
     SectionNameNoCloseBracket(String),
     /// Error parsing the general section.
     #[error(transparent)]
-    GeneralParseError {
+    ParseGeneralError {
         #[from]
         source: general::ParseError,
     },
     /// Error parsing the editor section.
     #[error(transparent)]
-    EditorParseError {
+    ParseEditorError {
         #[from]
         source: editor::ParseError,
     },
     /// Error parsing the metadata section.
     #[error(transparent)]
-    MetadataParseError {
+    ParseMetadataError {
         #[from]
         source: metadata::ParseError,
     },
     /// Error parsing the difficulty section.
     #[error(transparent)]
-    DifficultyParseError {
+    ParseDifficultyError {
         #[from]
         source: difficulty::ParseError,
     },
     /// Error parsing the events section.
     #[error(transparent)]
-    EventsParseError {
+    ParseEventsError {
         #[from]
         source: events::ParseError,
     },
     /// Error parsing the timingpoints section.
     #[error(transparent)]
-    TimingPointsParseError {
+    ParseTimingPointsError {
         #[from]
         source: timingpoints::ParseError,
     },
     /// Error parsing the colours section.
     #[error(transparent)]
-    ColoursParseError {
+    ParseColoursError {
         #[from]
         source: colours::ParseError,
     },
     /// Error parsing the hitobjects section.
     #[error(transparent)]
-    HitObjectsParseError {
+    ParseHitObjectsError {
         #[from]
         source: hitobjects::ParseError,
     },

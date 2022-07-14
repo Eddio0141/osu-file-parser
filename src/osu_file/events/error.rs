@@ -1,8 +1,8 @@
 use thiserror::Error;
 
 use super::{
-    storyboard::error::*, AudioSampleParseError, BackgroundParseError, BreakParseError,
-    ColourTransformationParseError, VideoParseError,
+    storyboard::error::*, ParseAudioSampleError, ParseBackgroundError, ParseBreakError,
+    ParseColourTransformationError, ParseVideoError,
 };
 
 /// Errors used when there was a problem parsing an [`Event`][super::Event] from a `str`.
@@ -19,22 +19,22 @@ pub enum ParseError {
     #[error("A storyboard command was used without defined sprite or animation sprite")]
     StoryboardCmdWithNoSprite,
     #[error(transparent)]
-    BackgroundParseError(#[from] BackgroundParseError),
+    ParseBackgroundError(#[from] ParseBackgroundError),
     #[error(transparent)]
-    VideoParseError(#[from] VideoParseError),
+    ParseVideoError(#[from] ParseVideoError),
     #[error(transparent)]
-    BreakParseError(#[from] BreakParseError),
+    ParseBreakError(#[from] ParseBreakError),
     #[error(transparent)]
-    ColourTransformationParseError(#[from] ColourTransformationParseError),
+    ParseColourTransformationError(#[from] ParseColourTransformationError),
     #[error(transparent)]
     CommandPushError(#[from] CommandPushError),
     #[error(transparent)]
-    CommandParseError(#[from] CommandParseError),
+    ParseCommandError(#[from] ParseCommandError),
     /// There was a problem parsing some `storyboard` element.
     #[error(transparent)]
-    StoryboardObjectParseError(#[from] ObjectParseError),
+    ParseStoryboardObjectError(#[from] ParseObjectError),
     #[error(transparent)]
-    AudioSampleParseError(#[from] AudioSampleParseError),
+    ParseAudioSampleError(#[from] ParseAudioSampleError),
     /// Event doesn't exist on the version.
     #[error("Event type doesn't exist on version")]
     EventNotExistOnVersion,
