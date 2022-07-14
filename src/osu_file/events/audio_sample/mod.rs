@@ -12,7 +12,7 @@ use nom::{
 use strum_macros::FromRepr;
 
 use crate::{
-    osu_file::{FilePath, Integer, VersionedFromStr, VersionedToString},
+    osu_file::{FilePath, Integer, Version, VersionedFromStr, VersionedToString},
     parsers::{comma, comma_field, comma_field_type},
 };
 
@@ -27,7 +27,7 @@ pub struct AudioSample {
 impl VersionedFromStr for AudioSample {
     type Err = AudioSampleParseError;
 
-    fn from_str(s: &str, version: usize) -> Result<Option<Self>, Self::Err> {
+    fn from_str(s: &str, version: Version) -> Result<Option<Self>, Self::Err> {
         let header = context(AudioSampleParseError::WrongEvent.into(), tag("Sample"));
         let time = context(
             AudioSampleParseError::InvalidTime.into(),
@@ -86,7 +86,7 @@ impl VersionedFromStr for AudioSample {
 }
 
 impl VersionedToString for AudioSample {
-    fn to_string(&self, version: usize) -> Option<String> {
+    fn to_string(&self, version: Version) -> Option<String> {
         Some(format!(
             "Sample,{},{},{},{}",
             self.time,
@@ -139,13 +139,13 @@ impl From<Volume> for u8 {
 impl VersionedFromStr for Volume {
     type Err = VolumeParseError;
 
-    fn from_str(s: &str, _: usize) -> Result<Option<Self>, Self::Err> {
+    fn from_str(s: &str, _: Version) -> Result<Option<Self>, Self::Err> {
         Ok(Some(Volume::try_from(s.parse::<u8>()?)?))
     }
 }
 
 impl VersionedToString for Volume {
-    fn to_string(&self, _: usize) -> Option<String> {
+    fn to_string(&self, _: Version) -> Option<String> {
         Some(u8::from(*self).to_string())
     }
 }

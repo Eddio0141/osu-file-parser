@@ -5,9 +5,9 @@ use std::num::ParseIntError;
 
 use thiserror::Error;
 
-use crate::osu_file::VersionedToString;
+use crate::osu_file::{Version, VersionedToString};
 
-pub fn pipe_vec_to_string<T>(vec: &[T], version: usize) -> String
+pub fn pipe_vec_to_string<T>(vec: &[T], version: Version) -> String
 where
     T: VersionedToString,
 {

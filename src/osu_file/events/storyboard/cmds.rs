@@ -3,6 +3,7 @@ use std::fmt::Display;
 use super::error::*;
 use super::types::*;
 use crate::osu_file::Integer;
+use crate::osu_file::Version;
 use crate::osu_file::VersionedFromStr;
 use crate::osu_file::VersionedToString;
 use crate::parsers::*;
@@ -39,7 +40,7 @@ where
     }
 }
 
-fn continuing_versioned_to_string<T>(continuing: &[T], version: usize) -> String
+fn continuing_versioned_to_string<T>(continuing: &[T], version: Version) -> String
 where
     T: VersionedToString,
 {
@@ -58,7 +59,7 @@ where
 }
 
 impl VersionedToString for Command {
-    fn to_string(&self, version: usize) -> Option<String> {
+    fn to_string(&self, version: Version) -> Option<String> {
         let end_time_to_string =
             |end_time: &Option<i32>| end_time.map_or("".to_string(), |t| t.to_string());
 
@@ -455,7 +456,7 @@ impl Colours {
 }
 
 impl VersionedToString for Colours {
-    fn to_string(&self, _: usize) -> Option<String> {
+    fn to_string(&self, _: Version) -> Option<String> {
         let mut builder = vec![
             self.start.0.to_string(),
             self.start.1.to_string(),
@@ -479,7 +480,7 @@ impl VersionedToString for Colours {
 impl VersionedFromStr for Command {
     type Err = CommandParseError;
 
-    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::Err> {
+    fn from_str(s: &str, version: Version) -> std::result::Result<Option<Self>, Self::Err> {
         let indentation = take_while(|c: char| c == ' ' || c == '_');
         let start_time = || {
             preceded(

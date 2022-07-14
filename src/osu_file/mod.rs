@@ -38,7 +38,7 @@ pub use self::types::*;
 #[non_exhaustive]
 pub struct OsuFile {
     /// Version of the file format.
-    pub version: usize,
+    pub version: Version,
     /// General information about the beatmap.
     /// - `key`: `value` pairs.
     pub general: Option<General>,

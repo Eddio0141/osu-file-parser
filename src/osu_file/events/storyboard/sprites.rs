@@ -7,7 +7,9 @@ use nom::error::context;
 use nom::sequence::{preceded, tuple};
 use nom::Parser;
 
-use crate::osu_file::{FilePath, Position, VersionedDefault, VersionedFromStr, VersionedToString};
+use crate::osu_file::{
+    FilePath, Position, Version, VersionedDefault, VersionedFromStr, VersionedToString,
+};
 use crate::parsers::{
     comma, comma_field, comma_field_type, comma_field_versioned_type, consume_rest_versioned_type,
     nothing,
@@ -28,7 +30,7 @@ pub enum Layer {
 impl VersionedFromStr for Layer {
     type Err = LayerParseError;
 
-    fn from_str(s: &str, _: usize) -> std::result::Result<Option<Self>, Self::Err> {
+    fn from_str(s: &str, _: Version) -> std::result::Result<Option<Self>, Self::Err> {
         match s {
             "Background" => Ok(Some(Layer::Background)),
             "Fail" => Ok(Some(Layer::Fail)),
@@ -40,7 +42,7 @@ impl VersionedFromStr for Layer {
 }
 
 impl VersionedToString for Layer {
-    fn to_string(&self, _: usize) -> Option<String> {
+    fn to_string(&self, _: Version) -> Option<String> {
         let layer = match self {
             Layer::Background => "Background",
             Layer::Fail => "Fail",
@@ -62,7 +64,7 @@ pub struct Object {
 }
 
 impl VersionedToString for Object {
-    fn to_string(&self, version: usize) -> Option<String> {
+    fn to_string(&self, version: Version) -> Option<String> {
         let pos_str = format!("{},{}", self.position.x, self.position.y);
 
         let object_str = match &self.object_type {
@@ -221,7 +223,7 @@ impl Object {
 impl VersionedFromStr for Object {
     type Err = ObjectParseError;
 
-    fn from_str(s: &str, version: usize) -> Result<Option<Self>, Self::Err> {
+    fn from_str(s: &str, version: Version) -> Result<Option<Self>, Self::Err> {
         let layer = || {
             preceded(
                 context(ObjectParseError::MissingLayer.into(), comma()),
@@ -408,7 +410,7 @@ pub enum Origin {
 }
 
 impl VersionedToString for Origin {
-    fn to_string(&self, _: usize) -> Option<String> {
+    fn to_string(&self, _: Version) -> Option<String> {
         let origin = match self {
             Origin::TopLeft => "TopLeft",
             Origin::Centre => "Centre",
@@ -429,7 +431,7 @@ impl VersionedToString for Origin {
 impl VersionedFromStr for Origin {
     type Err = OriginParseError;
 
-    fn from_str(s: &str, _: usize) -> std::result::Result<Option<Self>, Self::Err> {
+    fn from_str(s: &str, _: Version) -> std::result::Result<Option<Self>, Self::Err> {
         match s {
             "TopLeft" => Ok(Some(Origin::TopLeft)),
             "Centre" => Ok(Some(Origin::Centre)),
@@ -454,7 +456,7 @@ pub enum LoopType {
 }
 
 impl VersionedToString for LoopType {
-    fn to_string(&self, _: usize) -> Option<String> {
+    fn to_string(&self, _: Version) -> Option<String> {
         let loop_type = match self {
             LoopType::LoopForever => "LoopForever",
             LoopType::LoopOnce => "LoopOnce",
@@ -467,7 +469,7 @@ impl VersionedToString for LoopType {
 impl VersionedFromStr for LoopType {
     type Err = LoopTypeParseError;
 
-    fn from_str(s: &str, _: usize) -> std::result::Result<Option<Self>, Self::Err> {
+    fn from_str(s: &str, _: Version) -> std::result::Result<Option<Self>, Self::Err> {
         match s {
             "LoopForever" => Ok(Some(LoopType::LoopForever)),
             "LoopOnce" => Ok(Some(LoopType::LoopOnce)),
@@ -478,7 +480,7 @@ impl VersionedFromStr for LoopType {
 
 // TODO all default to versioned default
 impl VersionedDefault for LoopType {
-    fn default(_: usize) -> Option<Self> {
+    fn default(_: Version) -> Option<Self> {
         Some(Self::LoopForever)
     }
 }

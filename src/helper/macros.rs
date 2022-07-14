@@ -20,7 +20,7 @@ macro_rules! versioned_inner {
 
             fn from_str(
                 $s_from_string: &str,
-                $version_from_string: usize,
+                $version_from_string: crate::osu_file::types::Version,
             ) -> std::result::Result<Option<Self>, Self::Err> {
                 $inner_from_string
             }
@@ -31,7 +31,7 @@ macro_rules! versioned_inner {
 macro_rules! versioned_field_to_string {
     ($name:ident, $version:ident, $v:ident, $inner:block) => {
         impl crate::osu_file::types::VersionedToString for $name {
-            fn to_string(&self, $version: usize) -> Option<String> {
+            fn to_string(&self, $version: crate::osu_file::types::Version) -> Option<String> {
                 let $v = &self.0;
                 $inner
             }
@@ -42,7 +42,7 @@ macro_rules! versioned_field_to_string {
 macro_rules! versioned_field_default {
     ($name:ident, $version:ident, $inner:block) => {
         impl crate::osu_file::types::VersionedDefault for $name {
-            fn default($version: usize) -> Option<Self> {
+            fn default($version: crate::osu_file::types::Version) -> Option<Self> {
                 $inner
             }
         }
@@ -140,7 +140,7 @@ macro_rules! general_section_inner {
                 }
             }
 
-            pub fn from_str(s: &str, version: usize) -> Result<Option<$section_name>, crate::osu_file::types::Error<$parse_error>> {
+            pub fn from_str(s: &str, version: crate::osu_file::types::Version) -> Result<Option<$section_name>, crate::osu_file::types::Error<$parse_error>> {
                 let mut section = $section_name::new();
 
                 let (s, fields) = crate::parsers::get_colon_field_value_lines(s).unwrap();
@@ -177,7 +177,7 @@ macro_rules! general_section_inner {
                 Ok(Some(section))
             }
 
-            pub fn to_string(&self, $default_version: usize) -> Option<String> {
+            pub fn to_string(&self, $default_version: crate::osu_file::types::Version) -> Option<String> {
                 let mut v = Vec::new();
 
                 $(

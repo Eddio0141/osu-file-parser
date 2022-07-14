@@ -21,7 +21,7 @@ pub struct Rgb {
 impl VersionedFromStr for Rgb {
     type Err = RgbParseError;
 
-    fn from_str(s: &str, _: usize) -> Result<Option<Self>, Self::Err> {
+    fn from_str(s: &str, _: Version) -> Result<Option<Self>, Self::Err> {
         let byte = || map_res(digit1, |s: &str| s.parse());
 
         let (_, (red, green, blue)) = tuple((
@@ -49,7 +49,7 @@ impl VersionedFromStr for Rgb {
 }
 
 impl VersionedToString for Rgb {
-    fn to_string(&self, _: usize) -> Option<String> {
+    fn to_string(&self, _: Version) -> Option<String> {
         Some(format!("{},{},{}", self.red, self.green, self.blue))
     }
 }

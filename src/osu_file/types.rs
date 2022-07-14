@@ -6,8 +6,10 @@ use std::{
 /// Definition of the `Integer` type.
 pub type Integer = i32;
 
-pub const LATEST_VERSION: usize = 14;
-pub const MIN_VERSION: usize = 3;
+pub const LATEST_VERSION: Version = 14;
+pub const MIN_VERSION: Version = 3;
+
+pub type Version = u8;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 /// The position of something in `osu!pixels` with the `x` `y` form.
@@ -162,17 +164,17 @@ impl<E> From<E> for Error<E> {
 }
 
 pub trait VersionedToString {
-    fn to_string(&self, version: usize) -> Option<String>;
+    fn to_string(&self, version: Version) -> Option<String>;
 }
 
 pub trait VersionedFromStr: Sized {
     type Err;
 
-    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::Err>;
+    fn from_str(s: &str, version: Version) -> std::result::Result<Option<Self>, Self::Err>;
 }
 
 pub trait VersionedDefault: Sized {
-    fn default(version: usize) -> Option<Self>;
+    fn default(version: Version) -> Option<Self>;
 }
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
@@ -194,7 +196,7 @@ impl FilePath {
 }
 
 impl VersionedToString for FilePath {
-    fn to_string(&self, _: usize) -> Option<String> {
+    fn to_string(&self, _: Version) -> Option<String> {
         let quotes = {
             let path = self.0.to_string_lossy();
 

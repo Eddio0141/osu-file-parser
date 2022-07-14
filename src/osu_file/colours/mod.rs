@@ -16,7 +16,7 @@ use crate::parsers::comma;
 pub use self::error::*;
 pub use self::types::*;
 
-use super::{Error, VersionedDefault, VersionedFromStr, VersionedToString, MIN_VERSION};
+use super::{Error, Version, VersionedDefault, VersionedFromStr, VersionedToString, MIN_VERSION};
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Colours(pub Vec<Colour>);
@@ -24,7 +24,7 @@ pub struct Colours(pub Vec<Colour>);
 impl VersionedFromStr for Colours {
     type Err = Error<ParseError>;
 
-    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::Err> {
+    fn from_str(s: &str, version: Version) -> std::result::Result<Option<Self>, Self::Err> {
         match version {
             MIN_VERSION..=4 => Ok(None),
             _ => {
@@ -47,7 +47,7 @@ impl VersionedFromStr for Colours {
 }
 
 impl VersionedToString for Colours {
-    fn to_string(&self, version: usize) -> Option<String> {
+    fn to_string(&self, version: Version) -> Option<String> {
         match version {
             MIN_VERSION..=4 => None,
             _ => Some(
@@ -62,7 +62,7 @@ impl VersionedToString for Colours {
 }
 
 impl VersionedDefault for Colours {
-    fn default(version: usize) -> Option<Self> {
+    fn default(version: Version) -> Option<Self> {
         match version {
             MIN_VERSION..=4 => None,
             _ => Some(Colours(Vec::new())),
@@ -85,7 +85,7 @@ pub enum Colour {
 impl VersionedFromStr for Colour {
     type Err = ColourParseError;
 
-    fn from_str(s: &str, version: usize) -> Result<Option<Self>, Self::Err> {
+    fn from_str(s: &str, version: Version) -> Result<Option<Self>, Self::Err> {
         let separator = || tuple((space0, tag(":"), space0));
         let combo_type = tag("Combo");
         let combo_count = map_res(digit1, |s: &str| s.parse());
@@ -168,7 +168,7 @@ impl VersionedFromStr for Colour {
 }
 
 impl VersionedToString for Colour {
-    fn to_string(&self, version: usize) -> Option<String> {
+    fn to_string(&self, version: Version) -> Option<String> {
         let colour_str = match self {
             Colour::Combo(num, rgb) => format!("Combo{num} : {}", rgb.to_string(version).unwrap()),
             Colour::SliderTrackOverride(rgb) => {

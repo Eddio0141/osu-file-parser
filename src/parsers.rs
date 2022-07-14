@@ -11,7 +11,7 @@ use nom::{
     IResult,
 };
 
-use crate::osu_file::VersionedFromStr;
+use crate::osu_file::{Version, VersionedFromStr};
 
 // pub fn leading_ws<'a, F: 'a, O, E: ParseError<&'a str>>(
 //     inner: F,
@@ -57,7 +57,7 @@ pub fn get_colon_field_value_lines(s: &str) -> IResult<&str, Vec<(&str, &str, &s
 }
 
 pub fn pipe_vec_versioned_map<'a, E, T>(
-    version: usize,
+    version: Version,
 ) -> impl FnMut(&'a str) -> IResult<&'a str, Vec<T>, E>
 where
     E: ParseError<&'a str> + nom::error::FromExternalError<&'a str, <T as VersionedFromStr>::Err>,
@@ -94,7 +94,7 @@ where
 }
 
 pub fn comma_field_versioned_type<'a, E, T>(
-    version: usize,
+    version: Version,
 ) -> impl FnMut(&'a str) -> IResult<&str, T, E>
 where
     E: ParseError<&'a str> + FromExternalError<&'a str, <T as VersionedFromStr>::Err>,
@@ -114,7 +114,7 @@ where
 }
 
 pub fn consume_rest_versioned_type<'a, E, T>(
-    version: usize,
+    version: Version,
 ) -> impl FnMut(&'a str) -> IResult<&str, T, E>
 where
     E: ParseError<&'a str> + FromExternalError<&'a str, <T as VersionedFromStr>::Err>,

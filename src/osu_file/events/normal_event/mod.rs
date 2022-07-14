@@ -7,7 +7,7 @@ use nom::{
 };
 
 use crate::{
-    osu_file::{FilePath, Integer, Position, VersionedFromStr, VersionedToString},
+    osu_file::{FilePath, Integer, Position, Version, VersionedFromStr, VersionedToString},
     parsers::{comma, comma_field_type, consume_rest_type},
 };
 
@@ -26,7 +26,7 @@ fn position_str(position: &Option<Position>) -> String {
     }
 }
 
-fn time_to_string(time: Integer, version: usize) -> String {
+fn time_to_string(time: Integer, version: Version) -> String {
     let time = if (3..=4).contains(&version) {
         time - OLD_VERSION_TIME_OFFSET
     } else {
@@ -48,7 +48,7 @@ pub const BACKGROUND_HEADER: &str = "0";
 impl VersionedFromStr for Background {
     type Err = BackgroundParseError;
 
-    fn from_str(s: &str, _: usize) -> std::result::Result<Option<Self>, Self::Err> {
+    fn from_str(s: &str, _: Version) -> std::result::Result<Option<Self>, Self::Err> {
         let (_, (start_time, (filename, position))) = preceded(
             tuple((
                 context(
@@ -83,7 +83,7 @@ impl VersionedFromStr for Background {
 }
 
 impl VersionedToString for Background {
-    fn to_string(&self, version: usize) -> Option<String> {
+    fn to_string(&self, version: Version) -> Option<String> {
         Some(format!(
             "{BACKGROUND_HEADER},{},{}{}",
             self.start_time,
@@ -118,7 +118,7 @@ pub const VIDEO_HEADER_LONG: &str = "Video";
 impl VersionedFromStr for Video {
     type Err = VideoParseError;
 
-    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::Err> {
+    fn from_str(s: &str, version: Version) -> std::result::Result<Option<Self>, Self::Err> {
         let (_, (short_hand, start_time, (file_name, position))) = tuple((
             alt((
                 tag(VIDEO_HEADER).map(|_| true),
@@ -153,7 +153,7 @@ impl VersionedFromStr for Video {
 
 // TODO enum non exhastive check
 impl VersionedToString for Video {
-    fn to_string(&self, version: usize) -> Option<String> {
+    fn to_string(&self, version: Version) -> Option<String> {
         Some(format!(
             "{},{},{}{}",
             if self.short_hand {
@@ -191,7 +191,7 @@ pub const BREAK_HEADER_LONG: &str = "Break";
 impl VersionedFromStr for Break {
     type Err = BreakParseError;
 
-    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::Err> {
+    fn from_str(s: &str, version: Version) -> std::result::Result<Option<Self>, Self::Err> {
         let (_, (short_hand, start_time, end_time)) = tuple((
             alt((
                 tag(BREAK_HEADER).map(|_| true),
@@ -219,7 +219,7 @@ impl VersionedFromStr for Break {
 }
 
 impl VersionedToString for Break {
-    fn to_string(&self, version: usize) -> Option<String> {
+    fn to_string(&self, version: Version) -> Option<String> {
         Some(format!(
             "{},{},{}",
             if self.short_hand {
@@ -246,7 +246,7 @@ pub const COLOUR_TRANSFORMATION_HEADER: &str = "3";
 impl VersionedFromStr for ColourTransformation {
     type Err = ColourTransformationParseError;
 
-    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::Err> {
+    fn from_str(s: &str, version: Version) -> std::result::Result<Option<Self>, Self::Err> {
         let (_, (start_time, red, green, blue)) = tuple((
             preceded(
                 tuple((
@@ -297,7 +297,7 @@ impl VersionedFromStr for ColourTransformation {
 }
 
 impl VersionedToString for ColourTransformation {
-    fn to_string(&self, version: usize) -> Option<String> {
+    fn to_string(&self, version: Version) -> Option<String> {
         if version < 14 {
             Some(format!(
                 "{COLOUR_TRANSFORMATION_HEADER},{},{},{},{}",

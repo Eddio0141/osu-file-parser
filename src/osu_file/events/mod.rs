@@ -15,6 +15,7 @@ use crate::parsers::comma;
 use self::storyboard::cmds::Command;
 use self::storyboard::{error::ObjectParseError, sprites::Object};
 
+use super::Version;
 use super::{types::Error, Integer, VersionedDefault, VersionedFromStr, VersionedToString};
 
 pub use self::audio_sample::*;
@@ -29,7 +30,7 @@ const OLD_VERSION_TIME_OFFSET: Integer = 24;
 impl VersionedFromStr for Events {
     type Err = Error<ParseError>;
 
-    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::Err> {
+    fn from_str(s: &str, version: Version) -> std::result::Result<Option<Self>, Self::Err> {
         let mut events = Events(Vec::new());
 
         #[derive(Clone)]
@@ -170,7 +171,7 @@ impl VersionedFromStr for Events {
 }
 
 impl VersionedToString for Events {
-    fn to_string(&self, version: usize) -> Option<String> {
+    fn to_string(&self, version: Version) -> Option<String> {
         let mut s = self.0.iter().map(|i| i.to_string(version));
 
         Some(s.map_string_new_line())
@@ -178,7 +179,7 @@ impl VersionedToString for Events {
 }
 
 impl VersionedDefault for Events {
-    fn default(_: usize) -> Option<Self> {
+    fn default(_: Version) -> Option<Self> {
         Some(Events(Vec::new()))
     }
 }
@@ -197,7 +198,7 @@ pub enum Event {
 }
 
 impl VersionedToString for Event {
-    fn to_string(&self, version: usize) -> Option<String> {
+    fn to_string(&self, version: Version) -> Option<String> {
         match self {
             Event::Comment(comment) => Some(format!("//{comment}")),
             Event::Background(background) => background.to_string(version),

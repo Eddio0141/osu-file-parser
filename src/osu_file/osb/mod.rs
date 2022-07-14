@@ -11,7 +11,7 @@ use nom::{
 
 use crate::parsers::square_section;
 
-use super::{Error, Events, VersionedFromStr, VersionedToString};
+use super::{Error, Events, Version, VersionedFromStr, VersionedToString};
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Osb {
@@ -22,7 +22,7 @@ pub struct Osb {
 impl VersionedFromStr for Osb {
     type Err = Error<ParseError>;
 
-    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::Err> {
+    fn from_str(s: &str, version: Version) -> std::result::Result<Option<Self>, Self::Err> {
         if version < 14 {
             Ok(None)
         } else {
@@ -78,7 +78,7 @@ impl VersionedFromStr for Osb {
 }
 
 impl VersionedToString for Osb {
-    fn to_string(&self, version: usize) -> Option<String> {
+    fn to_string(&self, version: Version) -> Option<String> {
         if version < 14 {
             None
         } else {
@@ -119,7 +119,7 @@ pub struct Variable {
 impl VersionedFromStr for Variable {
     type Err = VariableParseError;
 
-    fn from_str(s: &str, _: usize) -> Result<Option<Self>, Self::Err> {
+    fn from_str(s: &str, _: Version) -> Result<Option<Self>, Self::Err> {
         let header = tag("$");
         let value_name = take_till(|c| c == '=' || c == '\n');
         let equals = tag("=");
@@ -144,7 +144,7 @@ impl VersionedFromStr for Variable {
 }
 
 impl VersionedToString for Variable {
-    fn to_string(&self, _: usize) -> Option<String> {
+    fn to_string(&self, _: Version) -> Option<String> {
         Some(format!("${}={}", self.name, self.value))
     }
 }

@@ -65,7 +65,7 @@ pub struct EdgeSet {
 impl VersionedFromStr for EdgeSet {
     type Err = ColonSetParseError;
 
-    fn from_str(s: &str, version: usize) -> Result<Option<Self>, Self::Err> {
+    fn from_str(s: &str, version: Version) -> Result<Option<Self>, Self::Err> {
         let s = s.split(':').collect::<Vec<_>>();
 
         if s.len() > 2 {
@@ -96,7 +96,7 @@ impl VersionedFromStr for EdgeSet {
 }
 
 impl VersionedToString for EdgeSet {
-    fn to_string(&self, version: usize) -> Option<String> {
+    fn to_string(&self, version: Version) -> Option<String> {
         Some(format!(
             "{}:{}",
             self.normal_set.to_string(version).unwrap(),
@@ -112,7 +112,7 @@ pub struct CurvePoint(pub Position);
 impl VersionedFromStr for CurvePoint {
     type Err = ColonSetParseError;
 
-    fn from_str(s: &str, _: usize) -> Result<Option<Self>, Self::Err> {
+    fn from_str(s: &str, _: Version) -> Result<Option<Self>, Self::Err> {
         let s = s.split(':').collect::<Vec<_>>();
 
         if s.len() > 2 {
@@ -142,7 +142,7 @@ impl VersionedFromStr for CurvePoint {
 }
 
 impl VersionedToString for CurvePoint {
-    fn to_string(&self, _: usize) -> Option<String> {
+    fn to_string(&self, _: Version) -> Option<String> {
         Some(format!("{}:{}", self.0.x, self.0.y))
     }
 }
@@ -169,7 +169,7 @@ impl Default for SampleSet {
 }
 
 impl VersionedToString for SampleSet {
-    fn to_string(&self, _: usize) -> Option<String> {
+    fn to_string(&self, _: Version) -> Option<String> {
         Some((*self as usize).to_string())
     }
 }
@@ -177,7 +177,7 @@ impl VersionedToString for SampleSet {
 impl VersionedFromStr for SampleSet {
     type Err = SampleSetParseError;
 
-    fn from_str(s: &str, _: usize) -> Result<Option<Self>, Self::Err> {
+    fn from_str(s: &str, _: Version) -> Result<Option<Self>, Self::Err> {
         let s = s.parse()?;
 
         match s {
@@ -253,7 +253,7 @@ impl Volume {
 impl VersionedFromStr for Volume {
     type Err = VolumeParseError;
 
-    fn from_str(s: &str, _: usize) -> Result<Option<Self>, Self::Err> {
+    fn from_str(s: &str, _: Version) -> Result<Option<Self>, Self::Err> {
         let volume = s.parse::<u8>()?;
 
         let volume = if volume == 0 { None } else { Some(volume) };
@@ -276,7 +276,7 @@ pub struct HitSound {
 }
 
 impl VersionedToString for HitSound {
-    fn to_string(&self, _: usize) -> Option<String> {
+    fn to_string(&self, _: Version) -> Option<String> {
         let mut bit_mask = 0;
 
         if self.normal {
@@ -348,7 +348,7 @@ impl HitSound {
 impl VersionedFromStr for HitSound {
     type Err = HitSoundParseError;
 
-    fn from_str(s: &str, _: usize) -> Result<Option<Self>, Self::Err> {
+    fn from_str(s: &str, _: Version) -> Result<Option<Self>, Self::Err> {
         Ok(Some(HitSound::from(s.parse::<u8>()?)))
     }
 }
@@ -394,7 +394,7 @@ pub enum CurveType {
 impl VersionedFromStr for CurveType {
     type Err = CurveTypeParseError;
 
-    fn from_str(s: &str, _: usize) -> std::result::Result<Option<Self>, Self::Err> {
+    fn from_str(s: &str, _: Version) -> std::result::Result<Option<Self>, Self::Err> {
         match s {
             "B" => Ok(Some(CurveType::Bezier)),
             "C" => Ok(Some(CurveType::Centripetal)),
@@ -406,7 +406,7 @@ impl VersionedFromStr for CurveType {
 }
 
 impl VersionedToString for CurveType {
-    fn to_string(&self, _: usize) -> Option<String> {
+    fn to_string(&self, _: Version) -> Option<String> {
         let curve = match self {
             CurveType::Bezier => "B",
             CurveType::Centripetal => "C",
@@ -450,7 +450,7 @@ impl From<SampleIndex> for usize {
 }
 
 impl VersionedToString for SampleIndex {
-    fn to_string(&self, _: usize) -> Option<String> {
+    fn to_string(&self, _: Version) -> Option<String> {
         Some(usize::from(*self).to_string())
     }
 }
@@ -458,7 +458,7 @@ impl VersionedToString for SampleIndex {
 impl VersionedFromStr for SampleIndex {
     type Err = ParseIntError;
 
-    fn from_str(s: &str, _: usize) -> Result<Option<Self>, Self::Err> {
+    fn from_str(s: &str, _: Version) -> Result<Option<Self>, Self::Err> {
         Ok(Some(s.parse::<usize>()?.into()))
     }
 }
@@ -477,7 +477,7 @@ pub struct HitSample {
 impl VersionedFromStr for HitSample {
     type Err = HitSampleParseError;
 
-    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::Err> {
+    fn from_str(s: &str, version: Version) -> std::result::Result<Option<Self>, Self::Err> {
         // TODO does the 4th and 5th field exist from v12 onwards?
         let field = || take_while(|c| c != ':');
         let field_separator = || tag(":");
@@ -580,7 +580,7 @@ impl VersionedFromStr for HitSample {
 }
 
 impl VersionedToString for HitSample {
-    fn to_string(&self, version: usize) -> Option<String> {
+    fn to_string(&self, version: Version) -> Option<String> {
         let volume: Integer = self.volume.into();
         let filename = &self.filename;
 
@@ -603,7 +603,7 @@ impl VersionedToString for HitSample {
 }
 
 impl VersionedDefault for HitSample {
-    fn default(_: usize) -> Option<Self> {
+    fn default(_: Version) -> Option<Self> {
         Some(<Self as Default>::default())
     }
 }

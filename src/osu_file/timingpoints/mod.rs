@@ -20,7 +20,7 @@ use crate::{
     parsers::*,
 };
 
-use super::{Error, Integer, VersionedDefault, VersionedFromStr, VersionedToString};
+use super::{Error, Integer, Version, VersionedDefault, VersionedFromStr, VersionedToString};
 
 pub use self::error::*;
 
@@ -30,7 +30,7 @@ pub struct TimingPoints(pub Vec<TimingPoint>);
 impl VersionedFromStr for TimingPoints {
     type Err = Error<ParseError>;
 
-    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::Err> {
+    fn from_str(s: &str, version: Version) -> std::result::Result<Option<Self>, Self::Err> {
         let mut timing_points = Vec::new();
 
         for (line_index, s) in s.lines().enumerate() {
@@ -60,13 +60,13 @@ impl VersionedFromStr for TimingPoints {
 }
 
 impl VersionedToString for TimingPoints {
-    fn to_string(&self, version: usize) -> Option<String> {
+    fn to_string(&self, version: Version) -> Option<String> {
         Some(self.0.iter().map_string_new_line(version))
     }
 }
 
 impl VersionedDefault for TimingPoints {
-    fn default(_: usize) -> Option<Self> {
+    fn default(_: Version) -> Option<Self> {
         Some(TimingPoints(Vec::new()))
     }
 }
@@ -253,7 +253,7 @@ const OLD_VERSION_TIME_OFFSET: Decimal = dec!(24);
 impl VersionedFromStr for TimingPoint {
     type Err = TimingPointParseError;
 
-    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::Err> {
+    fn from_str(s: &str, version: Version) -> std::result::Result<Option<Self>, Self::Err> {
         let meter_fallback = 4;
         let sample_set_fallback = SampleSet::Normal;
         let sample_index_fallback = 1.try_into().unwrap();
@@ -438,13 +438,13 @@ impl VersionedFromStr for TimingPoint {
 }
 
 impl VersionedToString for &TimingPoint {
-    fn to_string(&self, version: usize) -> Option<String> {
+    fn to_string(&self, version: Version) -> Option<String> {
         self.to_owned().to_string(version)
     }
 }
 
 impl VersionedToString for TimingPoint {
-    fn to_string(&self, version: usize) -> Option<String> {
+    fn to_string(&self, version: Version) -> Option<String> {
         let beat_length = if let Some(beat_length) = &self.beat_length {
             beat_length.to_string()
         } else {
@@ -479,7 +479,7 @@ impl VersionedToString for TimingPoint {
 }
 
 impl VersionedDefault for TimingPoint {
-    fn default(version: usize) -> Option<Self> {
+    fn default(version: Version) -> Option<Self> {
         let mut default = <Self as Default>::default();
 
         if (3..=4).contains(&version) {
@@ -514,7 +514,7 @@ impl Default for SampleSet {
 impl VersionedFromStr for SampleSet {
     type Err = SampleSetParseError;
 
-    fn from_str(s: &str, _: usize) -> Result<Option<Self>, Self::Err> {
+    fn from_str(s: &str, _: Version) -> Result<Option<Self>, Self::Err> {
         let s = s
             .parse()
             .map_err(|err| SampleSetParseError::ValueParseError {
@@ -529,7 +529,7 @@ impl VersionedFromStr for SampleSet {
 }
 
 impl VersionedToString for SampleSet {
-    fn to_string(&self, _: usize) -> Option<String> {
+    fn to_string(&self, _: Version) -> Option<String> {
         Some((*self as u8).to_string())
     }
 }
@@ -545,7 +545,7 @@ pub struct Effects {
 impl VersionedFromStr for Effects {
     type Err = EffectsParseError;
 
-    fn from_str(s: &str, _: usize) -> Result<Option<Self>, Self::Err> {
+    fn from_str(s: &str, _: Version) -> Result<Option<Self>, Self::Err> {
         let s = s.parse::<u8>().map_err(|err| EffectsParseError {
             source: err,
             value: s.to_string(),
@@ -583,7 +583,7 @@ impl From<Effects> for u8 {
 }
 
 impl VersionedToString for Effects {
-    fn to_string(&self, _: usize) -> Option<String> {
+    fn to_string(&self, _: Version) -> Option<String> {
         Some(u8::from(*self).to_string())
     }
 }
@@ -601,7 +601,7 @@ pub enum SampleIndex {
 impl VersionedFromStr for SampleIndex {
     type Err = SampleIndexParseError;
 
-    fn from_str(s: &str, _: usize) -> Result<Option<Self>, Self::Err> {
+    fn from_str(s: &str, _: Version) -> Result<Option<Self>, Self::Err> {
         SampleIndex::try_from(s.parse::<Integer>().map_err(|err| SampleIndexParseError {
             source: Box::new(err),
             value: s.to_string(),
@@ -638,7 +638,7 @@ impl From<SampleIndex> for Integer {
 }
 
 impl VersionedToString for SampleIndex {
-    fn to_string(&self, _: usize) -> Option<String> {
+    fn to_string(&self, _: Version) -> Option<String> {
         Some(Integer::from(*self).to_string())
     }
 }
@@ -656,7 +656,7 @@ pub struct Volume(u8);
 impl VersionedFromStr for Volume {
     type Err = VolumeError;
 
-    fn from_str(s: &str, _: usize) -> Result<Option<Self>, Self::Err> {
+    fn from_str(s: &str, _: Version) -> Result<Option<Self>, Self::Err> {
         let s: u8 = s.parse().map_err(|err| VolumeError::VolumeParseError {
             source: err,
             value: s.to_string(),
@@ -684,7 +684,7 @@ impl From<Volume> for u8 {
 }
 
 impl VersionedToString for Volume {
-    fn to_string(&self, _: usize) -> Option<String> {
+    fn to_string(&self, _: Version) -> Option<String> {
         Some(self.0.to_string())
     }
 }

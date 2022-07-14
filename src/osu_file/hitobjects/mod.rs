@@ -20,6 +20,7 @@ pub use self::error::*;
 use super::Error;
 use super::Integer;
 use super::Position;
+use super::Version;
 use super::VersionedDefault;
 use super::VersionedFromStr;
 use super::VersionedToString;
@@ -30,7 +31,7 @@ pub struct HitObjects(pub Vec<HitObject>);
 impl VersionedFromStr for HitObjects {
     type Err = Error<ParseError>;
 
-    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::Err> {
+    fn from_str(s: &str, version: Version) -> std::result::Result<Option<Self>, Self::Err> {
         let mut hitobjects = Vec::new();
 
         for (line_index, s) in s.lines().enumerate() {
@@ -45,13 +46,13 @@ impl VersionedFromStr for HitObjects {
 }
 
 impl VersionedToString for HitObjects {
-    fn to_string(&self, version: usize) -> Option<String> {
+    fn to_string(&self, version: Version) -> Option<String> {
         Some(self.0.iter().map_string_new_line(version))
     }
 }
 
 impl VersionedDefault for HitObjects {
-    fn default(_: usize) -> Option<Self> {
+    fn default(_: Version) -> Option<Self> {
         Some(HitObjects(Vec::new()))
     }
 }
@@ -153,7 +154,7 @@ const OLD_VERSION_TIME_OFFSET: Integer = 24;
 impl VersionedFromStr for HitObject {
     type Err = HitObjectParseError;
 
-    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::Err> {
+    fn from_str(s: &str, version: Version) -> std::result::Result<Option<Self>, Self::Err> {
         let hitsound = context(
             HitObjectParseError::InvalidHitSound.into(),
             comma_field_versioned_type(version),
@@ -416,13 +417,13 @@ impl VersionedFromStr for HitObject {
 }
 
 impl VersionedToString for &HitObject {
-    fn to_string(&self, version: usize) -> Option<String> {
+    fn to_string(&self, version: Version) -> Option<String> {
         self.to_owned().to_string(version)
     }
 }
 
 impl VersionedToString for HitObject {
-    fn to_string(&self, version: usize) -> Option<String> {
+    fn to_string(&self, version: Version) -> Option<String> {
         let mut properties: Vec<String> = vec![
             self.position.x.to_string(),
             self.position.y.to_string(),

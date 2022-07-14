@@ -7,7 +7,7 @@ use nom::{
 };
 
 use crate::{
-    osu_file::{events::OLD_VERSION_TIME_OFFSET, FilePath, Integer, Position},
+    osu_file::{events::OLD_VERSION_TIME_OFFSET, FilePath, Integer, Position, Version},
     parsers::*,
 };
 
@@ -41,7 +41,7 @@ pub fn file_name_and_position<'a>(
 
 pub fn start_time_offset<'a>(
     error: &'static str,
-    version: usize,
+    version: Version,
 ) -> impl FnMut(&'a str) -> IResult<&'a str, Integer, nom::error::VerboseError<&'a str>> {
     context(
         error,
@@ -57,7 +57,7 @@ pub fn start_time_offset<'a>(
 
 pub fn end_time<'a>(
     error: &'static str,
-    version: usize,
+    version: Version,
 ) -> impl FnMut(&'a str) -> IResult<&str, Integer, nom::error::VerboseError<&'a str>> {
     context(
         error,

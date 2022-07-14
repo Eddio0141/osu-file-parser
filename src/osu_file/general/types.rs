@@ -1,4 +1,6 @@
-use crate::osu_file::{VersionedDefault, VersionedFromStr, VersionedToString, MIN_VERSION};
+use crate::osu_file::{
+    Version, VersionedDefault, VersionedFromStr, VersionedToString, MIN_VERSION,
+};
 use strum_macros::FromRepr;
 
 use super::error::*;
@@ -20,7 +22,7 @@ pub enum Countdown {
 impl VersionedFromStr for Countdown {
     type Err = ParseCountdownSpeedError;
 
-    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::Err> {
+    fn from_str(s: &str, version: Version) -> std::result::Result<Option<Self>, Self::Err> {
         match version {
             MIN_VERSION..=4 => Ok(None),
             _ => Countdown::from_repr(s.parse()?)
@@ -31,7 +33,7 @@ impl VersionedFromStr for Countdown {
 }
 
 impl VersionedToString for Countdown {
-    fn to_string(&self, version: usize) -> Option<String> {
+    fn to_string(&self, version: Version) -> Option<String> {
         match version {
             MIN_VERSION..=4 => None,
             _ => Some((*self as usize).to_string()),
@@ -40,7 +42,7 @@ impl VersionedToString for Countdown {
 }
 
 impl VersionedDefault for Countdown {
-    fn default(version: usize) -> Option<Self> {
+    fn default(version: Version) -> Option<Self> {
         match version {
             MIN_VERSION..=4 => None,
             _ => Some(Countdown::Normal),
@@ -64,7 +66,7 @@ pub enum SampleSet {
 }
 
 impl VersionedToString for SampleSet {
-    fn to_string(&self, version: usize) -> Option<String> {
+    fn to_string(&self, version: Version) -> Option<String> {
         match version {
             3 => None,
             // I dont think we have to revert to None
@@ -90,7 +92,7 @@ impl Default for SampleSet {
 impl VersionedFromStr for SampleSet {
     type Err = ParseSampleSetError;
 
-    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::Err> {
+    fn from_str(s: &str, version: Version) -> std::result::Result<Option<Self>, Self::Err> {
         let sample_set_from_str = |s| match s {
             "Normal" => Ok(SampleSet::Normal),
             "Soft" => Ok(SampleSet::Soft),
@@ -116,7 +118,7 @@ impl VersionedFromStr for SampleSet {
 }
 
 impl VersionedDefault for SampleSet {
-    fn default(version: usize) -> Option<Self> {
+    fn default(version: Version) -> Option<Self> {
         match version {
             3 => None,
             _ => Some(Self::Normal),
@@ -141,7 +143,7 @@ pub enum Mode {
 impl VersionedFromStr for Mode {
     type Err = ParseGameModeError;
 
-    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::Err> {
+    fn from_str(s: &str, version: Version) -> std::result::Result<Option<Self>, Self::Err> {
         let mode = s.parse::<usize>()?;
 
         let mode = match mode {
@@ -162,13 +164,13 @@ impl VersionedFromStr for Mode {
 }
 
 impl VersionedToString for Mode {
-    fn to_string(&self, _: usize) -> Option<String> {
+    fn to_string(&self, _: Version) -> Option<String> {
         Some((*self as usize).to_string())
     }
 }
 
 impl VersionedDefault for Mode {
-    fn default(_: usize) -> Option<Self> {
+    fn default(_: Version) -> Option<Self> {
         Some(Self::Osu)
     }
 }
@@ -186,7 +188,7 @@ pub enum OverlayPosition {
 }
 
 impl VersionedToString for OverlayPosition {
-    fn to_string(&self, version: usize) -> Option<String> {
+    fn to_string(&self, version: Version) -> Option<String> {
         match version {
             MIN_VERSION..=13 => None,
             _ => Some(
@@ -210,7 +212,7 @@ impl Default for OverlayPosition {
 impl VersionedFromStr for OverlayPosition {
     type Err = OverlayPositionParseError;
 
-    fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::Err> {
+    fn from_str(s: &str, version: Version) -> std::result::Result<Option<Self>, Self::Err> {
         match version {
             MIN_VERSION..=13 => Ok(None),
             _ => match s {
@@ -224,7 +226,7 @@ impl VersionedFromStr for OverlayPosition {
 }
 
 impl VersionedDefault for OverlayPosition {
-    fn default(version: usize) -> Option<Self> {
+    fn default(version: Version) -> Option<Self> {
         match version {
             MIN_VERSION..=13 => None,
             _ => Some(Self::NoChange),

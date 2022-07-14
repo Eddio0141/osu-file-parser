@@ -1,6 +1,6 @@
 use strum_macros::FromRepr;
 
-use crate::osu_file::{VersionedFromStr, VersionedToString};
+use crate::osu_file::{Version, VersionedFromStr, VersionedToString};
 
 use super::error::*;
 
@@ -21,7 +21,7 @@ pub enum TriggerType {
 impl VersionedFromStr for TriggerType {
     type Err = TriggerTypeParseError;
 
-    fn from_str(s: &str, version: usize) -> Result<Option<Self>, Self::Err> {
+    fn from_str(s: &str, version: Version) -> Result<Option<Self>, Self::Err> {
         let s = s.trim();
 
         match s.strip_prefix("HitSound") {
@@ -108,7 +108,7 @@ impl VersionedFromStr for TriggerType {
 }
 
 impl VersionedToString for TriggerType {
-    fn to_string(&self, version: usize) -> Option<String> {
+    fn to_string(&self, version: Version) -> Option<String> {
         let trigger_type = match self {
             TriggerType::HitSound {
                 sample_set,
@@ -142,7 +142,7 @@ pub enum SampleSet {
 impl VersionedFromStr for SampleSet {
     type Err = SampleSetParseError;
 
-    fn from_str(s: &str, _: usize) -> std::result::Result<Option<Self>, Self::Err> {
+    fn from_str(s: &str, _: Version) -> std::result::Result<Option<Self>, Self::Err> {
         match s {
             "All" => Ok(Some(SampleSet::All)),
             "Normal" => Ok(Some(SampleSet::Normal)),
@@ -154,7 +154,7 @@ impl VersionedFromStr for SampleSet {
 }
 
 impl VersionedToString for SampleSet {
-    fn to_string(&self, _: usize) -> Option<String> {
+    fn to_string(&self, _: Version) -> Option<String> {
         let sample_set = match self {
             SampleSet::All => "All",
             SampleSet::Normal => "Normal",
@@ -177,7 +177,7 @@ pub enum Addition {
 impl VersionedFromStr for Addition {
     type Err = AdditionParseError;
 
-    fn from_str(s: &str, _: usize) -> std::result::Result<Option<Self>, Self::Err> {
+    fn from_str(s: &str, _: Version) -> std::result::Result<Option<Self>, Self::Err> {
         match s {
             "Whistle" => Ok(Some(Addition::Whistle)),
             "Finish" => Ok(Some(Addition::Finish)),
@@ -188,7 +188,7 @@ impl VersionedFromStr for Addition {
 }
 
 impl VersionedToString for Addition {
-    fn to_string(&self, _: usize) -> Option<String> {
+    fn to_string(&self, _: Version) -> Option<String> {
         let addtion = match self {
             Addition::Whistle => "Whistle",
             Addition::Finish => "Finish",
@@ -250,7 +250,7 @@ pub enum Parameter {
 }
 
 impl VersionedToString for Parameter {
-    fn to_string(&self, _: usize) -> Option<String> {
+    fn to_string(&self, _: Version) -> Option<String> {
         let parameter = match self {
             Parameter::ImageFlipHorizontal => "H",
             Parameter::ImageFlipVertical => "V",
@@ -264,7 +264,7 @@ impl VersionedToString for Parameter {
 impl VersionedFromStr for Parameter {
     type Err = ParameterParseError;
 
-    fn from_str(s: &str, _: usize) -> std::result::Result<Option<Self>, Self::Err> {
+    fn from_str(s: &str, _: Version) -> std::result::Result<Option<Self>, Self::Err> {
         match s {
             "H" => Ok(Some(Parameter::ImageFlipHorizontal)),
             "V" => Ok(Some(Parameter::ImageFlipVertical)),
