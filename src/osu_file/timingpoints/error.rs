@@ -1,4 +1,4 @@
-use std::{error::Error, num::ParseIntError};
+use std::num::{ParseIntError, TryFromIntError};
 
 use strum_macros::{EnumString, IntoStaticStr};
 use thiserror::Error;
@@ -67,12 +67,8 @@ verbose_error_to_error!(TimingPointParseError);
 #[non_exhaustive]
 pub enum SampleSetParseError {
     /// The value failed to parse from a `str`.
-    #[error("There was a problem parsing {value} as an `Integer`")]
-    ValueParseError {
-        #[source]
-        source: ParseIntError,
-        value: String,
-    },
+    #[error(transparent)]
+    ParseIntError(#[from] ParseIntError),
     /// Unknown `SampleSet` variant.
     #[error("Unknown `SampleSet` variant")]
     UnknownSampleSet,
@@ -80,20 +76,15 @@ pub enum SampleSetParseError {
 
 /// There was a problem parsing `str` as [`Effects`][super::Effects].
 #[derive(Debug, Error)]
-#[error("There was a problem parsing {value} as an `Integer`")]
-pub struct EffectsParseError {
-    #[source]
-    pub source: ParseIntError,
-    pub value: String,
-}
+#[error(transparent)]
+pub struct EffectsParseError(#[from] ParseIntError);
 
-/// Error used when `str` failed to parse as [`SampleIndex`][super::SampleIndex].
 #[derive(Debug, Error)]
-#[error("There was a problem parsing {value} as an usize for `SampleIndex`")]
-pub struct SampleIndexParseError {
-    #[source]
-    pub source: Box<dyn Error>,
-    pub value: String,
+pub enum SampleIndexParseError {
+    #[error(transparent)]
+    ParseIntError(#[from] ParseIntError),
+    #[error(transparent)]
+    TryFromIntError(#[from] TryFromIntError),
 }
 
 /// Error for when there was a problem setting / parsing the volume.
@@ -104,10 +95,6 @@ pub enum VolumeError {
     #[error("The volume was too high, expected 0 ~ 100, got {0}")]
     VolumeTooHigh(u8),
     /// There was a problem parsing the `str` as [`Volume`][super::Volume].
-    #[error("There was a problem parsing a `str` as [`Volume`]")]
-    VolumeParseError {
-        #[source]
-        source: ParseIntError,
-        value: String,
-    },
+    #[error(transparent)]
+    VolumeParseError(#[from] ParseIntError),
 }

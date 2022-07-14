@@ -521,14 +521,7 @@ impl VersionedFromStr for SampleSet {
     type Err = SampleSetParseError;
 
     fn from_str(s: &str, version: Version) -> Result<Option<Self>, Self::Err> {
-        let s = s
-            .parse()
-            .map_err(|err| SampleSetParseError::ValueParseError {
-                source: err,
-                value: s.to_string(),
-            })?;
-
-        SampleSet::from_repr(s, version).map_err(|_| SampleSetParseError::UnknownSampleSet)
+        SampleSet::from_repr(s.parse()?, version).map_err(|_| SampleSetParseError::UnknownSampleSet)
     }
 }
 
@@ -550,12 +543,7 @@ impl VersionedFromStr for Effects {
     type Err = EffectsParseError;
 
     fn from_str(s: &str, version: Version) -> Result<Option<Self>, Self::Err> {
-        let s = s.parse::<u8>().map_err(|err| EffectsParseError {
-            source: err,
-            value: s.to_string(),
-        })?;
-
-        Ok(<Effects as VersionedFrom<u8>>::from(s, version))
+        Ok(<Effects as VersionedFrom<u8>>::from(s.parse()?, version))
     }
 }
 
@@ -606,13 +594,7 @@ impl VersionedFromStr for SampleIndex {
     type Err = SampleIndexParseError;
 
     fn from_str(s: &str, version: Version) -> Result<Option<Self>, Self::Err> {
-        <SampleIndex as VersionedTryFrom<Integer>>::try_from(
-            s.parse::<Integer>().map_err(|err| SampleIndexParseError {
-                source: Box::new(err),
-                value: s.to_string(),
-            })?,
-            version,
-        )
+        <SampleIndex as VersionedTryFrom<Integer>>::try_from(s.parse()?, version)
     }
 }
 
@@ -621,10 +603,7 @@ impl VersionedTryFrom<Integer> for SampleIndex {
     type Error = SampleIndexParseError;
 
     fn try_from(value: Integer, _: Version) -> Result<Option<Self>, Self::Error> {
-        let value = usize::try_from(value).map_err(|err| SampleIndexParseError {
-            source: Box::new(err),
-            value: value.to_string(),
-        })?;
+        let value = usize::try_from(value)?;
 
         let index = if value == 0 {
             SampleIndex::OsuDefaultHitsounds
@@ -667,11 +646,7 @@ impl VersionedFromStr for Volume {
     type Err = VolumeError;
 
     fn from_str(s: &str, version: Version) -> Result<Option<Self>, Self::Err> {
-        let s: u8 = s.parse().map_err(|err| VolumeError::VolumeParseError {
-            source: err,
-            value: s.to_string(),
-        })?;
-        <Volume as VersionedTryFrom<u8>>::try_from(s, version)
+        <Volume as VersionedTryFrom<u8>>::try_from(s.parse()?, version)
     }
 }
 

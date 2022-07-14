@@ -1,9 +1,6 @@
 //! Module defining `error` types that's used for the `hitobject` related modules.
 
-use std::{
-    error::Error,
-    num::{ParseIntError, TryFromIntError},
-};
+use std::num::{ParseIntError, TryFromIntError};
 
 use strum_macros::{EnumString, IntoStaticStr};
 use thiserror::Error;
@@ -23,21 +20,22 @@ pub struct ComboSkipCountTooHigh(pub u8);
 /// Error used when there was a problem parsing a `str` having a `F:S` format.
 pub enum ColonSetParseError {
     /// When the first item is missing.
-    #[error("Missing the first item in the colon set. Colon set requires to have the format `first:second`")]
+    #[error("Missing the first item in the colon set, Colon set requires to have the format `first:second`")]
     MissingFirstItem,
     /// When the second item is missing.
-    #[error("Missing the second item in the colon set. Colon set requires to have the format `first:second`")]
+    #[error("Missing the second item in the colon set, Colon set requires to have the format `first:second`")]
     MissingSecondItem,
     /// There are more than 2 items defined.
-    #[error("There is more than 2 items in the colon set: {0}. Colon set only has two items: `first:second`")]
-    MoreThanTwoItems(String),
-    /// There was some problem parsing the value.
-    #[error("There was a problem parsing the `str` \"{value}\" to a colon set item")]
-    ValueParseError {
-        #[source]
-        source: Box<dyn Error>,
-        value: String,
-    },
+    #[error(
+        "There is more than 2 items in the colon set, Colon set only has two items: `first:second`"
+    )]
+    MoreThanTwoItems,
+    /// When the first item failed to parse.
+    #[error("Failed to parse the first item")]
+    FirstItemParseError,
+    /// When the second item failed to parse.
+    #[error("Failed to parse the second item")]
+    SecondItemParseError,
 }
 
 #[derive(Debug, Error, EnumString, IntoStaticStr)]
@@ -195,26 +193,9 @@ pub enum CurveTypeParseError {
 }
 
 #[derive(Debug, Error)]
-/// Error used when there was a problem parsing one of the items from a `str` to another type.
-#[error("There was a problem parsing one of the items from a `str` to another type")]
-pub struct PipeVecParseErr {
-    #[source]
-    pub source: Box<dyn Error>,
-    pub value: String,
-}
-
-#[derive(Debug, Error)]
-#[error(transparent)]
-pub struct HitSoundParseError(#[from] Box<dyn Error>);
-
-impl From<ParseIntError> for HitSoundParseError {
-    fn from(err: ParseIntError) -> Self {
-        HitSoundParseError(Box::new(err))
-    }
-}
-
-impl From<TryFromIntError> for HitSoundParseError {
-    fn from(err: TryFromIntError) -> Self {
-        HitSoundParseError(Box::new(err))
-    }
+pub enum HitSoundParseError {
+    #[error(transparent)]
+    ParseIntError(#[from] ParseIntError),
+    #[error(transparent)]
+    TryFromIntError(#[from] TryFromIntError),
 }
