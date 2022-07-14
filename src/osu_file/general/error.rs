@@ -68,7 +68,7 @@ pub enum ParseGameModeError {
 pub enum ParseCountdownSpeedError {
     /// The integer value is an unknown `CountdownSpeed` type.
     #[error("The integer value is an unknown `CountdownSpeed` type")]
-    UnknownType,
+    UnknownVariant,
     /// There was a problem converting from `str` to an `Integer`.
     #[error("There was a problem parsing the `str` as an `Integer`")]
     ParseError(#[from] ParseIntError),

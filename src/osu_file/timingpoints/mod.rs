@@ -12,7 +12,6 @@ use nom::{
 };
 use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
-use strum_macros::FromRepr;
 
 use crate::{
     helper::trait_ext::MapStringNewLineVersion,
@@ -20,7 +19,10 @@ use crate::{
     parsers::*,
 };
 
-use super::{Error, Integer, Version, VersionedDefault, VersionedFromStr, VersionedToString};
+use super::{
+    Error, Integer, InvalidRepr, Version, VersionedDefault, VersionedFromRepr, VersionedFromStr,
+    VersionedToString,
+};
 
 pub use self::error::*;
 
@@ -159,8 +161,7 @@ impl TimingPoint {
     /// - Returns `None` if the timing point is inherited or `beat_length` isn't a valid decimal.
     pub fn calc_bpm(&self) -> Option<Decimal> {
         if self.uninherited {
-            self.beat_length
-                .map(|beat_length| Self::beat_duration_ms_to_bpm(beat_length))
+            self.beat_length.map(Self::beat_duration_ms_to_bpm)
         } else {
             None
         }
@@ -492,7 +493,7 @@ impl VersionedDefault for TimingPoint {
 
 // TODO figure out default
 /// Default sample set for hitobjects.
-#[derive(Clone, Copy, Hash, PartialEq, Eq, Debug, FromRepr)]
+#[derive(Clone, Copy, Hash, PartialEq, Eq, Debug)]
 #[non_exhaustive]
 pub enum SampleSet {
     /// Beatmap's default.
@@ -505,6 +506,19 @@ pub enum SampleSet {
     Drum,
 }
 
+impl VersionedFromRepr for SampleSet {
+    fn from_repr(repr: usize, _: Version) -> Result<Option<Self>, InvalidRepr> {
+        match repr {
+            0 => Ok(Some(SampleSet::BeatmapDefault)),
+            1 => Ok(Some(SampleSet::Normal)),
+            2 => Ok(Some(SampleSet::Soft)),
+            3 => Ok(Some(SampleSet::Drum)),
+            _ => Err(InvalidRepr),
+        }
+    }
+}
+
+// TODO all default into versioned default
 impl Default for SampleSet {
     fn default() -> Self {
         Self::BeatmapDefault
@@ -514,7 +528,7 @@ impl Default for SampleSet {
 impl VersionedFromStr for SampleSet {
     type Err = SampleSetParseError;
 
-    fn from_str(s: &str, _: Version) -> Result<Option<Self>, Self::Err> {
+    fn from_str(s: &str, version: Version) -> Result<Option<Self>, Self::Err> {
         let s = s
             .parse()
             .map_err(|err| SampleSetParseError::ValueParseError {
@@ -522,9 +536,7 @@ impl VersionedFromStr for SampleSet {
                 value: s.to_string(),
             })?;
 
-        SampleSet::from_repr(s)
-            .ok_or(SampleSetParseError::UnknownSampleSet(s))
-            .map(Some)
+        SampleSet::from_repr(s, version).map_err(|_| SampleSetParseError::UnknownSampleSet)
     }
 }
 

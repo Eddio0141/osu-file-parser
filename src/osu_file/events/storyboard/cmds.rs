@@ -4,6 +4,7 @@ use super::error::*;
 use super::types::*;
 use crate::osu_file::Integer;
 use crate::osu_file::Version;
+use crate::osu_file::VersionedFromRepr;
 use crate::osu_file::VersionedFromStr;
 use crate::osu_file::VersionedToString;
 use crate::parsers::*;
@@ -508,7 +509,9 @@ impl VersionedFromStr for Command {
                 context(CommandParseError::MissingEasing.into(), comma()),
                 context(
                     CommandParseError::InvalidEasing.into(),
-                    map_opt(comma_field_type(), Easing::from_repr),
+                    map_res(comma_field_type(), |easing| {
+                        Easing::from_repr(easing, version).map(|easing| easing.unwrap())
+                    }),
                 ),
             ))
         };

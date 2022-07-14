@@ -3,6 +3,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use thiserror::Error;
+
 /// Definition of the `Integer` type.
 pub type Integer = i32;
 
@@ -220,4 +222,15 @@ impl<P: AsRef<Path>> From<P> for FilePath {
 
         FilePath(path)
     }
+}
+
+#[derive(Debug, Error)]
+#[error("Invalid repr value")]
+pub struct InvalidRepr;
+
+pub trait VersionedFromRepr: Sized {
+    /// Creates an instance of `Self` from a value representation.
+    /// - Will return `Err` if the representation is invalid.
+    /// - Will return `Ok(None)` if the representation is valid but the version doesn't use that variant or `Self` entirely.
+    fn from_repr(repr: usize, version: Version) -> Result<Option<Self>, InvalidRepr>;
 }

@@ -4,15 +4,17 @@ pub use error::*;
 use nom::{
     branch::alt,
     bytes::streaming::tag,
-    combinator::{eof, map_opt, map_res},
+    combinator::{eof, map_res},
     error::context,
     sequence::{preceded, tuple},
     Parser,
 };
-use strum_macros::FromRepr;
 
 use crate::{
-    osu_file::{FilePath, Integer, Version, VersionedFromStr, VersionedToString},
+    osu_file::{
+        FilePath, Integer, InvalidRepr, Version, VersionedFromRepr, VersionedFromStr,
+        VersionedToString,
+    },
     parsers::{comma, comma_field, comma_field_type},
 };
 
@@ -35,12 +37,13 @@ impl VersionedFromStr for AudioSample {
         );
         let layer = context(
             AudioSampleParseError::InvalidLayer.into(),
-            map_opt(
+            map_res(
                 context(
                     AudioSampleParseError::InvalidLayer.into(),
                     comma_field_type(),
                 ),
-                Layer::from_repr,
+                // for now all of those unwraps are safe, can change on the future versions though
+                |layer| Layer::from_repr(layer, version).map(|layer| layer.unwrap()),
             ),
         );
         let filepath = comma_field().map(|p| p.into());
@@ -150,11 +153,23 @@ impl VersionedToString for Volume {
     }
 }
 
-#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, FromRepr)]
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Layer {
     Background,
     Fail,
     Pass,
     Foreground,
+}
+
+impl VersionedFromRepr for Layer {
+    fn from_repr(repr: usize, _: Version) -> Result<Option<Self>, InvalidRepr> {
+        match repr {
+            0 => Ok(Some(Layer::Background)),
+            1 => Ok(Some(Layer::Fail)),
+            2 => Ok(Some(Layer::Pass)),
+            3 => Ok(Some(Layer::Foreground)),
+            _ => Err(InvalidRepr),
+        }
+    }
 }

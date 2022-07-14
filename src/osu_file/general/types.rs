@@ -1,12 +1,12 @@
 use crate::osu_file::{
-    Version, VersionedDefault, VersionedFromStr, VersionedToString, MIN_VERSION,
+    InvalidRepr, Version, VersionedDefault, VersionedFromRepr, VersionedFromStr, VersionedToString,
+    MIN_VERSION,
 };
-use strum_macros::FromRepr;
 
 use super::error::*;
 
 /// Speed of the countdown before the first hitobject.
-#[derive(PartialEq, Eq, Debug, Clone, Copy, Hash, FromRepr)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy, Hash)]
 #[non_exhaustive]
 pub enum Countdown {
     /// No countdown.
@@ -19,14 +19,30 @@ pub enum Countdown {
     Double,
 }
 
+impl VersionedFromRepr for Countdown {
+    fn from_repr(repr: usize, version: Version) -> Result<Option<Self>, InvalidRepr> {
+        match version {
+            MIN_VERSION..=4 => Ok(None),
+            _ => match repr {
+                0 => Ok(Some(Countdown::NoCountdown)),
+                1 => Ok(Some(Countdown::Normal)),
+                2 => Ok(Some(Countdown::Half)),
+                3 => Ok(Some(Countdown::Double)),
+                _ => Err(InvalidRepr),
+            },
+        }
+    }
+}
+
 impl VersionedFromStr for Countdown {
     type Err = ParseCountdownSpeedError;
 
     fn from_str(s: &str, version: Version) -> std::result::Result<Option<Self>, Self::Err> {
         match version {
             MIN_VERSION..=4 => Ok(None),
-            _ => Countdown::from_repr(s.parse()?)
-                .ok_or(ParseCountdownSpeedError::UnknownType)
+            _ => Countdown::from_repr(s.parse()?, version)
+                .map_err(|_| ParseCountdownSpeedError::UnknownVariant)?
+                .ok_or(ParseCountdownSpeedError::UnknownVariant)
                 .map(Some),
         }
     }

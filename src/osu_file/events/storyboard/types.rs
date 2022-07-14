@@ -1,6 +1,6 @@
-use strum_macros::FromRepr;
-
-use crate::osu_file::{Version, VersionedFromStr, VersionedToString};
+use crate::osu_file::{
+    InvalidRepr, Version, VersionedFromRepr, VersionedFromStr, VersionedToString,
+};
 
 use super::error::*;
 
@@ -201,7 +201,7 @@ impl VersionedToString for Addition {
 
 // TODO all TryFrom and From impls into versioned types
 
-#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, FromRepr)]
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Easing {
     Linear,
@@ -239,6 +239,49 @@ pub enum Easing {
     BounceIn,
     BounceOut,
     BounceInOut,
+}
+
+impl VersionedFromRepr for Easing {
+    fn from_repr(repr: usize, _: Version) -> Result<Option<Self>, InvalidRepr> {
+        match repr {
+            0 => Ok(Some(Easing::Linear)),
+            1 => Ok(Some(Easing::EasingOut)),
+            2 => Ok(Some(Easing::EasingIn)),
+            3 => Ok(Some(Easing::QuadIn)),
+            4 => Ok(Some(Easing::QuadOut)),
+            5 => Ok(Some(Easing::QuadInOut)),
+            6 => Ok(Some(Easing::CubicIn)),
+            7 => Ok(Some(Easing::CubicOut)),
+            8 => Ok(Some(Easing::CubicInOut)),
+            9 => Ok(Some(Easing::QuartIn)),
+            10 => Ok(Some(Easing::QuartOut)),
+            11 => Ok(Some(Easing::QuartInOut)),
+            12 => Ok(Some(Easing::QuintIn)),
+            13 => Ok(Some(Easing::QuintOut)),
+            14 => Ok(Some(Easing::QuintInOut)),
+            15 => Ok(Some(Easing::SineIn)),
+            16 => Ok(Some(Easing::SineOut)),
+            17 => Ok(Some(Easing::SineInOut)),
+            18 => Ok(Some(Easing::ExpoIn)),
+            19 => Ok(Some(Easing::ExpoOut)),
+            20 => Ok(Some(Easing::ExpoInOut)),
+            21 => Ok(Some(Easing::CircIn)),
+            22 => Ok(Some(Easing::CircOut)),
+            23 => Ok(Some(Easing::CircInOut)),
+            24 => Ok(Some(Easing::ElasticIn)),
+            25 => Ok(Some(Easing::ElasticOut)),
+            26 => Ok(Some(Easing::ElasticHalfOut)),
+            27 => Ok(Some(Easing::ElasticQuarterOut)),
+            28 => Ok(Some(Easing::ElasticInOut)),
+            29 => Ok(Some(Easing::BackIn)),
+            30 => Ok(Some(Easing::BackOut)),
+            31 => Ok(Some(Easing::BackInOut)),
+            32 => Ok(Some(Easing::BounceIn)),
+            33 => Ok(Some(Easing::BounceOut)),
+            34 => Ok(Some(Easing::BounceInOut)),
+            _ => Err(InvalidRepr),
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]

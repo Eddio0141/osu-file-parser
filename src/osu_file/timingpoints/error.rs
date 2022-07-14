@@ -73,9 +73,9 @@ pub enum SampleSetParseError {
         source: ParseIntError,
         value: String,
     },
-    /// The `SampleSet` type is invalid.
-    #[error("Expected `SampleSet` to have a value of 0 ~ 3, got {0}")]
-    UnknownSampleSet(usize),
+    /// Unknown `SampleSet` variant.
+    #[error("Unknown `SampleSet` variant")]
+    UnknownSampleSet,
 }
 
 /// There was a problem parsing `str` as [`Effects`][super::Effects].
