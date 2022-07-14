@@ -396,10 +396,10 @@ impl VersionedFromStr for CurveType {
 
     fn from_str(s: &str, _: usize) -> std::result::Result<Option<Self>, Self::Err> {
         match s {
-            "Bezier" => Ok(Some(CurveType::Bezier)),
-            "Centripetal" => Ok(Some(CurveType::Centripetal)),
-            "Linear" => Ok(Some(CurveType::Linear)),
-            "PerfectCircle" => Ok(Some(CurveType::PerfectCircle)),
+            "B" => Ok(Some(CurveType::Bezier)),
+            "C" => Ok(Some(CurveType::Centripetal)),
+            "L" => Ok(Some(CurveType::Linear)),
+            "P" => Ok(Some(CurveType::PerfectCircle)),
             _ => Err(CurveTypeParseError::UnknownVariant),
         }
     }
