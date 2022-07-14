@@ -21,7 +21,6 @@ pub use self::types::*;
 use super::{Error, VersionedDefault, VersionedFromStr, VersionedToString, MIN_VERSION};
 use crate::helper::trait_ext::MapStringNewLine;
 
-// TODO only do Versioned traits on the top most level of the structs
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Colours(pub Vec<Colour>);
 
