@@ -88,7 +88,7 @@ impl VersionedFromStr for AudioSample {
 impl VersionedToString for AudioSample {
     fn to_string(&self, version: usize) -> Option<String> {
         Some(format!(
-            "Sample,{},{},{}{}",
+            "Sample,{},{},{},{}",
             self.time,
             self.layer as usize,
             self.filepath.to_string(version).unwrap(),
