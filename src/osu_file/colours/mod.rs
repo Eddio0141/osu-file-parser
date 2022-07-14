@@ -95,9 +95,9 @@ impl VersionedFromStr for Colour {
         let rgb = || {
             context(
                 rgb_parse_error,
-                cut(map_res(rest, |s: &str| {
+                map_res(rest, |s: &str| {
                     Rgb::from_str(s, version).map(|rgb| rgb.unwrap())
-                })),
+                }),
             )
         };
 
@@ -153,8 +153,9 @@ impl VersionedFromStr for Colour {
                         if context == &rgb_parse_error {
                             // re-parse to get actual error message
                             // TODO test this
-                            let err = Colour::from_str(i, MIN_VERSION).unwrap_err();
-                            return Err(err);
+
+                            let err = Rgb::from_str(i, MIN_VERSION).unwrap_err();
+                            return Err(err.into());
                         }
                     }
                 }
