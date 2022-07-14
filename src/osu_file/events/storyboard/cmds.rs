@@ -459,7 +459,7 @@ impl VersionedToString for Colours {
         let mut builder = vec![
             self.start.0.to_string(),
             self.start.1.to_string(),
-            self.start.1.to_string(),
+            self.start.2.to_string(),
         ];
 
         for fields in &self.continuing {
