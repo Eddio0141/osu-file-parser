@@ -655,7 +655,7 @@ impl VersionedTryFrom<u8> for Volume {
 
     fn try_from(value: u8, _: Version) -> Result<Option<Self>, Self::Error> {
         if value > 100 {
-            Err(VolumeError::VolumeTooHigh(value))
+            Err(VolumeError::VolumeTooHigh)
         } else {
             Ok(Some(Volume(value)))
         }
@@ -678,7 +678,7 @@ impl Volume {
     /// Creates a new volme instance.
     pub fn new(volume: u8) -> Result<Self, VolumeError> {
         if volume > 100 {
-            Err(VolumeError::VolumeTooHigh(volume))
+            Err(VolumeError::VolumeTooHigh)
         } else {
             Ok(Volume(volume))
         }
@@ -693,7 +693,7 @@ impl Volume {
     /// - Volume is in the range of 0 ~ 100 and setting it above 100 will return a [`VolumeError`].
     pub fn set_volume(&mut self, volume: u8) -> Result<(), VolumeError> {
         if volume > 100 {
-            Err(VolumeError::VolumeTooHigh(volume))
+            Err(VolumeError::VolumeTooHigh)
         } else {
             self.0 = volume;
             Ok(())

@@ -40,7 +40,7 @@ impl VersionedTryFrom<u8> for ComboSkipCount {
     fn try_from(value: u8, _: Version) -> Result<Option<Self>, Self::Error> {
         // limit to 3 bits
         if value > 0b111 {
-            Err(ComboSkipCountTooHigh(value))
+            Err(ComboSkipCountTooHigh)
         } else {
             Ok(Some(Self(value)))
         }
@@ -170,7 +170,7 @@ impl VersionedFromStr for SampleSet {
             1 => Ok(Some(Self::NormalSet)),
             2 => Ok(Some(Self::SoftSet)),
             3 => Ok(Some(Self::DrumSet)),
-            _ => Err(ParseSampleSetError::UnknownType(s)),
+            _ => Err(ParseSampleSetError::UnknownVariant),
         }
     }
 }
@@ -200,12 +200,12 @@ impl Volume {
     /// Creates a new instance of `Volume`.
     /// - Requires the `volume` to be in range of `1` ~ `100`.
     /// - Setting the `volume` to be `None` will use the timingpoint's volume instead.
-    pub fn new(volume: Option<u8>) -> Result<Volume, ParseVolumeError> {
+    pub fn new(volume: Option<u8>) -> Result<Volume, VolumeSetError> {
         if let Some(volume) = volume {
             if volume == 0 {
-                Err(ParseVolumeError::VolumeTooLow)
+                Err(VolumeSetError::VolumeTooLow)
             } else if volume > 100 {
-                Err(ParseVolumeError::VolumeTooHigh(volume))
+                Err(VolumeSetError::VolumeTooHigh)
             } else {
                 Ok(Volume(Some(volume)))
             }
@@ -225,7 +225,7 @@ impl Volume {
         if volume == 0 {
             Err(VolumeSetError::VolumeTooLow)
         } else if volume > 100 {
-            Err(VolumeSetError::VolumeTooHigh(volume))
+            Err(VolumeSetError::VolumeTooHigh)
         } else {
             self.0 = Some(volume);
             Ok(())
@@ -251,7 +251,7 @@ impl VersionedFromStr for Volume {
 
         let volume = if volume == 0 { None } else { Some(volume) };
 
-        Volume::new(volume).map(Some)
+        Ok(Volume::new(volume).map(Some)?)
     }
 }
 

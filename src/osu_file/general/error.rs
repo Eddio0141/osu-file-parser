@@ -55,7 +55,7 @@ impl From<()> for ParseError {
 #[non_exhaustive]
 pub enum ParseGameModeError {
     /// Error when the `GameMode` is not a valid enum.
-    #[error("Unknown `GameMode`")]
+    #[error("Unknown `GameMode` variant")]
     UnknownVariant,
     /// Error trying to parse the `str` into an `Integer`.
     #[error(transparent)]
@@ -67,7 +67,7 @@ pub enum ParseGameModeError {
 #[non_exhaustive]
 pub enum ParseCountdownSpeedError {
     /// The integer value is an unknown `CountdownSpeed` type.
-    #[error("The integer value is an unknown `CountdownSpeed` type")]
+    #[error("Unknown `CountdownSpeed` variant")]
     UnknownVariant,
     /// There was a problem converting from `str` to an `Integer`.
     #[error("There was a problem parsing the `str` as an `Integer`")]

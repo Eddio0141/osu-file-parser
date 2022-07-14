@@ -30,10 +30,10 @@ verbose_error_to_error!(ParseAudioSampleError);
 #[derive(Debug, Error)]
 pub enum VolumeSetError {
     /// The volume was too high, being higher than `100`.
-    #[error("The volume was too high. Expected 1 ~ 100, got {0}")]
-    VolumeTooHigh(u8),
+    #[error("The volume was too high, expected the range 1 ~ 100")]
+    VolumeTooHigh,
     /// The volume was expected to be in the range `1` ~ `100`, got `0`.
-    #[error("The volume was attempted to set to 0. Expects a value from 1 ~ 100")]
+    #[error("The volume was attempted to set to 0, expected the range 1 ~ 100")]
     VolumeTooLow,
 }
 

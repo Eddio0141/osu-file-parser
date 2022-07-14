@@ -53,7 +53,7 @@ impl VersionedFromStr for TriggerType {
                     };
 
                     if fields.len() > 4 {
-                        return Err(ParseTriggerTypeError::TooManyHitSoundFields(fields.len()));
+                        return Err(ParseTriggerTypeError::TooManyHitSoundFields);
                     }
 
                     let mut field_parse_attempt_index = 0;
@@ -86,7 +86,7 @@ impl VersionedFromStr for TriggerType {
                                     field_parse_attempt_index += 1;
                                     break;
                                 } else {
-                                    return Err(ParseTriggerTypeError::UnknownHitSoundType(s.to_string()))
+                                    return Err(ParseTriggerTypeError::UnknownHitSoundType)
                                 }
                                 _ => unreachable!("The check for field size is already done so this is impossible to reach")
                             }
@@ -102,7 +102,7 @@ impl VersionedFromStr for TriggerType {
                     }))
                 }
             },
-            None => Err(ParseTriggerTypeError::UnknownTriggerType(s.to_string())),
+            None => Err(ParseTriggerTypeError::UnknownTriggerType),
         }
     }
 }

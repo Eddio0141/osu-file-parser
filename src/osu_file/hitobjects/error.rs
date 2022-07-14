@@ -12,8 +12,8 @@ use crate::helper::macros::verbose_error_to_error;
 pub struct ParseError(#[from] ParseHitObjectError);
 
 #[derive(Debug, Error)]
-#[error("Expected combo skip count to be 3 bits, got {0}")]
-pub struct ComboSkipCountTooHigh(pub u8);
+#[error("Expected combo skip count to be 3 bits")]
+pub struct ComboSkipCountTooHigh;
 
 #[derive(Debug, Error)]
 #[non_exhaustive]
@@ -147,9 +147,8 @@ verbose_error_to_error!(ParseHitSampleError);
 #[non_exhaustive]
 /// Error used when there was a problem parsing a `str` into a [`sampleset`][super::types::SampleSet].
 pub enum ParseSampleSetError {
-    /// The `str` had a value higher than 3.
-    #[error("Invalid `SampleSet` type: {0}")]
-    UnknownType(usize),
+    #[error("Invalid `SampleSet` variant")]
+    UnknownVariant,
     /// There was a problem parsing a `str` as an integer first.
     #[error("There was a problem parsing the `str` into an integer first")]
     ParseValueError(#[from] ParseIntError),
@@ -159,13 +158,12 @@ pub enum ParseSampleSetError {
 #[non_exhaustive]
 /// Error used when the user tried to set [`volume`][super::types::Volume]'s field as something invalid.
 pub enum VolumeSetError {
-    /// The volume was too high, being higher than `100`.
-    #[error("The volume was too high. Expected 1 ~ 100, got {0}")]
-    VolumeTooHigh(u8),
+    #[error("The volume was too high, expected to be in range 1 ~ 100")]
+    VolumeTooHigh,
     /// The volume has a value `0`, which is "invalid".
     /// In the osu file documentation, the volume of 0 means the `timingpoint`'s volume is used instead.
     /// I handle that special case differently to make it more clear to the user what's going on.
-    #[error("The volume was attempted to set to 0. Expects a value from 1 ~ 100")]
+    #[error("The volume was attempted to set to 0, expected to be in range 1 ~ 100")]
     VolumeTooLow,
 }
 
@@ -173,17 +171,10 @@ pub enum VolumeSetError {
 #[non_exhaustive]
 /// Error used when there was a problem parsing a `volume` from a `str`.
 pub enum ParseVolumeError {
-    /// The volume was too high, being higher than `100`.
-    #[error("The volume was too high. Expected 1 ~ 100, got {0}")]
-    VolumeTooHigh(u8),
-    /// The volume has a value `0`, which is "invalid".
-    /// In the osu file documentation, the volume of 0 means the `timingpoint`'s volume is used instead.
-    /// I handle that special case differently to make it more clear to the user what's going on.
-    #[error("The volume was attempted to set to 0. Expects a value from 1 ~ 100")]
-    VolumeTooLow,
-    /// An invalid `str` was attempted to be parsed as an `Integer`.
-    #[error("There was a problem parsing \"{0}\" to an `Integer`")]
-    InvalidString(#[from] ParseIntError),
+    #[error(transparent)]
+    VolumeSetError(#[from] VolumeSetError),
+    #[error(transparent)]
+    ParseIntError(#[from] ParseIntError),
 }
 
 #[derive(Debug, Error)]

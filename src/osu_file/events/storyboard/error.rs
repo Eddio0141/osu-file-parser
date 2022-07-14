@@ -197,17 +197,14 @@ verbose_error_to_error!(ParseCommandError);
 #[derive(Debug, Error)]
 #[non_exhaustive]
 pub enum ParseTriggerTypeError {
-    #[error("There are too many `HitSound` fields: {0}")]
-    TooManyHitSoundFields(usize),
-    #[error("There was a problem parsing a field")]
-    ParseFieldError {
-        #[from]
-        source: ParseIntError,
-    },
-    #[error("Unknown trigger type {0}")]
-    UnknownTriggerType(String),
-    #[error("Unknown `HitSound` type {0}")]
-    UnknownHitSoundType(String),
+    #[error("There are too many `HitSound` fields")]
+    TooManyHitSoundFields,
+    #[error(transparent)]
+    ParseFieldError(#[from] ParseIntError),
+    #[error("Unknown trigger type")]
+    UnknownTriggerType,
+    #[error("Unknown `HitSound` type")]
+    UnknownHitSoundType,
 }
 
 #[derive(Debug, Error)]
