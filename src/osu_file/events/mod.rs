@@ -205,7 +205,7 @@ impl VersionedToString for Event {
             Event::Break(break_) => break_.to_string(version),
             Event::ColourTransformation(colour_trans) => colour_trans.to_string(version),
             Event::StoryboardObject(object) => object.to_string(version),
-            Event::AudioSample(audio_sample) => Some(audio_sample.to_string()),
+            Event::AudioSample(audio_sample) => Some(audio_sample.to_string(version).unwrap()),
         }
     }
 }

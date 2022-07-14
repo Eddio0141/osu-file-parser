@@ -1,7 +1,5 @@
 pub mod error;
 
-use std::fmt::Display;
-
 pub use error::*;
 use nom::{
     bytes::{complete::take_till, streaming::tag},
@@ -91,7 +89,7 @@ impl VersionedToString for Osb {
                     "Variables",
                     variables
                         .iter()
-                        .map(|v| v.to_string())
+                        .map(|v| v.to_string(version).unwrap())
                         .collect::<Vec<_>>()
                         .join("\n"),
                 ));
@@ -145,8 +143,8 @@ impl VersionedFromStr for Variable {
     }
 }
 
-impl Display for Variable {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "${}={}", self.name, self.value)
+impl VersionedToString for Variable {
+    fn to_string(&self, _: usize) -> Option<String> {
+        Some(format!("${}={}", self.name, self.value))
     }
 }

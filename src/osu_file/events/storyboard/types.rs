@@ -1,8 +1,6 @@
-use std::fmt::Display;
+use strum_macros::FromRepr;
 
-use strum_macros::{Display, EnumString, FromRepr, IntoStaticStr};
-
-use crate::osu_file::VersionedFromStr;
+use crate::osu_file::{VersionedFromStr, VersionedToString};
 
 use super::error::*;
 
@@ -23,7 +21,7 @@ pub enum TriggerType {
 impl VersionedFromStr for TriggerType {
     type Err = TriggerTypeParseError;
 
-    fn from_str(s: &str, _: usize) -> Result<Option<Self>, Self::Err> {
+    fn from_str(s: &str, version: usize) -> Result<Option<Self>, Self::Err> {
         let s = s.trim();
 
         match s.strip_prefix("HitSound") {
@@ -68,17 +66,17 @@ impl VersionedFromStr for TriggerType {
                     for field in fields {
                         loop {
                             match field_parse_attempt_index {
-                                0 => if let Ok(field) = field.parse() {
+                                0 => if let Ok(field) = SampleSet::from_str(&field, version).map(|s| s.unwrap()) {
                                     sample_set = Some(field);
                                     field_parse_attempt_index += 1;
                                     break;
                                 }
-                                1 => if let Ok(field) = field.parse() {
+                                1 => if let Ok(field) = SampleSet::from_str(&field, version).map(|f| f.unwrap()) {
                                     additions_sample_set = Some(field);
                                     field_parse_attempt_index += 1;
                                     break;
                                 }
-                                2 => if let Ok(field) = field.parse() {
+                                2 => if let Ok(field) = Addition::from_str(&field, version).map(|a| a.unwrap()) {
                                     addition = Some(field);
                                     field_parse_attempt_index += 1;
                                     break;
@@ -109,8 +107,8 @@ impl VersionedFromStr for TriggerType {
     }
 }
 
-impl Display for TriggerType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl VersionedToString for TriggerType {
+    fn to_string(&self, version: usize) -> Option<String> {
         let trigger_type = match self {
             TriggerType::HitSound {
                 sample_set,
@@ -119,20 +117,20 @@ impl Display for TriggerType {
                 custom_sample_set,
             } => format!(
                 "HitSound{}{}{}{}",
-                sample_set.map_or(String::new(), |s| s.to_string()),
-                additions_sample_set.map_or(String::new(), |s| s.to_string()),
-                addition.map_or(String::new(), |s| s.to_string()),
+                sample_set.map_or(String::new(), |s| s.to_string(version).unwrap()),
+                additions_sample_set.map_or(String::new(), |s| s.to_string(version).unwrap()),
+                addition.map_or(String::new(), |s| s.to_string(version).unwrap()),
                 custom_sample_set.map_or(String::new(), |s| s.to_string())
             ),
             TriggerType::Passing => "HitSoundPassing".to_string(),
             TriggerType::Failing => "HitSoundFailing".to_string(),
         };
 
-        write!(f, "{trigger_type}")
+        Some(trigger_type)
     }
 }
 
-#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, EnumString, Display)]
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum SampleSet {
     All,
@@ -141,13 +139,67 @@ pub enum SampleSet {
     Drum,
 }
 
-#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, EnumString, Display)]
+impl VersionedFromStr for SampleSet {
+    type Err = SampleSetParseError;
+
+    fn from_str(s: &str, _: usize) -> std::result::Result<Option<Self>, Self::Err> {
+        match s {
+            "All" => Ok(Some(SampleSet::All)),
+            "Normal" => Ok(Some(SampleSet::Normal)),
+            "Soft" => Ok(Some(SampleSet::Soft)),
+            "Drum" => Ok(Some(SampleSet::Drum)),
+            _ => Err(SampleSetParseError::UnknownVariant),
+        }
+    }
+}
+
+impl VersionedToString for SampleSet {
+    fn to_string(&self, _: usize) -> Option<String> {
+        let sample_set = match self {
+            SampleSet::All => "All",
+            SampleSet::Normal => "Normal",
+            SampleSet::Soft => "Soft",
+            SampleSet::Drum => "Drum",
+        };
+
+        Some(sample_set.to_string())
+    }
+}
+
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Addition {
     Whistle,
     Finish,
     Clap,
 }
+
+impl VersionedFromStr for Addition {
+    type Err = AdditionParseError;
+
+    fn from_str(s: &str, _: usize) -> std::result::Result<Option<Self>, Self::Err> {
+        match s {
+            "Whistle" => Ok(Some(Addition::Whistle)),
+            "Finish" => Ok(Some(Addition::Finish)),
+            "Clap" => Ok(Some(Addition::Clap)),
+            _ => Err(AdditionParseError::UnknownVariant),
+        }
+    }
+}
+
+impl VersionedToString for Addition {
+    fn to_string(&self, _: usize) -> Option<String> {
+        let addtion = match self {
+            Addition::Whistle => "Whistle",
+            Addition::Finish => "Finish",
+            Addition::Clap => "Clap",
+        };
+
+        Some(addtion.to_string())
+    }
+}
+
+// TODO all TryFrom and From impls into versioned types
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, FromRepr)]
 #[non_exhaustive]
@@ -189,13 +241,35 @@ pub enum Easing {
     BounceInOut,
 }
 
-#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, IntoStaticStr, EnumString, Display)]
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Parameter {
-    #[strum(serialize = "H")]
     ImageFlipHorizontal,
-    #[strum(serialize = "V")]
     ImageFlipVertical,
-    #[strum(serialize = "A")]
     UseAdditiveColourBlending,
+}
+
+impl VersionedToString for Parameter {
+    fn to_string(&self, _: usize) -> Option<String> {
+        let parameter = match self {
+            Parameter::ImageFlipHorizontal => "H",
+            Parameter::ImageFlipVertical => "V",
+            Parameter::UseAdditiveColourBlending => "A",
+        };
+
+        Some(parameter.to_string())
+    }
+}
+
+impl VersionedFromStr for Parameter {
+    type Err = ParameterParseError;
+
+    fn from_str(s: &str, _: usize) -> std::result::Result<Option<Self>, Self::Err> {
+        match s {
+            "H" => Ok(Some(Parameter::ImageFlipHorizontal)),
+            "V" => Ok(Some(Parameter::ImageFlipVertical)),
+            "A" => Ok(Some(Parameter::UseAdditiveColourBlending)),
+            _ => Err(ParameterParseError::UnknownVariant),
+        }
+    }
 }

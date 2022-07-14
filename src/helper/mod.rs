@@ -5,12 +5,14 @@ use std::num::ParseIntError;
 
 use thiserror::Error;
 
-pub fn pipe_vec_to_string<T>(vec: &[T]) -> String
+use crate::osu_file::VersionedToString;
+
+pub fn pipe_vec_to_string<T>(vec: &[T], version: usize) -> String
 where
-    T: ToString,
+    T: VersionedToString,
 {
     vec.iter()
-        .map(|s| s.to_string())
+        .map(|s| s.to_string(version).unwrap())
         .collect::<Vec<_>>()
         .join("|")
 }

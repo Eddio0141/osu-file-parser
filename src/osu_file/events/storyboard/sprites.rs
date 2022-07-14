@@ -6,22 +6,50 @@ use nom::combinator::{cut, fail};
 use nom::error::context;
 use nom::sequence::{preceded, tuple};
 use nom::Parser;
-use strum_macros::{Display, EnumString, FromRepr};
 
-use crate::osu_file::{FilePath, Position, VersionedFromStr, VersionedToString};
-use crate::parsers::{comma, comma_field, comma_field_type, consume_rest_type, nothing};
+use crate::osu_file::{FilePath, Position, VersionedDefault, VersionedFromStr, VersionedToString};
+use crate::parsers::{
+    comma, comma_field, comma_field_type, comma_field_versioned_type, consume_rest_versioned_type,
+    nothing,
+};
 
 use super::cmds::*;
 use super::error::*;
 
-// TODO investivage if integer form is valid
-#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, Display, FromRepr, EnumString)]
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Layer {
     Background,
     Fail,
     Pass,
     Foreground,
+}
+
+impl VersionedFromStr for Layer {
+    type Err = LayerParseError;
+
+    fn from_str(s: &str, _: usize) -> std::result::Result<Option<Self>, Self::Err> {
+        match s {
+            "Background" => Ok(Some(Layer::Background)),
+            "Fail" => Ok(Some(Layer::Fail)),
+            "Pass" => Ok(Some(Layer::Pass)),
+            "Foreground" => Ok(Some(Layer::Foreground)),
+            _ => Err(LayerParseError::UnknownVariant),
+        }
+    }
+}
+
+impl VersionedToString for Layer {
+    fn to_string(&self, _: usize) -> Option<String> {
+        let layer = match self {
+            Layer::Background => "Background",
+            Layer::Fail => "Fail",
+            Layer::Pass => "Pass",
+            Layer::Foreground => "Foreground",
+        };
+
+        Some(layer.to_string())
+    }
 }
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
@@ -34,24 +62,27 @@ pub struct Object {
 }
 
 impl VersionedToString for Object {
-    fn to_string(&self, _: usize) -> Option<String> {
+    fn to_string(&self, version: usize) -> Option<String> {
         let pos_str = format!("{},{}", self.position.x, self.position.y);
 
         let object_str = match &self.object_type {
             ObjectType::Sprite(sprite) => format!(
                 "Sprite,{},{},{},{}",
-                self.layer, self.origin, sprite.filepath, pos_str
+                self.layer.to_string(version).unwrap(),
+                self.origin.to_string(version).unwrap(),
+                sprite.filepath.to_string(version).unwrap(),
+                pos_str
             ),
             ObjectType::Animation(anim) => {
                 format!(
                     "Animation,{},{},{},{},{},{},{}",
-                    self.layer,
-                    self.origin,
-                    anim.filepath,
+                    self.layer.to_string(version).unwrap(),
+                    self.origin.to_string(version).unwrap(),
+                    anim.filepath.to_string(version).unwrap(),
                     pos_str,
                     anim.frame_count,
                     anim.frame_delay,
-                    anim.loop_type
+                    anim.loop_type.to_string(version).unwrap()
                 )
             }
         };
@@ -64,7 +95,11 @@ impl VersionedToString for Object {
                 let mut indentation = 1usize;
 
                 for cmd in &self.commands {
-                    builder.push(format!("{}{cmd}", " ".repeat(indentation)));
+                    builder.push(format!(
+                        "{}{}",
+                        " ".repeat(indentation),
+                        cmd.to_string(version).unwrap()
+                    ));
 
                     if let CommandProperties::Loop { commands, .. }
                     | CommandProperties::Trigger { commands, .. } = &cmd.properties
@@ -85,7 +120,11 @@ impl VersionedToString for Object {
                             let cmd = &current_cmds[current_index];
                             current_index += 1;
 
-                            builder.push(format!("{}{cmd}", " ".repeat(indentation)));
+                            builder.push(format!(
+                                "{}{}",
+                                " ".repeat(indentation),
+                                cmd.to_string(version).unwrap()
+                            ));
                             match &cmd.properties {
                                 CommandProperties::Loop { commands, .. }
                                 | CommandProperties::Trigger { commands, .. }
@@ -182,17 +221,23 @@ impl Object {
 impl VersionedFromStr for Object {
     type Err = ObjectParseError;
 
-    fn from_str(s: &str, _: usize) -> Result<Option<Self>, Self::Err> {
+    fn from_str(s: &str, version: usize) -> Result<Option<Self>, Self::Err> {
         let layer = || {
             preceded(
                 context(ObjectParseError::MissingLayer.into(), comma()),
-                context(ObjectParseError::InvalidLayer.into(), comma_field_type()),
+                context(
+                    ObjectParseError::InvalidLayer.into(),
+                    comma_field_versioned_type(version),
+                ),
             )
         };
         let origin = || {
             preceded(
                 context(ObjectParseError::MissingOrigin.into(), comma()),
-                context(ObjectParseError::InvalidOrigin.into(), comma_field_type()),
+                context(
+                    ObjectParseError::InvalidOrigin.into(),
+                    comma_field_versioned_type(version),
+                ),
             )
         };
         let file_path = || {
@@ -240,10 +285,10 @@ impl VersionedFromStr for Object {
                 context(ObjectParseError::MissingLoopType.into(), comma()),
                 context(
                     ObjectParseError::InvalidLoopType.into(),
-                    consume_rest_type(),
+                    consume_rest_versioned_type(version),
                 ),
             ),
-            nothing().map(|_| LoopType::default()),
+            nothing().map(|_| LoopType::default(version).unwrap()),
         ));
 
         let (_, object) = alt((
@@ -347,7 +392,7 @@ pub enum ObjectType {
     Animation(Animation),
 }
 
-#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, Display, FromRepr, EnumString)]
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Origin {
     TopLeft,
@@ -362,15 +407,78 @@ pub enum Origin {
     BottomRight,
 }
 
-#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, Display, EnumString)]
+impl VersionedToString for Origin {
+    fn to_string(&self, _: usize) -> Option<String> {
+        let origin = match self {
+            Origin::TopLeft => "TopLeft",
+            Origin::Centre => "Centre",
+            Origin::CentreLeft => "CentreLeft",
+            Origin::TopRight => "TopRight",
+            Origin::BottomCentre => "BottomCentre",
+            Origin::TopCentre => "TopCentre",
+            Origin::Custom => "Custom",
+            Origin::CentreRight => "CentreRight",
+            Origin::BottomLeft => "BottomLeft",
+            Origin::BottomRight => "BottomRight",
+        };
+
+        Some(origin.to_string())
+    }
+}
+
+impl VersionedFromStr for Origin {
+    type Err = OriginParseError;
+
+    fn from_str(s: &str, _: usize) -> std::result::Result<Option<Self>, Self::Err> {
+        match s {
+            "TopLeft" => Ok(Some(Origin::TopLeft)),
+            "Centre" => Ok(Some(Origin::Centre)),
+            "CentreLeft" => Ok(Some(Origin::CentreLeft)),
+            "TopRight" => Ok(Some(Origin::TopRight)),
+            "BottomCentre" => Ok(Some(Origin::BottomCentre)),
+            "TopCentre" => Ok(Some(Origin::TopCentre)),
+            "Custom" => Ok(Some(Origin::Custom)),
+            "CentreRight" => Ok(Some(Origin::CentreRight)),
+            "BottomLeft" => Ok(Some(Origin::BottomLeft)),
+            "BottomRight" => Ok(Some(Origin::BottomRight)),
+            _ => Err(OriginParseError::UnknownVariant),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum LoopType {
     LoopForever,
     LoopOnce,
 }
 
-impl Default for LoopType {
-    fn default() -> Self {
-        Self::LoopForever
+impl VersionedToString for LoopType {
+    fn to_string(&self, _: usize) -> Option<String> {
+        let loop_type = match self {
+            LoopType::LoopForever => "LoopForever",
+            LoopType::LoopOnce => "LoopOnce",
+        };
+
+        Some(loop_type.to_string())
+    }
+}
+
+impl VersionedFromStr for LoopType {
+    type Err = LoopTypeParseError;
+
+    fn from_str(s: &str, _: usize) -> std::result::Result<Option<Self>, Self::Err> {
+        match s {
+            "LoopForever" => Ok(Some(LoopType::LoopForever)),
+            "LoopOnce" => Ok(Some(LoopType::LoopOnce)),
+            _ => Err(LoopTypeParseError::UnknownVariant),
+        }
+    }
+}
+
+// TODO all default to versioned default
+impl VersionedDefault for LoopType {
+    fn default(_: usize) -> Option<Self> {
+        Some(Self::LoopForever)
     }
 }

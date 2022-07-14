@@ -1,6 +1,6 @@
 pub mod error;
 
-use std::{fmt::Display, num::NonZeroUsize};
+use std::num::NonZeroUsize;
 
 use nom::{
     branch::alt,
@@ -435,15 +435,15 @@ impl VersionedToString for TimingPoint {
 
         if version > 3 {
             fields.push(self.meter.to_string());
-            fields.push(self.sample_set.to_string());
-            fields.push(self.sample_index.to_string());
+            fields.push(self.sample_set.to_string(version).unwrap());
+            fields.push(self.sample_index.to_string(version).unwrap());
         }
         if version > 4 {
-            fields.push(self.volume.to_string());
+            fields.push(self.volume.to_string(version).unwrap());
         }
         if version > 5 {
             fields.push((self.uninherited as u8).to_string());
-            fields.push(self.effects.to_string());
+            fields.push(self.effects.to_string(version).unwrap());
         }
 
         Some(fields.join(","))
@@ -500,9 +500,9 @@ impl VersionedFromStr for SampleSet {
     }
 }
 
-impl Display for SampleSet {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", *self as u8)
+impl VersionedToString for SampleSet {
+    fn to_string(&self, _: usize) -> Option<String> {
+        Some((*self as u8).to_string())
     }
 }
 
@@ -554,9 +554,9 @@ impl From<Effects> for u8 {
     }
 }
 
-impl Display for Effects {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", u8::from(*self))
+impl VersionedToString for Effects {
+    fn to_string(&self, _: usize) -> Option<String> {
+        Some(u8::from(*self).to_string())
     }
 }
 
@@ -609,9 +609,9 @@ impl From<SampleIndex> for Integer {
     }
 }
 
-impl Display for SampleIndex {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", Integer::from(*self))
+impl VersionedToString for SampleIndex {
+    fn to_string(&self, _: usize) -> Option<String> {
+        Some(Integer::from(*self).to_string())
     }
 }
 
@@ -655,9 +655,9 @@ impl From<Volume> for u8 {
     }
 }
 
-impl Display for Volume {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
+impl VersionedToString for Volume {
+    fn to_string(&self, _: usize) -> Option<String> {
+        Some(self.0.to_string())
     }
 }
 

@@ -83,11 +83,11 @@ impl VersionedFromStr for Background {
 }
 
 impl VersionedToString for Background {
-    fn to_string(&self, _: usize) -> Option<String> {
+    fn to_string(&self, version: usize) -> Option<String> {
         Some(format!(
             "{BACKGROUND_HEADER},{},{}{}",
             self.start_time,
-            self.file_name,
+            self.file_name.to_string(version).unwrap(),
             position_str(&self.position),
         ))
     }
@@ -151,7 +151,6 @@ impl VersionedFromStr for Video {
     }
 }
 
-// TODO replace all FromStr and Display with versioned variant for future compatibility
 // TODO enum non exhastive check
 impl VersionedToString for Video {
     fn to_string(&self, version: usize) -> Option<String> {
@@ -163,7 +162,7 @@ impl VersionedToString for Video {
                 VIDEO_HEADER_LONG
             },
             time_to_string(self.start_time, version),
-            self.file_name,
+            self.file_name.to_string(version).unwrap(),
             position_str(&self.position)
         ))
     }

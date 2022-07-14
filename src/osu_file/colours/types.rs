@@ -1,5 +1,3 @@
-use std::{fmt::Display, str::FromStr};
-
 use nom::{
     error::context,
     sequence::{preceded, tuple},
@@ -20,10 +18,10 @@ pub struct Rgb {
     pub blue: u8,
 }
 
-impl FromStr for Rgb {
+impl VersionedFromStr for Rgb {
     type Err = RgbParseError;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(s: &str, _: usize) -> Result<Option<Self>, Self::Err> {
         let byte = || map_res(digit1, |s: &str| s.parse());
 
         let (_, (red, green, blue)) = tuple((
@@ -46,12 +44,12 @@ impl FromStr for Rgb {
             ),
         ))(s)?;
 
-        Ok(Rgb { red, green, blue })
+        Ok(Some(Rgb { red, green, blue }))
     }
 }
 
-impl Display for Rgb {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{},{},{}", self.red, self.green, self.blue)
+impl VersionedToString for Rgb {
+    fn to_string(&self, _: usize) -> Option<String> {
+        Some(format!("{},{},{}", self.red, self.green, self.blue))
     }
 }

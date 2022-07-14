@@ -156,7 +156,7 @@ impl VersionedFromStr for HitObject {
     fn from_str(s: &str, version: usize) -> std::result::Result<Option<Self>, Self::Err> {
         let hitsound = context(
             HitObjectParseError::InvalidHitSound.into(),
-            comma_field_type(),
+            comma_field_versioned_type(version),
         );
         let mut hitsample = alt((
             nothing().map(|_| None),
@@ -246,14 +246,16 @@ impl VersionedFromStr for HitObject {
                     context(HitObjectParseError::MissingCurveType.into(), comma()),
                     context(
                         HitObjectParseError::InvalidCurveType.into(),
-                        map_res(is_not("|"), |f: &str| f.parse()),
+                        map_res(is_not("|"), |f: &str| {
+                            CurveType::from_str(f, version).map(|c| c.unwrap())
+                        }),
                     ),
                 ),
                 preceded(
                     context(HitObjectParseError::MissingCurvePoint.into(), pipe),
                     context(
                         HitObjectParseError::InvalidCurvePoint.into(),
-                        pipe_vec_map().map(|mut v| {
+                        pipe_vec_versioned_map(version).map(|mut v| {
                             if version == 3 && !v.is_empty() {
                                 v.remove(0);
                             }
@@ -280,7 +282,10 @@ impl VersionedFromStr for HitObject {
                     tuple((
                         preceded(
                             context(HitObjectParseError::MissingEdgeSound.into(), comma()),
-                            context(HitObjectParseError::InvalidEdgeSound.into(), pipe_vec_map()),
+                            context(
+                                HitObjectParseError::InvalidEdgeSound.into(),
+                                pipe_vec_versioned_map(version),
+                            ),
                         ),
                         alt((
                             nothing().map(|_| (Vec::new(), None, true)),
@@ -289,7 +294,7 @@ impl VersionedFromStr for HitObject {
                                     context(HitObjectParseError::MissingEdgeSet.into(), comma()),
                                     context(
                                         HitObjectParseError::InvalidEdgeSet.into(),
-                                        pipe_vec_map(),
+                                        pipe_vec_versioned_map(version),
                                     ),
                                 ),
                                 hitsample,
@@ -428,7 +433,7 @@ impl VersionedToString for HitObject {
             }
             .to_string(),
             self.type_to_string(),
-            self.hitsound.to_string(),
+            self.hitsound.to_string(version).unwrap(),
         ];
 
         match &self.obj_params {
@@ -443,16 +448,16 @@ impl VersionedToString for HitObject {
                 edge_sounds_short_hand,
                 edge_sets_shorthand,
             }) => {
-                properties.push(curve_type.to_string());
+                properties.push(curve_type.to_string(version).unwrap());
 
                 let mut properties_2 = vec![
                     {
                         if version == 3 {
                             let mut curve_points = curve_points.clone();
                             curve_points.insert(0, CurvePoint(self.position));
-                            pipe_vec_to_string(&curve_points)
+                            pipe_vec_to_string(&curve_points, version)
                         } else {
-                            pipe_vec_to_string(curve_points)
+                            pipe_vec_to_string(curve_points, version)
                         }
                     },
                     slides.to_string(),
@@ -465,10 +470,10 @@ impl VersionedToString for HitObject {
                     || !*edge_sets_shorthand
                     || self.hitsample.is_some()
                 {
-                    properties_2.push(pipe_vec_to_string(edge_sounds));
+                    properties_2.push(pipe_vec_to_string(edge_sounds, version));
                 }
                 if !edge_sets.is_empty() || !*edge_sets_shorthand || self.hitsample.is_some() {
-                    properties_2.push(pipe_vec_to_string(edge_sets));
+                    properties_2.push(pipe_vec_to_string(edge_sets, version));
                 }
                 if let Some(hitsample) = &self.hitsample {
                     if let Some(hitsample) = hitsample.to_string(version) {

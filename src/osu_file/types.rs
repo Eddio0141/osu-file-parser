@@ -193,8 +193,8 @@ impl FilePath {
     }
 }
 
-impl Display for FilePath {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl VersionedToString for FilePath {
+    fn to_string(&self, _: usize) -> Option<String> {
         let quotes = {
             let path = self.0.to_string_lossy();
 
@@ -202,11 +202,13 @@ impl Display for FilePath {
         };
         let path = self.0.display();
 
-        if quotes {
-            write!(f, "\"{path}\"")
+        let path = if quotes {
+            format!("\"{path}\"")
         } else {
-            write!(f, "{path}")
-        }
+            path.to_string()
+        };
+
+        Some(path)
     }
 }
 

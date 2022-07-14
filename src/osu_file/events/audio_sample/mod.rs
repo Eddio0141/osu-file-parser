@@ -1,7 +1,5 @@
 pub mod error;
 
-use std::fmt::Display;
-
 pub use error::*;
 use nom::{
     branch::alt,
@@ -14,7 +12,7 @@ use nom::{
 use strum_macros::FromRepr;
 
 use crate::{
-    osu_file::{FilePath, Integer, VersionedFromStr},
+    osu_file::{FilePath, Integer, VersionedFromStr, VersionedToString},
     parsers::{comma, comma_field, comma_field_type},
 };
 
@@ -87,13 +85,15 @@ impl VersionedFromStr for AudioSample {
     }
 }
 
-impl Display for AudioSample {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
+impl VersionedToString for AudioSample {
+    fn to_string(&self, version: usize) -> Option<String> {
+        Some(format!(
             "Sample,{},{},{}{}",
-            self.time, self.layer as usize, self.filepath, self.volume
-        )
+            self.time,
+            self.layer as usize,
+            self.filepath.to_string(version).unwrap(),
+            self.volume.to_string(version).unwrap()
+        ))
     }
 }
 
@@ -144,9 +144,9 @@ impl VersionedFromStr for Volume {
     }
 }
 
-impl Display for Volume {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", u8::from(*self))
+impl VersionedToString for Volume {
+    fn to_string(&self, _: usize) -> Option<String> {
+        Some(u8::from(*self).to_string())
     }
 }
 

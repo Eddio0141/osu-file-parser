@@ -1,8 +1,6 @@
 pub mod error;
 pub mod types;
 
-use std::fmt::Display;
-
 use nom::{
     branch::alt,
     bytes::complete::tag,
@@ -19,7 +17,6 @@ pub use self::error::*;
 pub use self::types::*;
 
 use super::{Error, VersionedDefault, VersionedFromStr, VersionedToString, MIN_VERSION};
-use crate::helper::trait_ext::MapStringNewLine;
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Colours(pub Vec<Colour>);
@@ -53,7 +50,13 @@ impl VersionedToString for Colours {
     fn to_string(&self, version: usize) -> Option<String> {
         match version {
             MIN_VERSION..=4 => None,
-            _ => Some(self.0.iter().map_string_new_line()),
+            _ => Some(
+                self.0
+                    .iter()
+                    .filter_map(|c| c.to_string(version))
+                    .collect::<Vec<_>>()
+                    .join("\n"),
+            ),
         }
     }
 }
@@ -82,14 +85,21 @@ pub enum Colour {
 impl VersionedFromStr for Colour {
     type Err = ColourParseError;
 
-    fn from_str(s: &str, _: usize) -> Result<Option<Self>, Self::Err> {
+    fn from_str(s: &str, version: usize) -> Result<Option<Self>, Self::Err> {
         let separator = || tuple((space0, tag(":"), space0));
         let combo_type = tag("Combo");
         let combo_count = map_res(digit1, |s: &str| s.parse());
         let slider_track_override_type = tag("SliderTrackOverride");
         let slider_border_type = tag("SliderBorder");
         let rgb_parse_error = "rgb_parse_error";
-        let rgb = || context(rgb_parse_error, cut(map_res(rest, |s: &str| s.parse())));
+        let rgb = || {
+            context(
+                rgb_parse_error,
+                cut(map_res(rest, |s: &str| {
+                    Rgb::from_str(s, version).map(|rgb| rgb.unwrap())
+                })),
+            )
+        };
 
         let combo = tuple((
             preceded(
@@ -156,14 +166,18 @@ impl VersionedFromStr for Colour {
     }
 }
 
-impl Display for Colour {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl VersionedToString for Colour {
+    fn to_string(&self, version: usize) -> Option<String> {
         let colour_str = match self {
-            Colour::Combo(num, rgb) => format!("Combo{num} : {rgb}"),
-            Colour::SliderTrackOverride(rgb) => format!("SliderTrackOverride : {rgb}"),
-            Colour::SliderBorder(rgb) => format!("SliderBorder : {rgb}"),
+            Colour::Combo(num, rgb) => format!("Combo{num} : {}", rgb.to_string(version).unwrap()),
+            Colour::SliderTrackOverride(rgb) => {
+                format!("SliderTrackOverride : {}", rgb.to_string(version).unwrap())
+            }
+            Colour::SliderBorder(rgb) => {
+                format!("SliderBorder : {}", rgb.to_string(version).unwrap())
+            }
         };
 
-        write!(f, "{colour_str}")
+        Some(colour_str)
     }
 }

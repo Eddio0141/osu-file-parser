@@ -4,6 +4,7 @@ use super::error::*;
 use super::types::*;
 use crate::osu_file::Integer;
 use crate::osu_file::VersionedFromStr;
+use crate::osu_file::VersionedToString;
 use crate::parsers::*;
 use nom::branch::alt;
 use nom::bytes::complete::{tag, take_while};
@@ -38,8 +39,26 @@ where
     }
 }
 
-impl Display for Command {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+fn continuing_versioned_to_string<T>(continuing: &[T], version: usize) -> String
+where
+    T: VersionedToString,
+{
+    if continuing.is_empty() {
+        String::new()
+    } else {
+        format!(
+            ",{}",
+            continuing
+                .iter()
+                .map(|field| field.to_string(version).unwrap())
+                .collect::<Vec<_>>()
+                .join(",")
+        )
+    }
+}
+
+impl VersionedToString for Command {
+    fn to_string(&self, version: usize) -> Option<String> {
         let end_time_to_string =
             |end_time: &Option<i32>| end_time.map_or("".to_string(), |t| t.to_string());
 
@@ -134,7 +153,7 @@ impl Display for Command {
                 *easing as usize,
                 self.start_time,
                 end_time_to_string(end_time),
-                colours,
+                colours.to_string(version).unwrap(),
             ),
             CommandProperties::Parameter {
                 easing,
@@ -146,8 +165,8 @@ impl Display for Command {
                 *easing as usize,
                 self.start_time,
                 end_time_to_string(end_time),
-                parameter,
-                continuing_to_string(continuing_parameters),
+                parameter.to_string(version).unwrap(),
+                continuing_versioned_to_string(continuing_parameters, version),
             ),
             CommandProperties::Loop {
                 loop_count,
@@ -161,14 +180,15 @@ impl Display for Command {
                 // ignore commands since its handled separately
                 commands: _,
             } => format!(
-                "T,{trigger_type},{},{}{}",
+                "T,{},{},{}{}",
+                trigger_type.to_string(version).unwrap(),
                 self.start_time,
                 end_time_to_string(end_time),
                 group_number.map_or(String::new(), |group_number| format!(",{group_number}")),
             ),
         };
 
-        write!(f, "{cmd_str}")
+        Some(cmd_str)
     }
 }
 
@@ -434,8 +454,8 @@ impl Colours {
     }
 }
 
-impl Display for Colours {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl VersionedToString for Colours {
+    fn to_string(&self, _: usize) -> Option<String> {
         let mut builder = vec![
             self.start.0.to_string(),
             self.start.1.to_string(),
@@ -452,7 +472,7 @@ impl Display for Colours {
             }
         }
 
-        write!(f, "{}", builder.join(","))
+        Some(builder.join(","))
     }
 }
 
@@ -678,7 +698,8 @@ impl VersionedFromStr for Command {
             )
         };
         let parameter = {
-            let continuing_parameters = many0(preceded(comma(), comma_field_type()));
+            let continuing_parameters =
+                many0(preceded(comma(), comma_field_versioned_type(version)));
 
             preceded(
                 tag("P"),
@@ -688,7 +709,7 @@ impl VersionedFromStr for Command {
                         context(CommandParseError::MissingParameterType.into(), comma()),
                         context(
                             CommandParseError::InvalidParameterType.into(),
-                            comma_field_type(),
+                            comma_field_versioned_type(version),
                         ),
                     )),
                     terminated(

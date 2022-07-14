@@ -243,3 +243,46 @@ pub enum ContinuingSetError {
     "continuing fields 2nd field is none without it being the last item in the continuing fields"
 )]
 pub struct InvalidSecondFieldOption;
+// TODO turn struct error into enum with non_exhaustive
+
+#[derive(Debug, Error)]
+#[non_exhaustive]
+pub enum ParameterParseError {
+    #[error("Unknown `Parameter` variant")]
+    UnknownVariant,
+}
+
+#[derive(Debug, Error)]
+#[non_exhaustive]
+pub enum AdditionParseError {
+    #[error("Unknown `Addition` variant")]
+    UnknownVariant,
+}
+
+#[derive(Debug, Error)]
+#[non_exhaustive]
+pub enum SampleSetParseError {
+    #[error("Unknown `SampleSet` variant")]
+    UnknownVariant,
+}
+
+#[derive(Debug, Error)]
+#[non_exhaustive]
+pub enum OriginParseError {
+    #[error("Unknown `Origin` variant")]
+    UnknownVariant,
+}
+
+#[derive(Debug, Error)]
+#[non_exhaustive]
+pub enum LoopTypeParseError {
+    #[error("Unknown `LoopType` variant")]
+    UnknownVariant,
+}
+
+#[derive(Debug, Error)]
+#[non_exhaustive]
+pub enum LayerParseError {
+    #[error("Unknown `Layer` variant")]
+    UnknownVariant,
+}

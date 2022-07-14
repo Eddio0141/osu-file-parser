@@ -56,13 +56,17 @@ pub fn get_colon_field_value_lines(s: &str) -> IResult<&str, Vec<(&str, &str, &s
     many0(field_line)(s)
 }
 
-pub fn pipe_vec_map<'a, E, T>() -> impl FnMut(&'a str) -> IResult<&'a str, Vec<T>, E>
+pub fn pipe_vec_versioned_map<'a, E, T>(
+    version: usize,
+) -> impl FnMut(&'a str) -> IResult<&'a str, Vec<T>, E>
 where
-    E: ParseError<&'a str> + nom::error::FromExternalError<&'a str, <T as FromStr>::Err>,
-    T: FromStr,
+    E: ParseError<&'a str> + nom::error::FromExternalError<&'a str, <T as VersionedFromStr>::Err>,
+    T: VersionedFromStr,
 {
     let item = take_while(|c: char| !['|', ',', '\r', '\n'].contains(&c));
-    let item = map_res(item, |s: &str| s.parse());
+    let item = map_res(item, move |s: &str| {
+        T::from_str(s, version).map(|v| v.unwrap())
+    });
 
     separated_list0(tag("|"), item)
 }

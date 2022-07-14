@@ -1,20 +1,15 @@
 //! Module defining misc types used for different hitobjects, such as [CurveType] used for [`Slider`][super::SlideParams] curve types.
 
-use std::{
-    fmt::Display,
-    num::{NonZeroUsize, ParseIntError},
-    str::FromStr,
-};
+use std::num::{NonZeroUsize, ParseIntError};
 
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_while},
-    combinator::{map_opt, map_res},
+    combinator::map_res,
     error::context,
     sequence::{preceded, tuple},
     Parser,
 };
-use strum_macros::{Display, EnumString, FromRepr};
 
 use crate::{helper::nth_bit_state_i64, osu_file::*, parsers::nothing};
 
@@ -67,10 +62,10 @@ pub struct EdgeSet {
     pub addition_set: SampleSet,
 }
 
-impl FromStr for EdgeSet {
+impl VersionedFromStr for EdgeSet {
     type Err = ColonSetParseError;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(s: &str, version: usize) -> Result<Option<Self>, Self::Err> {
         let s = s.split(':').collect::<Vec<_>>();
 
         if s.len() > 2 {
@@ -80,30 +75,33 @@ impl FromStr for EdgeSet {
         let normal_set = s.get(0).ok_or(ColonSetParseError::MissingFirstItem)?;
         let addition_set = s.get(1).ok_or(ColonSetParseError::MissingSecondItem)?;
 
-        let normal_set = normal_set
-            .parse()
-            .map_err(|err| ColonSetParseError::ValueParseError {
+        let normal_set = SampleSet::from_str(normal_set, version).map_err(|err| {
+            ColonSetParseError::ValueParseError {
                 source: Box::new(err),
                 value: normal_set.to_string(),
-            })?;
-        let addition_set =
-            addition_set
-                .parse()
-                .map_err(|err| ColonSetParseError::ValueParseError {
-                    source: Box::new(err),
-                    value: addition_set.to_string(),
-                })?;
+            }
+        })?;
+        let addition_set = SampleSet::from_str(addition_set, version).map_err(|err| {
+            ColonSetParseError::ValueParseError {
+                source: Box::new(err),
+                value: addition_set.to_string(),
+            }
+        })?;
 
-        Ok(Self {
-            normal_set,
-            addition_set,
-        })
+        Ok(Some(Self {
+            normal_set: normal_set.unwrap(),
+            addition_set: addition_set.unwrap(),
+        }))
     }
 }
 
-impl Display for EdgeSet {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}:{}", self.normal_set, self.addition_set)
+impl VersionedToString for EdgeSet {
+    fn to_string(&self, version: usize) -> Option<String> {
+        Some(format!(
+            "{}:{}",
+            self.normal_set.to_string(version).unwrap(),
+            self.addition_set.to_string(version).unwrap()
+        ))
     }
 }
 
@@ -111,10 +109,10 @@ impl Display for EdgeSet {
 /// Anchor point used to construct the [`slider`][super::SlideParams].
 pub struct CurvePoint(pub Position);
 
-impl FromStr for CurvePoint {
+impl VersionedFromStr for CurvePoint {
     type Err = ColonSetParseError;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(s: &str, _: usize) -> Result<Option<Self>, Self::Err> {
         let s = s.split(':').collect::<Vec<_>>();
 
         if s.len() > 2 {
@@ -139,18 +137,19 @@ impl FromStr for CurvePoint {
 
         let position = Position { x, y };
 
-        Ok(Self(position))
+        Ok(Some(Self(position)))
     }
 }
 
-impl Display for CurvePoint {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}:{}", self.0.x, self.0.y)
+impl VersionedToString for CurvePoint {
+    fn to_string(&self, _: usize) -> Option<String> {
+        Some(format!("{}:{}", self.0.x, self.0.y))
     }
 }
 
+// TODO all enum funcs that converts to string or usize should be moved to the impl of the enum
 /// Used for `normal_set` and `addition_set` for the `[hitobject]`[super::HitObject].
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, FromRepr)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum SampleSet {
     /// No custom sample set.
@@ -169,18 +168,25 @@ impl Default for SampleSet {
     }
 }
 
-impl Display for SampleSet {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", *self as usize)
+impl VersionedToString for SampleSet {
+    fn to_string(&self, _: usize) -> Option<String> {
+        Some((*self as usize).to_string())
     }
 }
 
-impl FromStr for SampleSet {
+impl VersionedFromStr for SampleSet {
     type Err = SampleSetParseError;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(s: &str, _: usize) -> Result<Option<Self>, Self::Err> {
         let s = s.parse()?;
-        SampleSet::from_repr(s).ok_or(SampleSetParseError::UnknownType(s))
+
+        match s {
+            0 => Ok(Some(Self::NoCustomSampleSet)),
+            1 => Ok(Some(Self::NormalSet)),
+            2 => Ok(Some(Self::SoftSet)),
+            3 => Ok(Some(Self::DrumSet)),
+            _ => Err(SampleSetParseError::UnknownType(s)),
+        }
     }
 }
 
@@ -244,15 +250,15 @@ impl Volume {
     }
 }
 
-impl FromStr for Volume {
+impl VersionedFromStr for Volume {
     type Err = VolumeParseError;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(s: &str, _: usize) -> Result<Option<Self>, Self::Err> {
         let volume = s.parse::<u8>()?;
 
         let volume = if volume == 0 { None } else { Some(volume) };
 
-        Volume::new(volume)
+        Volume::new(volume).map(Some)
     }
 }
 
@@ -269,8 +275,8 @@ pub struct HitSound {
     clap: bool,
 }
 
-impl Display for HitSound {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl VersionedToString for HitSound {
+    fn to_string(&self, _: usize) -> Option<String> {
         let mut bit_mask = 0;
 
         if self.normal {
@@ -286,7 +292,7 @@ impl Display for HitSound {
             bit_mask |= 8;
         }
 
-        write!(f, "{bit_mask}")
+        Some(bit_mask.to_string())
     }
 }
 
@@ -339,11 +345,11 @@ impl HitSound {
     }
 }
 
-impl FromStr for HitSound {
+impl VersionedFromStr for HitSound {
     type Err = HitSoundParseError;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(HitSound::from(s.parse::<u8>()?))
+    fn from_str(s: &str, _: usize) -> Result<Option<Self>, Self::Err> {
+        Ok(Some(HitSound::from(s.parse::<u8>()?)))
     }
 }
 
@@ -371,22 +377,45 @@ impl From<u8> for HitSound {
     }
 }
 
-#[derive(PartialEq, Eq, Clone, Copy, Debug, Hash, EnumString, Display)]
+#[derive(PartialEq, Eq, Clone, Copy, Debug, Hash)]
 #[non_exhaustive]
 /// Type of curve used to construct the [`Slider`][super::SlideParams].
 pub enum CurveType {
     /// Bézier curve.
-    #[strum(serialize = "B")]
     Bezier,
     /// Centripetal catmull-rom curve.
-    #[strum(serialize = "C")]
     Centripetal,
     /// Linear curve.
-    #[strum(serialize = "L")]
     Linear,
     /// Perfect circle curve.
-    #[strum(serialize = "P")]
     PerfectCircle,
+}
+
+impl VersionedFromStr for CurveType {
+    type Err = CurveTypeParseError;
+
+    fn from_str(s: &str, _: usize) -> std::result::Result<Option<Self>, Self::Err> {
+        match s {
+            "Bezier" => Ok(Some(CurveType::Bezier)),
+            "Centripetal" => Ok(Some(CurveType::Centripetal)),
+            "Linear" => Ok(Some(CurveType::Linear)),
+            "PerfectCircle" => Ok(Some(CurveType::PerfectCircle)),
+            _ => Err(CurveTypeParseError::UnknownVariant),
+        }
+    }
+}
+
+impl VersionedToString for CurveType {
+    fn to_string(&self, _: usize) -> Option<String> {
+        let curve = match self {
+            CurveType::Bezier => "B",
+            CurveType::Centripetal => "C",
+            CurveType::Linear => "L",
+            CurveType::PerfectCircle => "P",
+        };
+
+        Some(curve.to_string())
+    }
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
@@ -420,17 +449,17 @@ impl From<SampleIndex> for usize {
     }
 }
 
-impl Display for SampleIndex {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", usize::from(*self))
+impl VersionedToString for SampleIndex {
+    fn to_string(&self, _: usize) -> Option<String> {
+        Some(usize::from(*self).to_string())
     }
 }
 
-impl FromStr for SampleIndex {
+impl VersionedFromStr for SampleIndex {
     type Err = ParseIntError;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(s.parse::<usize>()?.into())
+    fn from_str(s: &str, _: usize) -> Result<Option<Self>, Self::Err> {
+        Ok(Some(s.parse::<usize>()?.into()))
     }
 }
 
@@ -455,8 +484,8 @@ impl VersionedFromStr for HitSample {
         let sample_set = || {
             context(
                 HitSampleParseError::InvalidSampleSet.into(),
-                map_opt(map_res(field(), |v: &str| v.parse()), |v| {
-                    SampleSet::from_repr(v)
+                map_res(field(), |v: &str| {
+                    SampleSet::from_str(v, version).map(|s| s.unwrap())
                 })
                 .map(Some),
             )
@@ -491,7 +520,10 @@ impl VersionedFromStr for HitSample {
                         ),
                         context(
                             HitSampleParseError::InvalidIndex.into(),
-                            map_res(field(), |v: &str| v.parse()).map(Some),
+                            map_res(field(), |v: &str| {
+                                SampleIndex::from_str(v, version).map(|i| i.unwrap())
+                            })
+                            .map(Some),
                         ),
                     ),
                 )),
@@ -506,7 +538,10 @@ impl VersionedFromStr for HitSample {
                         ),
                         context(
                             HitSampleParseError::InvalidVolume.into(),
-                            map_res(field(), |v: &str| v.parse()).map(Some),
+                            map_res(field(), |v: &str| {
+                                Volume::from_str(v, version).map(|v| v.unwrap())
+                            })
+                            .map(Some),
                         ),
                     ),
                 )),
@@ -553,11 +588,15 @@ impl VersionedToString for HitSample {
             MIN_VERSION..=9 => None,
             10..=11 => Some(format!(
                 "{}:{}:{}",
-                self.normal_set, self.addition_set, self.index
+                self.normal_set.to_string(version).unwrap(),
+                self.addition_set.to_string(version).unwrap(),
+                self.index.to_string(version).unwrap()
             )),
             _ => Some(format!(
                 "{}:{}:{}:{volume}:{filename}",
-                self.normal_set, self.addition_set, self.index
+                self.normal_set.to_string(version).unwrap(),
+                self.addition_set.to_string(version).unwrap(),
+                self.index.to_string(version).unwrap()
             )),
         }
     }

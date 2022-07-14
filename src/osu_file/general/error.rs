@@ -26,6 +26,10 @@ pub enum ParseError {
     /// A field in `General` failed to parse as a `GameMode`.
     #[error(transparent)]
     GameModeParseError(#[from] ParseGameModeError),
+    #[error(transparent)]
+    SampleSetParseError(#[from] ParseSampleSetError),
+    #[error(transparent)]
+    OverlayPositionParseError(#[from] OverlayPositionParseError),
     /// When the line isn't in a `key: value` format.
     #[error("Invalid colon set, expected format of `key: value`")]
     InvalidColonSet,
@@ -52,7 +56,7 @@ impl From<()> for ParseError {
 pub enum ParseGameModeError {
     /// Error when the `GameMode` is not a valid enum.
     #[error("Unknown `GameMode`")]
-    UnknownType,
+    UnknownVariant,
     /// Error trying to parse the `str` into an `Integer`.
     #[error(transparent)]
     ParseError(#[from] ParseIntError),
@@ -68,4 +72,18 @@ pub enum ParseCountdownSpeedError {
     /// There was a problem converting from `str` to an `Integer`.
     #[error("There was a problem parsing the `str` as an `Integer`")]
     ParseError(#[from] ParseIntError),
+}
+
+#[derive(Debug, Error)]
+#[non_exhaustive]
+pub enum OverlayPositionParseError {
+    #[error("Unknown `OverlayPosition` variant")]
+    UnknownVariant,
+}
+
+#[derive(Debug, Error)]
+#[non_exhaustive]
+pub enum ParseSampleSetError {
+    #[error("Unknown `SampleSet` variant")]
+    UnknownVariant,
 }
