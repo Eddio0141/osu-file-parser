@@ -97,7 +97,6 @@ macro_rules! versioned_field {
 macro_rules! general_section_inner {
     ($(#[$outer:meta])*, $section_name:ident, $($(#[$inner:meta])*, $field:ident, $field_type:ty)*, $parse_error:ty, $default_spacing:expr, $default_version:ident, $default_field_name:ident) => {
         #[derive(Default, Debug, Clone)]
-        // TODO solve this problem
         pub struct SectionSpacing {
             $(
                 pub $field: Option<usize>,
