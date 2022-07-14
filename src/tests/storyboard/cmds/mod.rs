@@ -438,10 +438,10 @@ fn trigger() {
     let nothing_str = "T,HitSound,0,";
     let nothing = Command::from_str(nothing_str, 14).unwrap().unwrap();
 
-    assert_eq!(everything_str, everything.to_string());
-    assert_eq!(group_str, group.to_string());
-    assert_eq!(end_time_str, end_time.to_string());
-    assert_eq!(nothing_str, nothing.to_string());
+    assert_eq!(everything_str, everything.to_string(14).unwrap());
+    assert_eq!(group_str, group.to_string(14).unwrap());
+    assert_eq!(end_time_str, end_time.to_string(14).unwrap());
+    assert_eq!(nothing_str, nothing.to_string(14).unwrap());
 }
 
 #[test]
