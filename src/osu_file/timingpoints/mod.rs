@@ -1,10 +1,11 @@
 pub mod error;
 
-use std::num::NonZeroUsize;
+use std::{num::NonZeroUsize, str::FromStr};
 
+use either::Either;
 use nom::{
     branch::alt,
-    combinator::{cut, map_res, success, verify},
+    combinator::{cut, map_res, rest, success, verify},
     error::context,
     sequence::{preceded, tuple},
     Parser,
@@ -44,7 +45,10 @@ impl VersionedFromStr for TimingPoints {
         if let Some(s) = timing_points.get(0) {
             if s.is_some() {
                 Ok(Some(TimingPoints(
-                    timing_points.iter().map(|v| v.unwrap()).collect::<Vec<_>>(),
+                    timing_points
+                        .into_iter()
+                        .map(|v| v.unwrap())
+                        .collect::<Vec<_>>(),
                 )))
             } else {
                 Ok(None)
@@ -70,11 +74,12 @@ impl VersionedDefault for TimingPoints {
 /// Struct representing a timing point.
 /// Each timing point influences a specified portion of the map, commonly called a `timing section`.
 /// The .osu file format requires these to be sorted in chronological order.
-#[derive(Default, Clone, Copy, Hash, PartialEq, Eq, Debug)]
+#[derive(Default, Clone, Hash, PartialEq, Eq, Debug)]
 pub struct TimingPoint {
     // for some reason decimal is parsed anyway in the beatmap???
     time: Decimal,
-    beat_length: Decimal,
+    beat_length: Option<Decimal>,
+    beat_length_string: Option<String>,
     meter: Integer,
     sample_set: SampleSet,
     sample_index: SampleIndex,
@@ -97,16 +102,22 @@ impl TimingPoint {
     /// New instance of `TimingPoint` that is inherited.
     pub fn new_inherited(
         time: Integer,
-        slider_velocity_multiplier: Decimal,
+        slider_velocity_multiplier: Either<Decimal, String>,
         meter: Integer,
         sample_set: SampleSet,
         sample_index: SampleIndex,
         volume: Volume,
         effects: Effects,
     ) -> Self {
+        let (beat_length, beat_length_string) = match slider_velocity_multiplier {
+            Either::Left(beat_length) => (Some(beat_length), None),
+            Either::Right(beat_length_string) => (None, Some(beat_length_string)),
+        };
+
         Self {
             time: time.into(),
-            beat_length: (Decimal::ONE / slider_velocity_multiplier) * dec!(-100),
+            beat_length,
+            beat_length_string,
             meter,
             sample_set,
             sample_index,
@@ -119,16 +130,22 @@ impl TimingPoint {
     /// New instance of `TimingPoint` that is uninherited.
     pub fn new_uninherited(
         time: Integer,
-        beat_duration_ms: Decimal,
+        beat_duration_ms: Either<Decimal, String>,
         meter: Integer,
         sample_set: SampleSet,
         sample_index: SampleIndex,
         volume: Volume,
         effects: Effects,
     ) -> Self {
+        let (beat_length, beat_length_string) = match beat_duration_ms {
+            Either::Left(beat_length) => (Some(beat_length), None),
+            Either::Right(beat_length_string) => (None, Some(beat_length_string)),
+        };
+
         Self {
             time: time.into(),
-            beat_length: beat_duration_ms,
+            beat_length,
+            beat_length_string,
             meter,
             sample_set,
             sample_index,
@@ -139,19 +156,23 @@ impl TimingPoint {
     }
 
     /// Calculates BPM using the `beatLength` field when unherited.
+    /// - Returns `None` if the timing point is inherited or `beat_length` isn't a valid decimal.
     pub fn calc_bpm(&self) -> Option<Decimal> {
         if self.uninherited {
-            Some(Self::beat_duration_ms_to_bpm(self.beat_length))
+            self.beat_length
+                .map(|beat_length| Self::beat_duration_ms_to_bpm(beat_length))
         } else {
             None
         }
     }
     /// Calculates the slider velocity multiplier when the timing point is inherited.
-    pub fn slider_velocity_multiplier(&self) -> Option<Decimal> {
+    /// - Returns `None` if the timing point is uninherited or `beat_length` isn't a valid decimal.
+    pub fn calc_slider_velocity_multiplier(&self) -> Option<Decimal> {
         if self.uninherited {
             None
         } else {
-            Some(Decimal::ONE / (self.beat_length / dec!(-100)))
+            self.beat_length
+                .map(|beat_length| Decimal::ONE / (beat_length / dec!(-100)))
         }
     }
 
@@ -244,7 +265,12 @@ impl VersionedFromStr for TimingPoint {
             _,
             (
                 time,
-                (beat_length, meter, sample_set, (sample_index, (volume, uninherited, effects))),
+                (
+                    beat_length_string,
+                    meter,
+                    sample_set,
+                    (sample_index, (volume, uninherited, effects)),
+                ),
             ),
         ) = tuple((
             context(
@@ -261,14 +287,7 @@ impl VersionedFromStr for TimingPoint {
             preceded(
                 context(TimingPointParseError::MissingBeatLength.into(), comma()),
                 alt((
-                    preceded(
-                        verify(success(0), |_| version == 3),
-                        context(
-                            TimingPointParseError::InvalidBeatLength.into(),
-                            cut(consume_rest_type()),
-                        ),
-                    )
-                    .map(|beat_length| {
+                    preceded(verify(success(0), |_| version == 3), rest).map(|beat_length| {
                         (
                             beat_length,
                             meter_fallback,
@@ -280,10 +299,7 @@ impl VersionedFromStr for TimingPoint {
                         )
                     }),
                     tuple((
-                        context(
-                            TimingPointParseError::InvalidBeatLength.into(),
-                            comma_field_type(),
-                        ),
+                        comma_field(),
                         preceded(
                             context(TimingPointParseError::MissingMeter.into(), comma()),
                             context(
@@ -402,9 +418,15 @@ impl VersionedFromStr for TimingPoint {
             ),
         ))(s)?;
 
+        let (beat_length, beat_length_string) = match Decimal::from_str(beat_length_string) {
+            Ok(beat_length) => (Some(beat_length), None),
+            Err(_) => (None, Some(beat_length_string.to_string())),
+        };
+
         Ok(Some(TimingPoint {
             time,
             beat_length,
+            beat_length_string,
             meter,
             sample_set,
             sample_index,
@@ -423,6 +445,12 @@ impl VersionedToString for &TimingPoint {
 
 impl VersionedToString for TimingPoint {
     fn to_string(&self, version: usize) -> Option<String> {
+        let beat_length = if let Some(beat_length) = &self.beat_length {
+            beat_length.to_string()
+        } else {
+            self.beat_length_string.clone().unwrap()
+        };
+
         let mut fields = vec![
             if (3..=4).contains(&version) {
                 self.time - OLD_VERSION_TIME_OFFSET
@@ -430,7 +458,7 @@ impl VersionedToString for TimingPoint {
                 self.time
             }
             .to_string(),
-            self.beat_length.to_string(),
+            beat_length,
         ];
 
         if version > 3 {
