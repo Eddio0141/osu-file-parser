@@ -12,8 +12,8 @@ use nom::{
 
 use crate::{
     osu_file::{
-        FilePath, Integer, InvalidRepr, Version, VersionedFrom, VersionedFromRepr,
-        VersionedFromStr, VersionedToString, VersionedTryFrom,
+        FilePath, Integer, InvalidRepr, Version, VersionedDefault, VersionedFrom,
+        VersionedFromRepr, VersionedFromStr, VersionedToString, VersionedTryFrom,
     },
     parsers::{comma, comma_field, comma_field_type},
 };
@@ -48,7 +48,7 @@ impl VersionedFromStr for AudioSample {
         );
         let filepath = comma_field().map(|p| p.into());
         let volume = alt((
-            eof.map(|_| Volume::default()),
+            eof.map(|_| Volume::default(version).unwrap()),
             preceded(
                 context(ParseAudioSampleError::MissingVolume.into(), comma()),
                 context(
@@ -100,8 +100,14 @@ impl VersionedToString for AudioSample {
     }
 }
 
-#[derive(Default, Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub struct Volume(Option<u8>);
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct Volume(u8);
+
+impl VersionedDefault for Volume {
+    fn default(_: Version) -> Option<Self> {
+        Some(Volume(100))
+    }
+}
 
 impl Volume {
     pub fn new(volume: u8, version: Version) -> Result<Volume, VolumeSetError> {
@@ -109,7 +115,7 @@ impl Volume {
     }
 
     pub fn get(&self) -> u8 {
-        self.0.unwrap_or(100)
+        self.0
     }
 
     pub fn set(&mut self, value: u8, version: Version) -> Result<(), VolumeSetError> {
@@ -129,7 +135,7 @@ impl VersionedTryFrom<u8> for Volume {
         } else if value == 0 {
             Err(VolumeSetError::VolumeTooLow)
         } else {
-            Ok(Some(Volume(Some(value))))
+            Ok(Some(Volume(value)))
         }
     }
 }
