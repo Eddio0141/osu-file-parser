@@ -6,6 +6,7 @@ use thiserror::Error;
 use crate::helper::macros::verbose_error_to_error;
 
 #[derive(Debug, Error, IntoStaticStr, EnumString)]
+#[non_exhaustive]
 pub enum ParseAudioSampleError {
     #[error("Missing `time` field")]
     MissingTime,
@@ -28,6 +29,7 @@ pub enum ParseAudioSampleError {
 verbose_error_to_error!(ParseAudioSampleError);
 
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum VolumeSetError {
     /// The volume was too high, being higher than `100`.
     #[error("The volume was too high, expected the range 1 ~ 100")]
@@ -38,6 +40,7 @@ pub enum VolumeSetError {
 }
 
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum ParseVolumeError {
     #[error(transparent)]
     ParseIntError(#[from] ParseIntError),

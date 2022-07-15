@@ -80,6 +80,7 @@ pub enum ParseSampleSetError {
 pub struct ParseEffectsError(#[from] ParseIntError);
 
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum ParseSampleIndexError {
     #[error(transparent)]
     ParseIntError(#[from] ParseIntError),

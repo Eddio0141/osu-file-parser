@@ -3,8 +3,8 @@ use thiserror::Error;
 
 use crate::helper::macros::verbose_error_to_error;
 
-#[non_exhaustive]
 #[derive(Debug, Error, IntoStaticStr, EnumString)]
+#[non_exhaustive]
 pub enum ParseBackgroundError {
     #[error("Wrong event type")]
     WrongEventType,
@@ -26,8 +26,8 @@ pub enum ParseBackgroundError {
 
 verbose_error_to_error!(ParseBackgroundError);
 
-#[non_exhaustive]
 #[derive(Debug, Error, IntoStaticStr, EnumString)]
+#[non_exhaustive]
 pub enum ParseVideoError {
     #[error("Wrong event type")]
     WrongEventType,
@@ -49,8 +49,8 @@ pub enum ParseVideoError {
 
 verbose_error_to_error!(ParseVideoError);
 
-#[non_exhaustive]
 #[derive(Debug, Error, IntoStaticStr, EnumString)]
+#[non_exhaustive]
 pub enum ParseBreakError {
     #[error("Wrong event type")]
     WrongEventType,
@@ -66,8 +66,8 @@ pub enum ParseBreakError {
 
 verbose_error_to_error!(ParseBreakError);
 
-#[non_exhaustive]
 #[derive(Debug, Error, IntoStaticStr, EnumString)]
+#[non_exhaustive]
 pub enum ParseColourTransformationError {
     #[error("Wrong event type")]
     WrongEventType,

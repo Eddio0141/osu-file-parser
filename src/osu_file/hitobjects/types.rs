@@ -408,6 +408,7 @@ impl VersionedToString for CurveType {
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum SampleIndex {
     TimingPointSampleIndex,
     Index(NonZeroUsize),

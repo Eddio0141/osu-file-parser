@@ -151,7 +151,6 @@ impl VersionedFromStr for Video {
     }
 }
 
-// TODO enum non exhastive check
 impl VersionedToString for Video {
     fn to_string(&self, version: Version) -> Option<String> {
         Some(format!(

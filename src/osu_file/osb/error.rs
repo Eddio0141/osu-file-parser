@@ -23,6 +23,7 @@ pub enum ParseError {
 verbose_error_to_error!(ParseError);
 
 #[derive(Debug, Error, EnumString, IntoStaticStr)]
+#[non_exhaustive]
 pub enum ParseVariableError {
     #[error("Missing the header `$`")]
     MissingHeader,

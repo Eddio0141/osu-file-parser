@@ -28,6 +28,7 @@ pub enum ParseColourError {
 verbose_error_to_error!(ParseColourError);
 
 #[derive(Debug, Error, EnumString, IntoStaticStr)]
+#[non_exhaustive]
 pub enum ParseRgbError {
     /// Invalid red value.
     #[error("Invalid red value")]

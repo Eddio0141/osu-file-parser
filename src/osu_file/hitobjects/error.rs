@@ -171,12 +171,14 @@ pub enum ParseVolumeError {
 }
 
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum ParseCurveTypeError {
     #[error("Unknown `CurveType` variant")]
     UnknownVariant,
 }
 
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum ParseHitSoundError {
     #[error(transparent)]
     ParseIntError(#[from] ParseIntError),
