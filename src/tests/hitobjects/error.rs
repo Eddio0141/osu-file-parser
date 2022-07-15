@@ -45,6 +45,5 @@ fn missing_obj_params() {
     let i = "0,0,0,2,0";
     let o = HitObject::from_str(i, 14).unwrap_err();
 
-    // TODO investigate why this is trying to parse curve type
     assert_eq!("Missing `curve_type` field", o.to_string());
 }
