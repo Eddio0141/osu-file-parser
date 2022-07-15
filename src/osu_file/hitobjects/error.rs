@@ -17,7 +17,7 @@ pub struct ComboSkipCountTooHigh;
 
 #[derive(Debug, Error, IntoStaticStr, EnumString)]
 #[non_exhaustive]
-/// Error used when there was a problem parsing a `str` into a [`ColonSet`][super::ColonSet].
+/// Error used when there was a problem parsing a `str` into a `ColonSet`.
 pub enum ParseColonSetError {
     /// When the first item failed to parse.
     #[error("Failed to parse the first item")]
