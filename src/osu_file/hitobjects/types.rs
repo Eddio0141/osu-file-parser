@@ -103,7 +103,7 @@ impl VersionedToString for EdgeSet {
     }
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 /// Anchor point used to construct the [`slider`][super::SlideParams].
 pub struct CurvePoint(pub Position);
 

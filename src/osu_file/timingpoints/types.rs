@@ -6,7 +6,6 @@ use crate::{
     osu_file::{InvalidRepr, VersionedFromRepr, VersionedFromStr},
 };
 
-// TODO figure out default
 /// Default sample set for hitobjects.
 #[derive(Clone, Copy, Hash, PartialEq, Eq, Debug)]
 #[non_exhaustive]
@@ -33,12 +32,6 @@ impl VersionedFromRepr for SampleSet {
     }
 }
 
-impl VersionedDefault for SampleSet {
-    fn default(_: Version) -> Option<Self> {
-        Some(Self::BeatmapDefault)
-    }
-}
-
 impl VersionedFromStr for SampleSet {
     type Err = ParseSampleSetError;
 
@@ -53,9 +46,8 @@ impl VersionedToString for SampleSet {
     }
 }
 
-// TODO figure out default
 /// Flags that give the [`TimingPoint`] extra effects.
-#[derive(Default, Clone, Copy, Debug, Hash, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub struct Effects {
     pub kiai_time_enabled: bool,
     pub no_first_barline_in_taiko_mania: bool,
@@ -161,7 +153,7 @@ impl VersionedDefault for SampleIndex {
 }
 
 /// The volume percentage in the range of 0 ~ 100.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Volume(u8);
 
 impl VersionedFromStr for Volume {

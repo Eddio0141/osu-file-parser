@@ -7,7 +7,7 @@ use crate::parsers::consume_rest_type;
 
 use super::*;
 
-#[derive(Default, Clone, Copy, Hash, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Hash, Debug, PartialEq, Eq)]
 /// Struct representing the RGB colours with each colour having value from 0 ~ 255.
 pub struct Rgb {
     /// Red colour.
