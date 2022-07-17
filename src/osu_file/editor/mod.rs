@@ -1,6 +1,6 @@
 pub mod error;
 
-use std::num::ParseIntError;
+use std::num::{IntErrorKind, ParseIntError};
 
 use nom::{bytes::complete::take_till, combinator::map_res, multi::separated_list0, Finish};
 use rust_decimal::Decimal;
@@ -15,23 +15,37 @@ pub use error::*;
 versioned_field!(Bookmarks, Vec<Integer>, no_versions, |s| {
     let bookmark = map_res(take_till(|c| c == ','), |s: &str| s.parse::<Integer>());
     let mut bookmarks = separated_list0(comma::<nom::error::Error<_>>(), bookmark);
+    let input_len = s.len();
 
-    let (_, bookmarks) = bookmarks(s).finish().map_err(|err| {
-        match err.code {
-            // TODO test those errors
-            nom::error::ErrorKind::SeparatedList => {
-                ParseError::InvalidCommaList
-            }
-            nom::error::ErrorKind::MapRes => {
-                // get section of the input that caused the error, and re-parse to get error
-                let err = err.input.parse::<Integer>().unwrap_err();
-                ParseError::ParseIntError(err)
-            }
-            _ => unimplemented!(),
-        }
-    })?;
+    let (s, bookmarks) = bookmarks(s).finish().unwrap();
 
-    Ok(bookmarks)
+    if s.is_empty() {
+        Ok(bookmarks)
+    } else {
+        let (_, s) = {
+            let s = if s.len() < input_len {
+                match s.strip_prefix(',') {
+                    Some(s) => s,
+                    None => s,
+                }
+            } else {
+                s
+            };
+
+            take_till::<_, _, nom::error::Error<_>>(|c| c == ',')(s).unwrap()
+        };
+    
+        // re-parse to get error
+        let err = s.parse::<Integer>().unwrap_err();
+
+        let err = if let IntErrorKind::Empty = err.kind() {
+            ParseError::InvalidCommaList
+        } else {
+            ParseError::ParseIntError(err)
+        };
+
+        Err(err)
+    }
 } -> ParseError, |v| { v.iter().map(|v| v.to_string())
     .collect::<Vec<_>>().join(",") },);
 versioned_field!(DistanceSpacing, Decimal, no_versions, |s| { s.parse() } -> rust_decimal::Error,,);

@@ -14,7 +14,7 @@ use rust_decimal_macros::dec;
 use crate::osu_file::{
     colours::{Colour, Colours, Rgb},
     difficulty::Difficulty,
-    editor::Editor,
+    editor::{self, Editor},
     events::{Background, Break, Event, Events},
     general::{Countdown, General, Mode, OverlayPosition, SampleSet},
     metadata::Metadata,
@@ -270,4 +270,22 @@ fn colour_parse_error() {
     let err = Colour::from_str(i, 14).unwrap_err();
 
     assert_eq!(err.to_string(), "Invalid red value");
+}
+
+#[test]
+fn editor_bookmarks_error() {
+    let i = "0,foo";
+    let i_err = editor::Bookmarks::from_str(i, 14).unwrap_err();
+    assert_eq!(i_err.to_string(), "invalid digit found in string");
+
+    let i = "0-";
+    let i_err = editor::Bookmarks::from_str(i, 14).unwrap_err();
+    assert_eq!(i_err.to_string(), "invalid digit found in string");
+
+    let i = "0,,";
+    let i_err = editor::Bookmarks::from_str(i, 14).unwrap_err();
+    assert_eq!(
+        i_err.to_string(),
+        "Invalid comma list, expected format of `key: value, value, value, ...`"
+    );
 }
