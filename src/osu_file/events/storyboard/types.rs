@@ -4,7 +4,6 @@ use crate::osu_file::{
 
 use super::error::*;
 
-// TODO what is group_number
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum TriggerType {
