@@ -269,6 +269,7 @@ macro_rules! verbose_error_to_error {
     ($error_type:ty) => {
         impl From<nom::Err<nom::error::VerboseError<&str>>> for $error_type {
             fn from(err: nom::Err<nom::error::VerboseError<&str>>) -> Self {
+                dbg!(&err);
                 match err {
                     nom::Err::Error(err) | nom::Err::Failure(err) => {
                         for (_, err) in err.errors {
@@ -278,10 +279,10 @@ macro_rules! verbose_error_to_error {
                             }
                         }
 
-                        unreachable!()
+                        unreachable!("VerboseErrorKind::Context not found in VerboseError");
                     }
                     // should never happen
-                    nom::Err::Incomplete(_) => unreachable!(),
+                    nom::Err::Incomplete(_) => unreachable!("Incomplete error"),
                 }
             }
         }
