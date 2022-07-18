@@ -1,4 +1,4 @@
-use std::num::NonZeroUsize;
+use std::num::NonZeroU32;
 
 use super::*;
 use crate::{
@@ -101,31 +101,29 @@ pub enum SampleIndex {
     /// Osu!'s default hitsounds.
     OsuDefaultHitsounds,
     /// Sample index for hitobjects.
-    Index(NonZeroUsize),
+    Index(NonZeroU32),
 }
 
 impl VersionedFromStr for SampleIndex {
     type Err = ParseSampleIndexError;
 
     fn from_str(s: &str, version: Version) -> Result<Option<Self>, Self::Err> {
-        <SampleIndex as VersionedTryFrom<Integer>>::try_from(s.parse()?, version)
+        Ok(<SampleIndex as VersionedFrom<u32>>::from(
+            s.parse()?,
+            version,
+        ))
     }
 }
 
-// TODO do we accept negative index
-impl VersionedTryFrom<Integer> for SampleIndex {
-    type Error = ParseSampleIndexError;
-
-    fn try_from(value: Integer, _: Version) -> Result<Option<Self>, Self::Error> {
-        let value = usize::try_from(value)?;
-
+impl VersionedFrom<u32> for SampleIndex {
+    fn from(value: u32, _: Version) -> Option<Self> {
         let index = if value == 0 {
             SampleIndex::OsuDefaultHitsounds
         } else {
-            SampleIndex::Index(NonZeroUsize::try_from(value).unwrap())
+            SampleIndex::Index(NonZeroU32::try_from(value).unwrap())
         };
 
-        Ok(Some(index))
+        Some(index)
     }
 }
 

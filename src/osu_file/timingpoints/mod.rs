@@ -255,10 +255,7 @@ impl VersionedFromStr for TimingPoint {
     fn from_str(s: &str, version: Version) -> std::result::Result<Option<Self>, Self::Err> {
         let meter_fallback = 4;
         let sample_set_fallback = SampleSet::Normal;
-        let sample_index_fallback =
-            <SampleIndex as VersionedTryFrom<Integer>>::try_from(1, version)
-                .unwrap()
-                .unwrap();
+        let sample_index_fallback = <SampleIndex as VersionedFrom<u32>>::from(1, version).unwrap();
         let volume_fallback = <Volume as VersionedTryFrom<u8>>::try_from(100, version)
             .unwrap()
             .unwrap();
