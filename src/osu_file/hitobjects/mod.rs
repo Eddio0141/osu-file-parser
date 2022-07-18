@@ -9,6 +9,7 @@ use nom::error::context;
 use nom::sequence::*;
 use nom::*;
 use rust_decimal::Decimal;
+use rust_decimal_macros::dec;
 
 use crate::helper::trait_ext::MapStringNewLineVersion;
 use crate::helper::*;
@@ -139,7 +140,7 @@ impl HitObject {
     pub fn osu_mania_hold_default() -> Self {
         Self {
             position: Position {
-                x: 0,
+                x: dec!(0),
                 ..Default::default()
             },
             time: Default::default(),

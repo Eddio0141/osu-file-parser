@@ -54,7 +54,10 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
         Event::StoryboardObject(Object {
             layer: Layer::Pass,
             origin: Origin::Centre,
-            position: Position { x: 320, y: 240 },
+            position: Position {
+                x: dec!(320),
+                y: dec!(240),
+            },
             object_type: ObjectType::Sprite(
                 Sprite::new(Path::new("\"Text\\Play2-HaveFunH.png\"")).unwrap(),
             ),
@@ -235,7 +238,10 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
         Event::StoryboardObject(Object {
             layer: Layer::Fail,
             origin: Origin::BottomCentre,
-            position: Position { x: 418, y: 108 },
+            position: Position {
+                x: dec!(418),
+                y: dec!(108),
+            },
             object_type: ObjectType::Animation(Animation {
                 frame_count: 12,
                 frame_delay: 31,

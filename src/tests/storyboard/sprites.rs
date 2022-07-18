@@ -1,5 +1,7 @@
 use std::path::{Path, PathBuf};
 
+use rust_decimal_macros::dec;
+
 use crate::osu_file::events::storyboard::sprites::*;
 use crate::osu_file::events::Event;
 use crate::osu_file::types::Position;
@@ -15,7 +17,10 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
         Event::StoryboardObject(Object {
             layer: Layer::Pass,
             origin: Origin::Centre,
-            position: Position { x: 320, y: 240 },
+            position: Position {
+                x: dec!(320),
+                y: dec!(240),
+            },
             object_type: ObjectType::Sprite(
                 Sprite::new(Path::new("\"Text\\Play2-HaveFunH.png\"")).unwrap(),
             ),
@@ -24,7 +29,10 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
         Event::StoryboardObject(Object {
             layer: Layer::Fail,
             origin: Origin::BottomCentre,
-            position: Position { x: 418, y: 108 },
+            position: Position {
+                x: dec!(418),
+                y: dec!(108),
+            },
             object_type: ObjectType::Animation(Animation {
                 frame_count: 12,
                 frame_delay: 31,
@@ -44,7 +52,10 @@ fn frame_file_names() {
     let animation = Object {
         layer: Layer::Background,
         origin: Origin::BottomCentre,
-        position: Position { x: 0, y: 0 },
+        position: Position {
+            x: dec!(0),
+            y: dec!(0),
+        },
         object_type: ObjectType::Animation(Animation {
             frame_count: 4,
             frame_delay: 0,
