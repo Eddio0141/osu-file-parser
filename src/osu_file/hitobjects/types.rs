@@ -475,7 +475,6 @@ impl VersionedFromStr for HitSample {
     type Err = ParseHitSampleError;
 
     fn from_str(s: &str, version: Version) -> std::result::Result<Option<Self>, Self::Err> {
-        // TODO does the 4th and 5th field exist from v12 onwards?
         let field = || take_while(|c| c != ':');
         let field_separator = || tag(":");
         let sample_set = || {
@@ -490,7 +489,6 @@ impl VersionedFromStr for HitSample {
 
         let (_, hitsample) = alt((
             nothing().map(|_| <HitSample as VersionedDefault>::default(version).unwrap()),
-            tag("0:0:0:0:").map(|_| <HitSample as VersionedDefault>::default(version).unwrap()),
             tuple((
                 // normal_set
                 alt((nothing().map(|_| None), sample_set())),
