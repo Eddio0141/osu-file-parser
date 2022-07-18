@@ -81,7 +81,7 @@ impl VersionedFrom<Effects> for u8 {
             bit_flag |= 0b1;
         }
         if effects.no_first_barline_in_taiko_mania {
-            bit_flag |= 0b100;
+            bit_flag |= 0b1000;
         }
 
         Some(bit_flag)
