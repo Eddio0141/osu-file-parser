@@ -65,6 +65,8 @@ pub struct OsuFile {
     /// Hit objects.
     /// Comma-separated lists.
     pub hitobjects: Option<HitObjects>,
+    /// Spacing between each section.
+    pub spacing: SectionSpacing,
 }
 
 impl OsuFile {
@@ -81,6 +83,7 @@ impl OsuFile {
             colours: None,
             hitobjects: None,
             osb: None,
+            spacing: SectionSpacing::default(),
         }
     }
 
@@ -106,63 +109,79 @@ impl OsuFile {
 
 impl Display for OsuFile {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut sections = Vec::with_capacity(9);
-
-        sections.push(format!("osu file format v{}", self.version));
+        let mut sections = Vec::new();
 
         if let Some(general) = &self.general {
             if let Some(general) = general.to_string(self.version) {
-                sections.push(format!("[General]\n{general}",))
+                sections.push(format!(
+                    "[General]\n{general}{}",
+                    "\n".repeat(self.spacing.general + 1)
+                ))
             }
         }
         if let Some(editor) = &self.editor {
             if let Some(editor) = editor.to_string(self.version) {
-                sections.push(format!("[Editor]\n{editor}"));
+                sections.push(format!(
+                    "[Editor]\n{editor}{}",
+                    "\n".repeat(self.spacing.editor + 1)
+                ));
             }
         }
         if let Some(metadata) = &self.metadata {
             if let Some(metadata) = metadata.to_string(self.version) {
-                sections.push(format!("[Metadata]\n{metadata}"));
+                sections.push(format!(
+                    "[Metadata]\n{metadata}{}",
+                    "\n".repeat(self.spacing.metadata + 1)
+                ));
             }
         }
         if let Some(difficulty) = &self.difficulty {
             if let Some(difficulty) = difficulty.to_string(self.version) {
-                sections.push(format!("[Difficulty]\n{difficulty}"));
+                sections.push(format!(
+                    "[Difficulty]\n{difficulty}{}",
+                    "\n".repeat(self.spacing.difficulty + 1)
+                ));
             }
         }
         if let Some(events) = &self.events {
             if let Some(events) = events.to_string(self.version) {
-                sections.push(format!("[Events]\n{events}"));
+                sections.push(format!(
+                    "[Events]\n{events}{}",
+                    "\n".repeat(self.spacing.events + 1)
+                ));
             }
         }
         if let Some(timing_points) = &self.timing_points {
             if let Some(timing_points) = timing_points.to_string(self.version) {
-                let section = format!("[TimingPoints]\n{timing_points}");
-
-                // for some reason theres an extra new line at the end in some versions
-                if self.version == 3 || (6..=13).contains(&self.version) {
-                    sections.push(format!("{section}\n"));
-                } else {
-                    sections.push(section);
-                }
+                sections.push(format!(
+                    "[TimingPoints]\n{timing_points}{}",
+                    "\n".repeat(self.spacing.timing_points + 1)
+                ));
             }
         }
         if let Some(colours) = &self.colours {
             if let Some(colours) = colours.to_string(self.version) {
-                sections.push(format!("[Colours]\n{colours}"));
+                sections.push(format!(
+                    "[Colours]\n{colours}{}",
+                    "\n".repeat(self.spacing.colours + 1)
+                ));
             }
         }
         if let Some(hitobjects) = &self.hitobjects {
             if let Some(hitobjects) = hitobjects.to_string(self.version) {
-                sections.push(format!("[HitObjects]\n{hitobjects}"));
+                sections.push(format!(
+                    "[HitObjects]\n{hitobjects}{}",
+                    "\n".repeat(self.spacing.hitobjects)
+                ));
             }
         }
 
-        write!(f, "{}", sections.join("\n\n"))?;
-        // for some reason below v14 theres another new line at the end
-        if self.version < 14 {
-            writeln!(f)?;
-        }
+        write!(
+            f,
+            "osu file format v{}\n\n{}",
+            self.version,
+            sections.join("")
+        )?;
 
         Ok(())
     }
@@ -215,9 +234,11 @@ impl FromStr for OsuFile {
             mut hitobjects,
         ) = (None, None, None, None, None, None, None, None);
 
+        let mut spacing = SectionSpacing::default();
+
         let mut line_number = 0;
 
-        for (ws, section_name, ws2, section) in sections {
+        for (i, (ws, section_name, ws2, section)) in sections.iter().enumerate() {
             line_number += ws.lines().count();
 
             if section_parsed.contains(&section_name) {
@@ -227,40 +248,76 @@ impl FromStr for OsuFile {
             let section_name_line = line_number;
             line_number += ws2.lines().count();
 
-            match section_name {
+            // count empty lines in section from reverse
+            let empty_line_count = || {
+                let mut empty_lines = 0usize;
+
+                // check if we at the end of the sections
+                // to get around that the last line is not included in section if its newline
+                if i == sections.len() - 1 {
+                    if let Some(last_line) = s.lines().last() {
+                        if last_line.trim().is_empty() {
+                            empty_lines += 1;
+                        }
+                    }
+                }
+
+                for line in section.lines().rev() {
+                    if line.trim().is_empty() {
+                        empty_lines += 1;
+                    } else {
+                        break;
+                    }
+                }
+                empty_lines
+            };
+
+            match *section_name {
                 "General" => {
                     general =
-                        Error::processing_line(General::from_str(section, version), line_number)?
+                        Error::processing_line(General::from_str(section, version), line_number)?;
+                    spacing.general = empty_line_count();
                 }
                 "Editor" => {
                     editor =
-                        Error::processing_line(Editor::from_str(section, version), line_number)?
+                        Error::processing_line(Editor::from_str(section, version), line_number)?;
+                    spacing.editor = empty_line_count();
                 }
                 "Metadata" => {
                     metadata =
-                        Error::processing_line(Metadata::from_str(section, version), line_number)?
+                        Error::processing_line(Metadata::from_str(section, version), line_number)?;
+                    spacing.metadata = empty_line_count();
                 }
                 "Difficulty" => {
-                    difficulty =
-                        Error::processing_line(Difficulty::from_str(section, version), line_number)?
+                    difficulty = Error::processing_line(
+                        Difficulty::from_str(section, version),
+                        line_number,
+                    )?;
+                    spacing.difficulty = empty_line_count();
                 }
                 "Events" => {
                     events =
-                        Error::processing_line(Events::from_str(section, version), line_number)?
+                        Error::processing_line(Events::from_str(section, version), line_number)?;
+                    spacing.events = empty_line_count();
                 }
                 "TimingPoints" => {
                     timing_points = Error::processing_line(
                         TimingPoints::from_str(section, version),
                         line_number,
-                    )?
+                    )?;
+                    spacing.timing_points = empty_line_count();
                 }
                 "Colours" => {
                     colours =
-                        Error::processing_line(Colours::from_str(section, version), line_number)?
+                        Error::processing_line(Colours::from_str(section, version), line_number)?;
+                    spacing.colours = empty_line_count();
                 }
                 "HitObjects" => {
-                    hitobjects =
-                        Error::processing_line(HitObjects::from_str(section, version), line_number)?
+                    hitobjects = Error::processing_line(
+                        HitObjects::from_str(section, version),
+                        line_number,
+                    )?;
+                    spacing.hitobjects = empty_line_count();
                 }
                 _ => return Err(Error::new(ParseError::UnknownSection, section_name_line)),
             }
@@ -280,7 +337,36 @@ impl FromStr for OsuFile {
             colours,
             hitobjects,
             osb: None,
+            spacing,
         })
+    }
+}
+
+/// Contains information on how much new lines are in between sections.
+#[derive(Clone, Debug, Hash, PartialEq)]
+pub struct SectionSpacing {
+    pub general: usize,
+    pub editor: usize,
+    pub metadata: usize,
+    pub difficulty: usize,
+    pub events: usize,
+    pub timing_points: usize,
+    pub colours: usize,
+    pub hitobjects: usize,
+}
+
+impl Default for SectionSpacing {
+    fn default() -> Self {
+        Self {
+            general: 1,
+            editor: 1,
+            metadata: 1,
+            difficulty: 1,
+            events: 1,
+            timing_points: 1,
+            colours: 1,
+            hitobjects: 0,
+        }
     }
 }
 
