@@ -240,8 +240,7 @@ impl VersionedFromStr for HitObject {
             let (
                 _,
                 (
-                    curve_type,
-                    curve_points,
+                    (curve_type, curve_points),
                     slides,
                     length,
                     (
@@ -253,27 +252,41 @@ impl VersionedFromStr for HitObject {
                     ),
                 ),
             ) = tuple((
-                preceded(
-                    context(ParseHitObjectError::MissingCurveType.into(), comma()),
-                    context(
-                        ParseHitObjectError::InvalidCurveType.into(),
-                        map_res(is_not("|"), |f: &str| {
-                            CurveType::from_str(f, version).map(|c| c.unwrap())
-                        }),
-                    ),
-                ),
-                preceded(
-                    context(ParseHitObjectError::MissingCurvePoint.into(), pipe),
-                    context(
-                        ParseHitObjectError::InvalidCurvePoint.into(),
-                        pipe_vec_versioned_map(version).map(|mut v| {
-                            if version == 3 && !v.is_empty() {
-                                v.remove(0);
-                            }
-                            v
-                        }),
-                    ),
-                ),
+                alt((
+                    // assume curve points doesn't exist
+                    preceded(
+                        context(ParseHitObjectError::MissingCurveType.into(), comma()),
+                        context(
+                            ParseHitObjectError::InvalidCurveType.into(),
+                            comma_field_versioned_type(version),
+                        ),
+                    )
+                    .map(|curve_type| (curve_type, Vec::new())),
+                    // assume curve points exist
+                    tuple((
+                        preceded(
+                            context(ParseHitObjectError::MissingCurveType.into(), comma()),
+                            context(
+                                ParseHitObjectError::InvalidCurveType.into(),
+                                map_res(take_till(|c| c == '|'), |f: &str| {
+                                    CurveType::from_str(f, version).map(|c| c.unwrap())
+                                }),
+                            ),
+                        ),
+                        preceded(
+                            context(ParseHitObjectError::MissingCurvePoint.into(), pipe),
+                            context(
+                                ParseHitObjectError::InvalidCurvePoint.into(),
+                                pipe_vec_versioned_map(version).map(|mut v| {
+                                    if version == 3 && !v.is_empty() {
+                                        v.remove(0);
+                                    }
+                                    v
+                                }),
+                            ),
+                        ),
+                    )),
+                )),
                 preceded(
                     context(ParseHitObjectError::MissingSlidesCount.into(), comma()),
                     context(
@@ -461,19 +474,19 @@ impl VersionedToString for HitObject {
             }) => {
                 properties.push(curve_type.to_string(version).unwrap());
 
-                let mut properties_2 = vec![
-                    {
-                        if version == 3 {
-                            let mut curve_points = curve_points.clone();
-                            curve_points.insert(0, CurvePoint(self.position));
-                            pipe_vec_to_string(&curve_points, version)
-                        } else {
-                            pipe_vec_to_string(curve_points, version)
-                        }
-                    },
-                    slides.to_string(),
-                    length.to_string(),
-                ];
+                let has_curve_points = version == 3 || !curve_points.is_empty();
+
+                let mut properties_2 = Vec::new();
+
+                if version == 3 {
+                    let mut curve_points = curve_points.clone();
+                    curve_points.insert(0, CurvePoint(self.position));
+                    properties_2.push(pipe_vec_to_string(&curve_points, version));
+                } else if has_curve_points {
+                    properties_2.push(pipe_vec_to_string(curve_points, version));
+                }
+                properties_2.push(slides.to_string());
+                properties_2.push(length.to_string());
 
                 if !edge_sounds.is_empty()
                     || !*edge_sounds_short_hand
@@ -492,11 +505,13 @@ impl VersionedToString for HitObject {
                     }
                 }
 
-                return Some(format!(
-                    "{}|{}",
-                    properties.join(","),
-                    properties_2.join(",")
-                ));
+                let slider_str = if has_curve_points {
+                    format!("{}|{}", properties.join(","), properties_2.join(","))
+                } else {
+                    format!("{},{}", properties.join(","), properties_2.join(","))
+                };
+
+                return Some(slider_str);
             }
             HitObjectParams::Spinner { end_time } => properties.push(
                 if (3..=4).contains(&version) {
