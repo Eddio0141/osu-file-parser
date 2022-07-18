@@ -36,6 +36,10 @@ impl VersionedFromStr for HitObjects {
         let mut hitobjects = Vec::new();
 
         for (line_index, s) in s.lines().enumerate() {
+            if s.trim().is_empty() {
+                continue;
+            }
+
             hitobjects.push(Error::new_from_result_into(
                 HitObject::from_str(s, version).map(|v| v.unwrap()),
                 line_index,

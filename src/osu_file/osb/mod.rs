@@ -21,56 +21,57 @@ impl VersionedFromStr for Osb {
 
     fn from_str(s: &str, version: Version) -> std::result::Result<Option<Self>, Self::Err> {
         if version < 14 {
-            Ok(None)
-        } else {
-            // we get sections
-            // only valid sections currently are [Variables] [Events]
-            let (_, sections) =
-                many0::<_, _, nom::error::Error<_>, _>(square_section())(s).unwrap();
+            return Ok(None);
+        }
 
-            let mut section_parsed = Vec::with_capacity(2);
-            let mut line_number = 0;
+        // we get sections
+        // only valid sections currently are [Variables] [Events]
+        let (_, sections) = many0::<_, _, nom::error::Error<_>, _>(square_section())(s).unwrap();
 
-            let (mut events, mut variables) = (None, None);
+        let mut section_parsed = Vec::with_capacity(2);
+        let mut line_number = 0;
 
-            for (ws, section_name, ws2, section) in sections {
-                line_number += ws.lines().count();
+        let (mut events, mut variables) = (None, None);
 
-                if section_parsed.contains(&section_name) {
-                    return Err(Error::new(ParseError::DuplicateSections, line_number));
-                }
+        for (ws, section_name, ws2, section) in sections {
+            line_number += ws.lines().count();
 
-                let section_name_line = line_number;
-                line_number += ws2.lines().count();
-
-                match section_name {
-                    "Variables" => {
-                        let mut vars = Vec::new();
-                        for (i, line) in section.lines().enumerate() {
-                            if !line.is_empty() {
-                                let variable = Error::new_from_result_into(
-                                    Variable::from_str(line, version).map(|v| v.unwrap()),
-                                    line_number + i,
-                                )?;
-
-                                vars.push(variable);
-                            }
-                        }
-                        variables = Some(vars);
-                    }
-                    "Events" => {
-                        events =
-                            Error::processing_line(Events::from_str(section, version), line_number)?
-                    }
-                    _ => return Err(Error::new(ParseError::UnknownSection, section_name_line)),
-                }
-
-                section_parsed.push(section_name);
-                line_number += section.lines().count();
+            if section_parsed.contains(&section_name) {
+                return Err(Error::new(ParseError::DuplicateSections, line_number));
             }
 
-            Ok(Some(Osb { events, variables }))
+            let section_name_line = line_number;
+            line_number += ws2.lines().count();
+
+            match section_name {
+                "Variables" => {
+                    let mut vars = Vec::new();
+                    for (i, line) in section.lines().enumerate() {
+                        if s.trim().is_empty() {
+                            continue;
+                        }
+
+                        let variable = Error::new_from_result_into(
+                            Variable::from_str(line, version).map(|v| v.unwrap()),
+                            line_number + i,
+                        )?;
+
+                        vars.push(variable);
+                    }
+                    variables = Some(vars);
+                }
+                "Events" => {
+                    events =
+                        Error::processing_line(Events::from_str(section, version), line_number)?;
+                }
+                _ => return Err(Error::new(ParseError::UnknownSection, section_name_line)),
+            }
+
+            section_parsed.push(section_name);
+            line_number += section.lines().count();
         }
+
+        Ok(Some(Osb { events, variables }))
     }
 }
 

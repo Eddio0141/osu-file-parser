@@ -34,12 +34,14 @@ impl VersionedFromStr for TimingPoints {
         let mut timing_points = Vec::new();
 
         for (line_index, s) in s.lines().enumerate() {
-            if !s.is_empty() {
-                timing_points.push(Error::new_from_result_into(
-                    TimingPoint::from_str(s, version),
-                    line_index,
-                )?);
+            if s.trim().is_empty() {
+                continue;
             }
+
+            timing_points.push(Error::new_from_result_into(
+                TimingPoint::from_str(s, version),
+                line_index,
+            )?);
         }
 
         if let Some(s) = timing_points.get(0) {

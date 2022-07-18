@@ -79,90 +79,92 @@ impl VersionedFromStr for Events {
         };
 
         for (line_index, line) in s.lines().enumerate() {
-            if !line.trim().is_empty() {
-                if let Ok((_, comment)) = comment(line) {
-                    events.0.push(Event::Comment(comment.to_string()));
-                } else {
-                    let indent = line.chars().take_while(|c| *c == ' ' || *c == '_').count();
+            if s.trim().is_empty() {
+                continue;
+            }
 
-                    // its a storyboard command
-                    if indent > 0 {
-                        match events.0.last_mut() {
-                            Some(Event::StoryboardObject(sprite)) => {
-                                let cmd = Error::new_from_result_into(
-                                    Command::from_str(line, version),
-                                    line_index,
-                                )?;
-                                if let Some(cmd) = cmd {
-                                    Error::new_from_result_into(
-                                        sprite.try_push_cmd(cmd, indent),
-                                        line_index,
-                                    )?
-                                }
-                            }
-                            _ => {
-                                return Err(Error::new(
-                                    ParseError::StoryboardCmdWithNoSprite,
-                                    line_index,
-                                ))
-                            }
+            if let Ok((_, comment)) = comment(line) {
+                events.0.push(Event::Comment(comment.to_string()));
+                continue;
+            }
+
+            let indent = line.chars().take_while(|c| *c == ' ' || *c == '_').count();
+
+            // its a storyboard command
+            if indent > 0 {
+                match events.0.last_mut() {
+                    Some(Event::StoryboardObject(sprite)) => {
+                        let cmd = Error::new_from_result_into(
+                            Command::from_str(line, version),
+                            line_index,
+                        )?;
+                        if let Some(cmd) = cmd {
+                            Error::new_from_result_into(
+                                sprite.try_push_cmd(cmd, indent),
+                                line_index,
+                            )?
                         }
-                    } else {
-                        // normal event trying
-                        let (_, type_) = alt((
-                            background(),
-                            video(),
-                            break_(),
-                            colour_transformation(),
-                            success(NormalEventType::Other),
-                        ))(line)
-                        .unwrap();
+                    }
+                    _ => {
+                        return Err(Error::new(
+                            ParseError::StoryboardCmdWithNoSprite,
+                            line_index,
+                        ))
+                    }
+                }
+                continue;
+            }
+            
+            // normal event trying
+            let (_, type_) = alt((
+                background(),
+                video(),
+                break_(),
+                colour_transformation(),
+                success(NormalEventType::Other),
+            ))(line)
+            .unwrap();
 
-                        let res = match type_ {
-                            NormalEventType::Background => Background::from_str(line, version)
-                                .map(|e| e.map(Event::Background))
-                                .map_err(ParseError::ParseBackgroundError),
-                            NormalEventType::Video => Video::from_str(line, version)
-                                .map(|e| e.map(Event::Video))
-                                .map_err(ParseError::ParseVideoError),
-                            NormalEventType::Break => Break::from_str(line, version)
-                                .map(|e| e.map(Event::Break))
-                                .map_err(ParseError::ParseBreakError),
-                            NormalEventType::ColourTransformation => {
-                                ColourTransformation::from_str(line, version)
-                                    .map(|e| e.map(Event::ColourTransformation))
-                                    .map_err(ParseError::ParseColourTransformationError)
+            let res = match type_ {
+                NormalEventType::Background => Background::from_str(line, version)
+                    .map(|e| e.map(Event::Background))
+                    .map_err(ParseError::ParseBackgroundError),
+                NormalEventType::Video => Video::from_str(line, version)
+                    .map(|e| e.map(Event::Video))
+                    .map_err(ParseError::ParseVideoError),
+                NormalEventType::Break => Break::from_str(line, version)
+                    .map(|e| e.map(Event::Break))
+                    .map_err(ParseError::ParseBreakError),
+                NormalEventType::ColourTransformation => {
+                    ColourTransformation::from_str(line, version)
+                        .map(|e| e.map(Event::ColourTransformation))
+                        .map_err(ParseError::ParseColourTransformationError)
+                }
+                NormalEventType::Other => {
+                    // is it a storyboard object?
+                    match Object::from_str(line, version) {
+                        Ok(e) => Ok(e.map(Event::StoryboardObject)),
+                        Err(err) => {
+                            if let ParseObjectError::UnknownObjectType = err {
+                                // try AudioSample
+                                AudioSample::from_str(line, version)
+                                    .map(|e| e.map(Event::AudioSample))
+                                    .map_err(|err| ParseError::ParseAudioSampleError(err))
+                            } else {
+                                Err(ParseError::ParseStoryboardObjectError(err))
                             }
-                            NormalEventType::Other => {
-                                // is it a storyboard object?
-                                match Object::from_str(line, version) {
-                                    Ok(e) => Ok(e.map(Event::StoryboardObject)),
-                                    Err(err) => {
-                                        if let ParseObjectError::UnknownObjectType = err {
-                                            // try AudioSample
-                                            AudioSample::from_str(line, version)
-                                                .map(|e| e.map(Event::AudioSample))
-                                                .map_err(|err| {
-                                                    ParseError::ParseAudioSampleError(err)
-                                                })
-                                        } else {
-                                            Err(ParseError::ParseStoryboardObjectError(err))
-                                        }
-                                    }
-                                }
-                            }
-                        };
-
-                        match res {
-                            Ok(event) => {
-                                if let Some(event) = event {
-                                    events.0.push(event)
-                                }
-                            }
-                            Err(e) => return Err(Error::new(e, line_index)),
                         }
                     }
                 }
+            };
+
+            match res {
+                Ok(event) => {
+                    if let Some(event) = event {
+                        events.0.push(event)
+                    }
+                }
+                Err(e) => return Err(Error::new(e, line_index)),
             }
         }
 

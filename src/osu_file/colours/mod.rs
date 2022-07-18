@@ -31,12 +31,14 @@ impl VersionedFromStr for Colours {
                 let mut colours = Vec::new();
 
                 for (line_index, s) in s.lines().enumerate() {
-                    if !s.is_empty() {
-                        let colour =
-                            Error::new_from_result_into(Colour::from_str(s, version), line_index)?;
-                        if let Some(colour) = colour {
-                            colours.push(colour);
-                        }
+                    if s.trim().is_empty() {
+                        continue;
+                    }
+
+                    let colour =
+                        Error::new_from_result_into(Colour::from_str(s, version), line_index)?;
+                    if let Some(colour) = colour {
+                        colours.push(colour);
                     }
                 }
 
