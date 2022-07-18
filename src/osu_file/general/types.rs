@@ -113,16 +113,7 @@ impl VersionedFromStr for SampleSet {
 
         match version {
             3 => Ok(None),
-            4..=13 => sample_set_from_str(s).map(Some),
-            _ => {
-                let mut sample_set = sample_set_from_str(s)?;
-
-                if let SampleSet::None = sample_set {
-                    sample_set = SampleSet::Normal;
-                };
-
-                Ok(Some(sample_set))
-            }
+            _ => sample_set_from_str(s).map(Some),
         }
     }
 }
