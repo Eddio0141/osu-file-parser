@@ -249,12 +249,18 @@ fn events_parse_v14() {
         Event::Background(Background {
             start_time: 0,
             file_name: Path::new("\"bg2.jpg\"").into(),
-            position: Some(Position { x: 0, y: 0 }),
+            position: Some(Position {
+                x: dec!(0),
+                y: dec!(0),
+            }),
         }),
         Event::Background(Background {
             start_time: 0,
             file_name: Path::new("bg2.jpg").into(),
-            position: Some(Position { x: 0, y: 1 }),
+            position: Some(Position {
+                x: dec!(0),
+                y: dec!(1),
+            }),
         }),
         Event::Comment("Break Periods".to_string()),
         Event::Break(Break::new(100, 163)),

@@ -3,6 +3,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use rust_decimal::Decimal;
+use rust_decimal_macros::dec;
 use thiserror::Error;
 
 /// Definition of the `Integer` type.
@@ -17,14 +19,17 @@ pub type Version = u8;
 /// The position of something in `osu!pixels` with the `x` `y` form.
 pub struct Position {
     /// x coordinate.
-    pub x: Integer,
+    pub x: Decimal,
     /// y coordinate.
-    pub y: Integer,
+    pub y: Decimal,
 }
 
 impl Default for Position {
     fn default() -> Self {
-        Self { x: 256, y: 192 }
+        Self {
+            x: dec!(256),
+            y: dec!(192),
+        }
     }
 }
 
