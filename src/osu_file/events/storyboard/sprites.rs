@@ -25,6 +25,7 @@ pub enum Layer {
     Fail,
     Pass,
     Foreground,
+    Overlay,
 }
 
 impl VersionedFromStr for Layer {
@@ -36,6 +37,7 @@ impl VersionedFromStr for Layer {
             "Fail" => Ok(Some(Layer::Fail)),
             "Pass" => Ok(Some(Layer::Pass)),
             "Foreground" => Ok(Some(Layer::Foreground)),
+            "Overlay" => Ok(Some(Layer::Overlay)),
             _ => Err(ParseLayerError::UnknownVariant),
         }
     }
@@ -48,6 +50,7 @@ impl VersionedToString for Layer {
             Layer::Fail => "Fail",
             Layer::Pass => "Pass",
             Layer::Foreground => "Foreground",
+            Layer::Overlay => "Overlay",
         };
 
         Some(layer.to_string())
