@@ -79,7 +79,7 @@ impl VersionedFromStr for Events {
         };
 
         for (line_index, line) in s.lines().enumerate() {
-            if s.trim().is_empty() {
+            if line.trim().is_empty() {
                 continue;
             }
 
