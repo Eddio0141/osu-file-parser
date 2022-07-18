@@ -68,6 +68,14 @@ fn v9() {
 }
 
 #[test]
+fn v9_spaces() {
+    let v9_spaces = include_str!("./files/v9_spaces.osu").replace("\r\n", "\n");
+    let osu_file = v9_spaces.parse::<OsuFile>().unwrap();
+
+    assert_eq!(v9_spaces, osu_file.to_string());
+}
+
+#[test]
 fn v10() {
     let v10 = include_str!("./files/v10.osu").replace("\r\n", "\n");
     let osu_file = v10.parse::<OsuFile>().unwrap();
