@@ -30,6 +30,12 @@ impl VersionedFromStr for AudioSample {
     type Err = ParseAudioSampleError;
 
     fn from_str(s: &str, version: Version) -> Result<Option<Self>, Self::Err> {
+        // if s is empty, nom considers the error to be Incomplete which makes no sense.
+        // some kind of bug in nom?
+        if s.is_empty() {
+            return Err(ParseAudioSampleError::WrongEvent);
+        }
+
         let header = context(ParseAudioSampleError::WrongEvent.into(), tag("Sample"));
         let time = context(
             ParseAudioSampleError::InvalidTime.into(),
