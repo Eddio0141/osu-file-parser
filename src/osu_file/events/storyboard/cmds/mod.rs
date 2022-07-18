@@ -257,7 +257,6 @@ pub enum CommandProperties {
     Trigger {
         trigger_type: TriggerType,
         end_time: Option<Integer>,
-        // TODO find out if negative group numbers are fine
         group_number: Option<Integer>,
         commands: Vec<Command>,
     },
