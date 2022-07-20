@@ -250,14 +250,16 @@ impl FromStr for OsuFile {
 
             // count empty lines in section from reverse
             let empty_line_count = || {
-                let mut empty_lines = 0usize;
-
+                let mut empty_lines = 1usize;
+                
                 // check if we at the end of the sections
                 // to get around that the last line is not included in section if its newline
                 if i == sections.len() - 1 {
+                    empty_lines = 0;
+
                     if let Some(last_line) = s.lines().last() {
                         if last_line.trim().is_empty() {
-                            empty_lines += 1;
+                            empty_lines = 1;
                         }
                     }
                 }
