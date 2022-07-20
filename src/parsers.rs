@@ -1,14 +1,14 @@
 use std::str::FromStr;
 
 use nom::{
-    bytes::complete::{tag, take_till, take_while},
+    bytes::complete::{tag, take_till, take_while, take_until},
     character::complete::multispace0,
     character::complete::{char, space0},
     combinator::{eof, map_res, rest},
     error::{FromExternalError, ParseError},
     multi::{many0, separated_list0},
     sequence::{delimited, preceded, terminated, tuple},
-    IResult,
+    IResult, branch::alt,
 };
 
 use crate::osu_file::{Version, VersionedFromStr};
@@ -141,6 +141,7 @@ where
     let section_close = tag("]");
     let section_name_inner = take_till(|c: char| c == ']' || c == '\r' || c == '\n');
     let section_name = delimited(section_open, section_name_inner, section_close);
-    let section_until = take_till(|c| c == '[');
+    let section_until = alt((take_until("\n["), rest));
+    
     tuple((multispace0, section_name, multispace0, section_until))
 }
