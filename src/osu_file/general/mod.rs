@@ -75,7 +75,7 @@ versioned_field!(EditorBookmarks, Vec<Integer>, no_versions, |s| {
     }
 } -> ParseError,
 |v, version| {
-    if version > 3 {
+    if version > 5 {
         return None;
     }
 
