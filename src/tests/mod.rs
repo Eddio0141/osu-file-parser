@@ -220,7 +220,7 @@ fn timing_points_parse_v14() {
         ),
         TimingPoint::new_inherited(
             12000,
-            dec!(-25),
+            dec!(4),
             4,
             timingpoints::SampleSet::Drum,
             SampleIndex::OsuDefaultHitsounds,
