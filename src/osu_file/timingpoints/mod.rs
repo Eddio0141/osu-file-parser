@@ -82,8 +82,8 @@ pub struct TimingPoint {
     sample_set: SampleSet,
     sample_index: SampleIndex,
     volume: Volume,
-    uninherited: bool,
-    effects: Effects,
+    uninherited: Option<bool>,
+    effects: Option<Effects>,
 }
 
 impl TimingPoint {
@@ -118,8 +118,8 @@ impl TimingPoint {
             sample_set,
             sample_index,
             volume,
-            uninherited: false,
-            effects,
+            uninherited: Some(false),
+            effects: Some(effects),
         }
     }
 
@@ -140,33 +140,45 @@ impl TimingPoint {
             sample_set,
             sample_index,
             volume,
-            uninherited: true,
-            effects,
+            uninherited: Some(true),
+            effects: Some(effects),
         }
     }
 
     /// Calculates BPM using the `beatLength` field when unherited.
     /// - Returns `None` if the timing point is inherited or `beat_length` isn't a valid decimal.
     pub fn calc_bpm(&self) -> Option<rust_decimal::Decimal> {
-        if self.uninherited {
-            match self.beat_length.get() {
-                Either::Left(value) => Some(Self::beat_duration_ms_to_bpm(*value)),
-                Either::Right(_) => None,
+        match self.uninherited {
+            Some(uninherited) => {
+                if uninherited {
+                    match self.beat_length.get() {
+                        Either::Left(value) => Some(Self::beat_duration_ms_to_bpm(*value)),
+                        Either::Right(_) => None,
+                    }
+                } else {
+                    None
+                }
             }
-        } else {
-            None
+            None => None,
         }
     }
     /// Calculates the slider velocity multiplier when the timing point is inherited.
     /// - Returns `None` if the timing point is uninherited or `beat_length` isn't a valid decimal.
     pub fn calc_slider_velocity_multiplier(&self) -> Option<rust_decimal::Decimal> {
-        if self.uninherited {
-            None
-        } else {
-            match self.beat_length.get() {
-                Either::Left(value) => Some(rust_decimal::Decimal::ONE / (value / dec!(-100))),
-                Either::Right(_) => None,
+        match self.uninherited {
+            Some(uninherited) => {
+                if uninherited {
+                    None
+                } else {
+                    match self.beat_length.get() {
+                        Either::Left(value) => {
+                            Some(rust_decimal::Decimal::ONE / (value / dec!(-100)))
+                        }
+                        Either::Right(_) => None,
+                    }
+                }
             }
+            None => None,
         }
     }
 
@@ -223,21 +235,21 @@ impl TimingPoint {
 
     /// Get the timing point's uninherited.
     pub fn uninherited(&self) -> bool {
-        self.uninherited
+        self.uninherited.unwrap_or(true)
     }
 
     /// Set the timing point's uninherited.
     pub fn set_uninherited(&mut self, uninherited: bool) {
-        self.uninherited = uninherited;
+        self.uninherited = Some(uninherited);
     }
 
     /// Get the timing point's effects.
-    pub fn effects(&self) -> Effects {
-        self.effects
+    pub fn effects(&self) -> Option<&Effects> {
+        self.effects.as_ref()
     }
 
     /// Get a mutable reference to the timing point's effects.
-    pub fn effects_mut(&mut self) -> &mut Effects {
+    pub fn effects_mut(&mut self) -> &mut Option<Effects> {
         &mut self.effects
     }
 }
@@ -252,8 +264,6 @@ impl VersionedFromStr for TimingPoint {
         let sample_set_fallback = SampleSet::Normal;
         let sample_index_fallback = <SampleIndex as VersionedFrom<u32>>::from(1, version).unwrap();
         let volume_fallback = <Volume as VersionedFrom<i8>>::from(100, version).unwrap();
-        let uninherited_fallback = true;
-        let effects_fallback = <Effects as VersionedFrom<u8>>::from(0, version).unwrap();
 
         let (
             _,
@@ -284,10 +294,7 @@ impl VersionedFromStr for TimingPoint {
                                 beat_length,
                                 meter_fallback,
                                 sample_set_fallback,
-                                (
-                                    sample_index_fallback,
-                                    (volume_fallback, uninherited_fallback, effects_fallback),
-                                ),
+                                (sample_index_fallback, (volume_fallback, None, None)),
                             )
                         },
                     ),
@@ -317,12 +324,7 @@ impl VersionedFromStr for TimingPoint {
                                         cut(consume_rest_versioned_type(version)),
                                     ),
                                 )
-                                .map(|sample_index| {
-                                    (
-                                        sample_index,
-                                        (volume_fallback, uninherited_fallback, effects_fallback),
-                                    )
-                                }),
+                                .map(|sample_index| (sample_index, (volume_fallback, None, None))),
                                 tuple((
                                     context(
                                         ParseTimingPointError::InvalidSampleIndex.into(),
@@ -335,17 +337,13 @@ impl VersionedFromStr for TimingPoint {
                                         ),
                                         alt((
                                             preceded(
-                                                verify(success(0), |_| version == 5),
+                                                verify(success(0), |_| version == 4),
                                                 context(
                                                     ParseTimingPointError::InvalidVolume.into(),
                                                     cut(consume_rest_versioned_type(version)),
                                                 ),
                                             )
-                                            .map(
-                                                |volume| {
-                                                    (volume, uninherited_fallback, effects_fallback)
-                                                },
-                                            ),
+                                            .map(|volume| (volume, None, None)),
                                             tuple((
                                                 context(
                                                     ParseTimingPointError::InvalidVolume.into(),
@@ -378,9 +376,14 @@ impl VersionedFromStr for TimingPoint {
                                             ))
                                             .map(
                                                 |(volume, uninherited, effects)| {
-                                                    (volume, uninherited, effects)
+                                                    (volume, Some(uninherited), Some(effects))
                                                 },
                                             ),
+                                            context(
+                                                ParseTimingPointError::InvalidVolume.into(),
+                                                cut(consume_rest_versioned_type(version)),
+                                            )
+                                            .map(|volume| (volume, None, None)),
                                         )),
                                     ),
                                 ))
@@ -452,9 +455,14 @@ impl VersionedToString for TimingPoint {
         if version > 4 {
             fields.push(self.volume.to_string(version).unwrap());
         }
-        if version > 5 {
-            fields.push((self.uninherited as u8).to_string());
-            fields.push(self.effects.to_string(version).unwrap());
+        if version > 4 {
+            match self.uninherited {
+                Some(value) => fields.push((value as u8).to_string()),
+                None => fields.push(String::new()),
+            }
+            if let Some(value) = self.effects {
+                fields.push(value.to_string(version).unwrap())
+            }
         }
 
         Some(fields.join(","))
