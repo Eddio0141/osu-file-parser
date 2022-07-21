@@ -2,6 +2,7 @@ pub mod error;
 pub mod types;
 
 use crate::osu_file::types::Decimal;
+use either::Either;
 use nom::branch::alt;
 use nom::bytes::complete::*;
 use nom::character::streaming::char;
@@ -75,7 +76,7 @@ pub struct HitObject {
     /// The position of the hitobject.
     pub position: Position,
     /// The time when the object is to be hit, in milliseconds from the beginning of the beatmap's audio.
-    pub time: Integer,
+    pub time: Decimal,
     /// The hitobject parameters.
     /// Each hitobject contains different parameters.
     /// Also is used to know which hitobject type this is.
@@ -155,7 +156,7 @@ impl HitObject {
     }
 }
 
-const OLD_VERSION_TIME_OFFSET: Integer = 24;
+const OLD_VERSION_TIME_OFFSET: rust_decimal::Decimal = dec!(24);
 
 impl VersionedFromStr for HitObject {
     type Err = ParseHitObjectError;
@@ -193,12 +194,14 @@ impl VersionedFromStr for HitObject {
                 context(ParseHitObjectError::InvalidTime.into(), comma_field_type()),
             )
             // version 3 has a slight time delay of 24ms
-            .map(|t| {
+            .map(|mut t: Decimal| {
                 if (3..=4).contains(&version) {
-                    t + OLD_VERSION_TIME_OFFSET
-                } else {
-                    t
+                    if let Either::Left(value) = t.get_mut() {
+                        *value += OLD_VERSION_TIME_OFFSET;
+                    }
                 }
+
+                t
             }),
             preceded(
                 context(ParseHitObjectError::MissingObjType.into(), comma()),
@@ -369,12 +372,14 @@ impl VersionedFromStr for HitObject {
                         comma_field_type(),
                     ),
                 )
-                .map(|t| {
+                .map(|mut t: Decimal| {
                     if (3..=4).contains(&version) {
-                        t + OLD_VERSION_TIME_OFFSET
-                    } else {
-                        t
+                        if let Either::Left(value) = t.get_mut() {
+                            *value += OLD_VERSION_TIME_OFFSET;
+                        }
                     }
+
+                    t
                 }),
                 hitsample,
             ))(s)?;
@@ -408,12 +413,14 @@ impl VersionedFromStr for HitObject {
                 ParseHitObjectError::InvalidEndTime.into(),
                 map_res(take_until(":"), |s: &str| s.parse()),
             )
-            .map(|v| {
-                if version == 3 {
-                    v + OLD_VERSION_TIME_OFFSET
-                } else {
-                    v
+            .map(|mut t: Decimal| {
+                if (3..=4).contains(&version) {
+                    if let Either::Left(value) = t.get_mut() {
+                        *value += OLD_VERSION_TIME_OFFSET;
+                    }
                 }
+
+                t
             });
             let (_, (end_time, hitsample)) = tuple((
                 preceded(
@@ -452,11 +459,13 @@ impl VersionedToString for HitObject {
             self.position.x.to_string(),
             self.position.y.to_string(),
             if (3..=4).contains(&version) {
-                self.time - OLD_VERSION_TIME_OFFSET
+                match self.time.get() {
+                    Either::Left(value) => (value - OLD_VERSION_TIME_OFFSET).to_string(),
+                    Either::Right(value) => value.to_string(),
+                }
             } else {
-                self.time
-            }
-            .to_string(),
+                self.time.to_string()
+            },
             self.type_to_string(),
             self.hitsound.to_string(version).unwrap(),
         ];
@@ -514,23 +523,25 @@ impl VersionedToString for HitObject {
 
                 return Some(slider_str);
             }
-            HitObjectParams::Spinner { end_time } => properties.push(
-                if (3..=4).contains(&version) {
-                    end_time - OLD_VERSION_TIME_OFFSET
-                } else {
-                    *end_time
-                }
-                .to_string(),
-            ),
-            HitObjectParams::OsuManiaHold { end_time } => {
-                properties.push(
-                    if (3..=4).contains(&version) {
-                        end_time - OLD_VERSION_TIME_OFFSET
-                    } else {
-                        *end_time
+            HitObjectParams::Spinner { end_time } => {
+                properties.push(if (3..=4).contains(&version) {
+                    match end_time.get() {
+                        Either::Left(value) => (value - OLD_VERSION_TIME_OFFSET).to_string(),
+                        Either::Right(value) => value.to_string(),
                     }
-                    .to_string(),
-                );
+                } else {
+                    end_time.to_string()
+                });
+            }
+            HitObjectParams::OsuManiaHold { end_time } => {
+                properties.push(if (3..=4).contains(&version) {
+                    match end_time.get() {
+                        Either::Left(value) => (value - OLD_VERSION_TIME_OFFSET).to_string(),
+                        Either::Right(value) => value.to_string(),
+                    }
+                } else {
+                    end_time.to_string()
+                });
 
                 let hitsample = if let Some(hitsample) = &self.hitsample {
                     if let Some(hitsample) = hitsample.to_string(version) {
@@ -570,8 +581,8 @@ impl VersionedToString for HitObject {
 pub enum HitObjectParams {
     HitCircle,
     Slider(SlideParams),
-    Spinner { end_time: Integer },
-    OsuManiaHold { end_time: Integer },
+    Spinner { end_time: Decimal },
+    OsuManiaHold { end_time: Decimal },
 }
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
