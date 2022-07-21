@@ -14,9 +14,10 @@ use std::hash::Hash;
 use std::str::FromStr;
 
 use nom::bytes::complete::{tag, take_till};
+use nom::character::streaming::multispace0;
 use nom::combinator::map_res;
 use nom::multi::many0;
-use nom::sequence::tuple;
+use nom::sequence::{preceded, tuple};
 use thiserror::Error;
 
 use crate::parsers::square_section;
@@ -194,26 +195,27 @@ impl FromStr for OsuFile {
         let version_text = tag::<_, _, nom::error::Error<_>>("osu file format v");
         let version_number = map_res(take_till(|c| c == '\r' || c == '\n'), |s: &str| s.parse());
 
-        let (s, (_, version)) = match tuple((version_text, version_number))(s) {
-            Ok(ok) => ok,
-            Err(err) => {
-                // wrong line?
-                let err = if s.starts_with('\n') || s.starts_with("\r\n") {
-                    ParseError::FileVersionInWrongLine
-                } else if let nom::Err::Error(err) = err {
-                    // can find out error by checking the error type
-                    match err.code {
-                        nom::error::ErrorKind::Tag => ParseError::FileVersionDefinedWrong,
-                        nom::error::ErrorKind::MapRes => ParseError::InvalidFileVersion,
-                        _ => unreachable!("Not possible to have the error kind {:#?}", err.code),
-                    }
-                } else {
-                    unreachable!("Not possible to reach when the errors are already handled");
-                };
+        let (s, (trailing_ws, version)) =
+            match tuple((multispace0, preceded(version_text, version_number)))(s) {
+                Ok(ok) => ok,
+                Err(err) => {
+                    // wrong line?
+                    let err = if let nom::Err::Error(err) = err {
+                        // can find out error by checking the error type
+                        match err.code {
+                            nom::error::ErrorKind::Tag => ParseError::FileVersionDefinedWrong,
+                            nom::error::ErrorKind::MapRes => ParseError::InvalidFileVersion,
+                            _ => {
+                                unreachable!("Not possible to have the error kind {:#?}", err.code)
+                            }
+                        }
+                    } else {
+                        unreachable!("Not possible to reach when the errors are already handled");
+                    };
 
-                return Err(err.into());
-            }
-        };
+                    return Err(err.into());
+                }
+            };
 
         if !(MIN_VERSION..=LATEST_VERSION).contains(&version) {
             return Err(ParseError::InvalidFileVersion.into());
@@ -236,7 +238,7 @@ impl FromStr for OsuFile {
 
         let mut spacing = SectionSpacing::default();
 
-        let mut line_number = 0;
+        let mut line_number = dbg!(trailing_ws.lines().count());
 
         for (i, (ws, section_name, ws2, section)) in sections.iter().enumerate() {
             line_number += ws.lines().count();
@@ -251,7 +253,7 @@ impl FromStr for OsuFile {
             // count empty lines in section from reverse
             let empty_line_count = || {
                 let mut empty_lines = 1usize;
-                
+
                 // check if we at the end of the sections
                 // to get around that the last line is not included in section if its newline
                 if i == sections.len() - 1 {
@@ -380,7 +382,7 @@ pub enum ParseError {
     #[error("Invalid file version, expected versions from {MIN_VERSION} ~ {LATEST_VERSION}")]
     InvalidFileVersion,
     /// File version is defined wrong.
-    #[error("File version defined wrong, expected `osu file format v..` at the first line")]
+    #[error("File version defined wrong, expected `osu file format v..` at the start")]
     FileVersionDefinedWrong,
     /// File version not defined in line 1.
     #[error("Found file version definition, but not defined at the first line")]
