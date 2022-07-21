@@ -356,3 +356,13 @@ fn aspire29() {
     let o = i.parse::<OsuFile>().unwrap();
     assert_eq!(i, o.to_string());
 }
+
+#[test]
+fn error_line_index_with_leading_ws() {
+    let i = include_str!("./files/leading_ws_w_err.osu");
+    let o = i.parse::<OsuFile>().unwrap_err();
+    assert_eq!(
+        o.to_string(),
+        "Line 7, Invalid colon set, expected format of `key: value`"
+    );
+}
