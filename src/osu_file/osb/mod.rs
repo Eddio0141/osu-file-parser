@@ -102,7 +102,7 @@ impl VersionedFromStr for Osb {
                         Events::from_str_variables(
                             section,
                             version,
-                            &variables.as_ref().unwrap_or(&Vec::new()),
+                            variables.as_ref().unwrap_or(&Vec::new()),
                         ),
                         line_number,
                     )?;
