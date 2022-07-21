@@ -394,6 +394,52 @@ fn aspire_files_parse(c: &mut Criterion) {
     });
 }
 
+fn aspire_files_to_string(c: &mut Criterion) {
+    let aspire1_osu = OsuFile::from_str(ASPIRE1).unwrap();
+    let aspire2_osu = OsuFile::from_str(ASPIRE2).unwrap();
+    let aspire3_osu = OsuFile::from_str(ASPIRE3).unwrap();
+    let aspire4_osu = OsuFile::from_str(ASPIRE4).unwrap();
+    let aspire5_osu = OsuFile::from_str(ASPIRE5).unwrap();
+    let aspire6_osu = OsuFile::from_str(ASPIRE6).unwrap();
+    let aspire7_osu = OsuFile::from_str(ASPIRE7).unwrap();
+    let aspire8_osu = OsuFile::from_str(ASPIRE8).unwrap();
+    let aspire9_osu = OsuFile::from_str(ASPIRE9).unwrap();
+    let aspire10_osu = OsuFile::from_str(ASPIRE10).unwrap();
+
+    let mut group = c.benchmark_group("aspire_files_to_string");
+
+    group.bench_function("aspire1", |b| {
+        b.iter(|| black_box(&aspire1_osu).to_string())
+    });
+    group.bench_function("aspire2", |b| {
+        b.iter(|| black_box(&aspire2_osu).to_string())
+    });
+    group.bench_function("aspire3", |b| {
+        b.iter(|| black_box(&aspire3_osu).to_string())
+    });
+    group.bench_function("aspire4", |b| {
+        b.iter(|| black_box(&aspire4_osu).to_string())
+    });
+    group.bench_function("aspire5", |b| {
+        b.iter(|| black_box(&aspire5_osu).to_string())
+    });
+    group.bench_function("aspire6", |b| {
+        b.iter(|| black_box(&aspire6_osu).to_string())
+    });
+    group.bench_function("aspire7", |b| {
+        b.iter(|| black_box(&aspire7_osu).to_string())
+    });
+    group.bench_function("aspire8", |b| {
+        b.iter(|| black_box(&aspire8_osu).to_string())
+    });
+    group.bench_function("aspire9", |b| {
+        b.iter(|| black_box(&aspire9_osu).to_string())
+    });
+    group.bench_function("aspire10", |b| {
+        b.iter(|| black_box(&aspire10_osu).to_string())
+    });
+}
+
 criterion_group!(
     benches,
     storyboard_cmds_parse,
@@ -406,5 +452,6 @@ criterion_group!(
     aspire_osb_parse,
     aspire_osb_to_string,
     aspire_files_parse,
+    aspire_files_to_string,
 );
 criterion_main!(benches);
