@@ -354,7 +354,7 @@ impl VersionedFromStr for Object {
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Animation {
     pub frame_count: u32,
-    pub frame_delay: u32,
+    pub frame_delay: rust_decimal::Decimal,
     pub loop_type: LoopType,
     pub filepath: FilePath,
 }

@@ -35,7 +35,7 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
             },
             object_type: ObjectType::Animation(Animation {
                 frame_count: 12,
-                frame_delay: 31,
+                frame_delay: dec!(31),
                 loop_type: LoopType::LoopForever,
                 filepath: "\"Other\\Play3\\explosion.png\"".into(),
             }),
@@ -58,7 +58,7 @@ fn frame_file_names() {
         },
         object_type: ObjectType::Animation(Animation {
             frame_count: 4,
-            frame_delay: 0,
+            frame_delay: rust_decimal::Decimal::ZERO,
             loop_type: LoopType::LoopForever,
             filepath: "testfile.png".into(),
         }),
