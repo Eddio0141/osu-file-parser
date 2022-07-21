@@ -366,3 +366,13 @@ fn error_line_index_with_leading_ws() {
         "Line 7, Invalid colon set, expected format of `key: value`"
     );
 }
+
+#[test]
+fn variable_osb() {
+    let mut osu = OsuFile::default(14);
+    let osb = include_str!("./files/variable.osb");
+
+    osu.append_osb(osb).unwrap();
+
+    assert_eq!(osu.osb_to_string().unwrap(), osb);
+}
