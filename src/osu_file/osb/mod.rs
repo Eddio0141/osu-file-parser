@@ -47,7 +47,7 @@ impl VersionedFromStr for Osb {
                 "Variables" => {
                     let mut vars = Vec::new();
                     for (i, line) in section.lines().enumerate() {
-                        if s.trim().is_empty() {
+                        if line.trim().is_empty() {
                             continue;
                         }
 
