@@ -26,7 +26,7 @@ impl VersionedFromStr for Osb {
 
         // we get sections
         // only valid sections currently are [Variables] [Events]
-        let (_, sections) = many0::<_, _, nom::error::Error<_>, _>(square_section())(s).unwrap();
+        let (_, sections) = many0(square_section())(s).unwrap();
 
         let mut section_parsed = Vec::with_capacity(2);
         let mut line_number = 0;
@@ -70,7 +70,6 @@ impl VersionedFromStr for Osb {
                     //                 continue;
                     //             }
 
-                                
                     //             // let mut line = line.to_string();
                     //             // for variable in variables.iter() {
                     //             //     line = line.replace(&variable.name, &variable.value);
@@ -88,7 +87,7 @@ impl VersionedFromStr for Osb {
             }
 
             section_parsed.push(section_name);
-            line_number += section.lines().count();
+            line_number += section.lines().count().checked_sub(1).unwrap_or(0);
         }
 
         Ok(Some(Osb { events, variables }))
