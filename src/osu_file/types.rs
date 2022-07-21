@@ -1,9 +1,10 @@
 use std::{
     fmt::{Debug, Display},
     path::{Path, PathBuf},
+    str::FromStr,
 };
 
-use rust_decimal::Decimal;
+use either::Either;
 use rust_decimal_macros::dec;
 use thiserror::Error;
 
@@ -15,7 +16,7 @@ pub const MIN_VERSION: Version = 3;
 
 pub type Version = u8;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 /// The position of something in `osu!pixels` with the `x` `y` form.
 pub struct Position {
     /// x coordinate.
@@ -27,8 +28,8 @@ pub struct Position {
 impl Default for Position {
     fn default() -> Self {
         Self {
-            x: dec!(256),
-            y: dec!(192),
+            x: dec!(256).into(),
+            y: dec!(192).into(),
         }
     }
 }
@@ -248,4 +249,80 @@ pub trait VersionedTryFrom<T>: Sized {
     type Error;
 
     fn try_from(value: T, version: Version) -> Result<Option<Self>, Self::Error>;
+}
+
+#[derive(Debug, Hash, Clone, PartialEq, Eq)]
+/// A wrapper around `rust_decimal::Decimal` that can be either a `Decimal` or a `String`.
+/// - If parsed from a string, it will be a `Decimal` if the string is a valid decimal, otherwise it will be a `String`.
+pub struct Decimal(Either<rust_decimal::Decimal, String>);
+
+impl Decimal {
+    pub fn new(value: rust_decimal::Decimal) -> Self {
+        Self(Either::Left(value))
+    }
+
+    pub fn new_from_str(value: &str) -> Self {
+        Self(Either::Right(value.to_owned()))
+    }
+
+    pub fn try_make_decimal(&mut self) -> Result<(), rust_decimal::Error> {
+        if let Either::Right(value) = &mut self.0 {
+            let value = rust_decimal::Decimal::from_str(value)?;
+
+            self.0 = Either::Left(value);
+        }
+
+        Ok(())
+    }
+
+    pub fn get(&self) -> &Either<rust_decimal::Decimal, String> {
+        &self.0
+    }
+
+    pub fn get_mut(&mut self) -> &mut Either<rust_decimal::Decimal, String> {
+        &mut self.0
+    }
+}
+
+impl FromStr for Decimal {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Decimal::from(s))
+    }
+}
+
+impl Display for Decimal {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl From<rust_decimal::Decimal> for Decimal {
+    fn from(value: rust_decimal::Decimal) -> Self {
+        Self(Either::Left(value))
+    }
+}
+
+impl From<i32> for Decimal {
+    fn from(value: i32) -> Self {
+        Self(Either::Left(rust_decimal::Decimal::from(value)))
+    }
+}
+
+impl From<&str> for Decimal {
+    fn from(value: &str) -> Self {
+        let value = match value.parse() {
+            Ok(value) => Either::Left(value),
+            Err(_) => Either::Right(value.to_owned()),
+        };
+
+        Self(value)
+    }
+}
+
+impl Default for Decimal {
+    fn default() -> Self {
+        Self(Either::Left(rust_decimal::Decimal::default()))
+    }
 }
