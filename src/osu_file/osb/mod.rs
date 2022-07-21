@@ -61,27 +61,14 @@ impl VersionedFromStr for Osb {
                     variables = Some(vars);
                 }
                 "Events" => {
-                    // we process variables first, so we can use them in events
-                    // let section = match variables {
-                    //     Some(variables) => {
-                    //         let mut section = String::new();
-                    //         for line in section {
-                    //             if line.trim().is_empty() {
-                    //                 continue;
-                    //             }
-
-                    //             // let mut line = line.to_string();
-                    //             // for variable in variables.iter() {
-                    //             //     line = line.replace(&variable.name, &variable.value);
-                    //             // }
-                    //             // section.push_str(&line);
-                    //         }
-                    //     },
-                    //     None => todo!(),
-                    // };
-
-                    events =
-                        Error::processing_line(Events::from_str(section, version), line_number)?;
+                    events = Error::processing_line(
+                        Events::from_str_variables(
+                            section,
+                            version,
+                            &variables.as_ref().unwrap_or(&Vec::new()),
+                        ),
+                        line_number,
+                    )?;
                 }
                 _ => return Err(Error::new(ParseError::UnknownSection, section_name_line)),
             }
