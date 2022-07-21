@@ -370,9 +370,9 @@ fn error_line_index_with_leading_ws() {
 #[test]
 fn variable_osb() {
     let mut osu = OsuFile::default(14);
-    let osb = include_str!("./files/variable.osb");
+    let osb = include_str!("./files/variable.osb").replace("\r\n", "\n");
 
-    osu.append_osb(osb).unwrap();
+    osu.append_osb(&osb).unwrap();
 
     assert_eq!(osu.osb_to_string().unwrap(), osb);
 }
