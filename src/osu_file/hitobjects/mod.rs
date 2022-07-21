@@ -5,7 +5,7 @@ use crate::osu_file::types::Decimal;
 use either::Either;
 use nom::branch::alt;
 use nom::bytes::complete::*;
-use nom::character::streaming::char;
+use nom::character::complete::char;
 use nom::combinator::*;
 use nom::error::context;
 use nom::sequence::*;

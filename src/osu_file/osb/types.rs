@@ -1,5 +1,5 @@
 use nom::{
-    bytes::{complete::take_till, streaming::tag},
+    bytes::complete::{tag, take_till},
     combinator::rest,
     error::context,
     sequence::{preceded, tuple},

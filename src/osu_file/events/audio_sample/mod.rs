@@ -3,8 +3,8 @@ pub mod error;
 pub use error::*;
 use nom::{
     branch::alt,
-    bytes::streaming::tag,
-    combinator::{eof, map_res},
+    bytes::complete::tag,
+    combinator::{complete, eof, map_res},
     error::context,
     sequence::{preceded, tuple},
     Parser,
@@ -30,8 +30,6 @@ impl VersionedFromStr for AudioSample {
     type Err = ParseAudioSampleError;
 
     fn from_str(s: &str, version: Version) -> Result<Option<Self>, Self::Err> {
-        // if s is empty, nom considers the error to be Incomplete which makes no sense.
-        // some kind of bug in nom?
         if s.is_empty() {
             return Err(ParseAudioSampleError::WrongEvent);
         }
@@ -69,7 +67,7 @@ impl VersionedFromStr for AudioSample {
         let (_, (time, layer, filepath, volume)) = tuple((
             preceded(
                 tuple((
-                    header,
+                    complete(header),
                     context(ParseAudioSampleError::MissingTime.into(), comma()),
                 )),
                 time,
