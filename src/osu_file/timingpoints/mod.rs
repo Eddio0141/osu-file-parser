@@ -16,7 +16,6 @@ use crate::{helper::parse_zero_one_bool, helper::trait_ext::MapStringNewLineVers
 
 use super::{
     Error, Integer, Version, VersionedDefault, VersionedFrom, VersionedFromStr, VersionedToString,
-    VersionedTryFrom,
 };
 
 pub use error::*;
@@ -252,9 +251,7 @@ impl VersionedFromStr for TimingPoint {
         let meter_fallback = 4;
         let sample_set_fallback = SampleSet::Normal;
         let sample_index_fallback = <SampleIndex as VersionedFrom<u32>>::from(1, version).unwrap();
-        let volume_fallback = <Volume as VersionedTryFrom<u8>>::try_from(100, version)
-            .unwrap()
-            .unwrap();
+        let volume_fallback = <Volume as VersionedFrom<i8>>::from(100, version).unwrap();
         let uninherited_fallback = true;
         let effects_fallback = <Effects as VersionedFrom<u8>>::from(0, version).unwrap();
 

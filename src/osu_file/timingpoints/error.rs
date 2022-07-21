@@ -92,9 +92,6 @@ pub enum ParseSampleIndexError {
 #[derive(Debug, Error, PartialEq)]
 #[non_exhaustive]
 pub enum VolumeError {
-    /// Error when volume is out of range of the 0 ~ 100 range.
-    #[error("The volume was too high, expected to be in range of 0 ~ 100")]
-    VolumeTooHigh,
     /// There was a problem parsing the `str` as [`Volume`][super::Volume].
     #[error(transparent)]
     ParseVolumeError(#[from] ParseIntError),

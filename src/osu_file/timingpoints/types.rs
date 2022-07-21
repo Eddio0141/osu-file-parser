@@ -152,29 +152,23 @@ impl VersionedDefault for SampleIndex {
 
 /// The volume percentage in the range of 0 ~ 100.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub struct Volume(u8);
+pub struct Volume(i8);
 
 impl VersionedFromStr for Volume {
     type Err = VolumeError;
 
     fn from_str(s: &str, version: Version) -> Result<Option<Self>, Self::Err> {
-        <Volume as VersionedTryFrom<u8>>::try_from(s.parse()?, version)
+        Ok(<Volume as VersionedFrom<i8>>::from(s.parse()?, version))
     }
 }
 
-impl VersionedTryFrom<u8> for Volume {
-    type Error = VolumeError;
-
-    fn try_from(value: u8, _: Version) -> Result<Option<Self>, Self::Error> {
-        if value > 100 {
-            Err(VolumeError::VolumeTooHigh)
-        } else {
-            Ok(Some(Volume(value)))
-        }
+impl VersionedFrom<i8> for Volume {
+    fn from(value: i8, _: Version) -> Option<Self> {
+        Some(Volume(value))
     }
 }
 
-impl VersionedFrom<Volume> for u8 {
+impl VersionedFrom<Volume> for i8 {
     fn from(volume: Volume, _: Version) -> Option<Self> {
         Some(volume.0)
     }
@@ -187,28 +181,18 @@ impl VersionedToString for Volume {
 }
 
 impl Volume {
-    /// Creates a new volme instance.
-    pub fn new(volume: u8) -> Result<Self, VolumeError> {
-        if volume > 100 {
-            Err(VolumeError::VolumeTooHigh)
-        } else {
-            Ok(Volume(volume))
-        }
+    /// Creates a new volume instance.
+    pub fn new(volume: i8, version: Version) -> Option<Self> {
+        <Self as VersionedFrom<i8>>::from(volume, version)
     }
 
     /// Gets the volume percentage.
-    pub fn volume(&self) -> u8 {
+    pub fn volume(&self) -> i8 {
         self.0
     }
 
     /// Sets the volume percentage.
-    /// - Volume is in the range of 0 ~ 100 and setting it above 100 will return a [`VolumeError`].
-    pub fn set_volume(&mut self, volume: u8) -> Result<(), VolumeError> {
-        if volume > 100 {
-            Err(VolumeError::VolumeTooHigh)
-        } else {
-            self.0 = volume;
-            Ok(())
-        }
+    pub fn set_volume(&mut self, volume: i8) {
+        self.0 = volume;
     }
 }
