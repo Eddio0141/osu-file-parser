@@ -5,6 +5,7 @@ use std::fmt::Display;
 
 use super::error::*;
 use super::types::*;
+use crate::osu_file::types::Decimal;
 use crate::osu_file::{Integer, Version, VersionedFromRepr, VersionedFromStr, VersionedToString};
 use crate::parsers::*;
 use nom::branch::alt;
@@ -14,7 +15,6 @@ use nom::error::context;
 use nom::multi::many0;
 use nom::sequence::*;
 use nom::Parser;
-use crate::osu_file::types::Decimal;
 
 pub use error::*;
 pub use types::*;
@@ -521,14 +521,34 @@ impl VersionedFromStr for Command {
                 },
             )
         };
-        let move_ = continuing_decimal_two_fields(
-            "M",
-            ParseCommandError::MissingMoveX.into(),
-            ParseCommandError::InvalidMoveX.into(),
-            ParseCommandError::MissingMoveY.into(),
-            ParseCommandError::InvalidMoveY.into(),
-            ParseCommandError::InvalidContinuingMove.into(),
-        )
+        let move_ = {
+            {
+                let continuing = alt((
+                    eof.map(|_| None),
+                    cut(preceded(comma(), comma_field_type()).map(Some)),
+                ));
+                let continuing = many0(preceded(comma(), tuple((comma_field_type(), continuing))));
+
+                preceded(
+                    tuple(((tag("M")), peek(comma()))),
+                    tuple((
+                        start_time_end_time_easing(),
+                        cut(preceded(
+                            context(ParseCommandError::MissingMoveX.into(), comma()),
+                            context(ParseCommandError::InvalidMoveX.into(), comma_field_type()),
+                        )),
+                        cut(preceded(
+                            context(ParseCommandError::MissingMoveY.into(), comma()),
+                            context(ParseCommandError::InvalidMoveY.into(), comma_field_type()),
+                        )),
+                        terminated(
+                            continuing,
+                            context(ParseCommandError::InvalidContinuingMove.into(), cut(eof)),
+                        ),
+                    )),
+                )
+            }
+        }
         .map(
             |((easing, start_time, end_time), start_x, start_y, continuing)| Command {
                 start_time,
@@ -652,18 +672,20 @@ impl VersionedFromStr for Command {
         // we order by the most common to the least common
         let parse = preceded(
             indentation,
+            // note: if adding new command, make sure to check if the char is conflicting
+            // if it is, make sure we peek for a comma after the tag check
             alt((
-                fade,
-                move_x,
-                move_y,
-                scale,
-                rotate,
-                loop_,
-                trigger,
-                colour,
-                parameter,
                 move_,
+                rotate,
+                scale,
                 vector_scale,
+                fade,
+                parameter,
+                move_y,
+                colour,
+                move_x,
+                trigger,
+                loop_,
                 context(ParseCommandError::UnknownCommandType.into(), fail),
             )),
         )(s)?;
