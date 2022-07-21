@@ -23,85 +23,87 @@ impl VersionedFromStr for TriggerType {
     fn from_str(s: &str, version: Version) -> Result<Option<Self>, Self::Err> {
         let s = s.trim();
 
-        match s.strip_prefix("HitSound") {
-            Some(s) => match s {
-                "Passing" => Ok(Some(TriggerType::Passing)),
-                "Failing" => Ok(Some(TriggerType::Failing)),
-                "" => Ok(Some(TriggerType::HitSound {
-                    sample_set: None,
-                    additions_sample_set: None,
-                    addition: None,
-                    custom_sample_set: None,
-                })),
-                _ => {
-                    let fields = {
-                        let mut fields = Vec::new();
-                        let mut builder = String::with_capacity(256);
+        match s {
+            "Passing" => Ok(Some(TriggerType::Passing)),
+            "Failing" => Ok(Some(TriggerType::Failing)),
+            _ => match s.strip_prefix("HitSound") {
+                Some(s) => match s {
+                    "" => Ok(Some(TriggerType::HitSound {
+                        sample_set: None,
+                        additions_sample_set: None,
+                        addition: None,
+                        custom_sample_set: None,
+                    })),
+                    _ => {
+                        let fields = {
+                            let mut fields = Vec::new();
+                            let mut builder = String::with_capacity(256);
 
-                        for (i, ch) in s.chars().enumerate() {
-                            if i != 0 && (ch.is_uppercase() || ch.is_numeric()) {
-                                fields.push(builder.to_owned());
-                                builder.clear();
+                            for (i, ch) in s.chars().enumerate() {
+                                if i != 0 && (ch.is_uppercase() || ch.is_numeric()) {
+                                    fields.push(builder.to_owned());
+                                    builder.clear();
+                                }
+                                builder.push(ch);
                             }
-                            builder.push(ch);
+
+                            fields.push(builder);
+
+                            fields
+                        };
+
+                        if fields.len() > 4 {
+                            return Err(ParseTriggerTypeError::TooManyHitSoundFields);
                         }
 
-                        fields.push(builder);
+                        let mut field_parse_attempt_index = 0;
 
-                        fields
-                    };
+                        let mut sample_set = None;
+                        let mut additions_sample_set = None;
+                        let mut addition = None;
+                        let mut custom_sample_set = None;
 
-                    if fields.len() > 4 {
-                        return Err(ParseTriggerTypeError::TooManyHitSoundFields);
-                    }
-
-                    let mut field_parse_attempt_index = 0;
-
-                    let mut sample_set = None;
-                    let mut additions_sample_set = None;
-                    let mut addition = None;
-                    let mut custom_sample_set = None;
-
-                    for field in fields {
-                        loop {
-                            match field_parse_attempt_index {
-                                0 => if let Ok(field) = SampleSet::from_str(&field, version).map(|s| s.unwrap()) {
-                                    sample_set = Some(field);
-                                    field_parse_attempt_index += 1;
-                                    break;
-                                }
-                                1 => if let Ok(field) = SampleSet::from_str(&field, version).map(|f| f.unwrap()) {
-                                    additions_sample_set = Some(field);
-                                    field_parse_attempt_index += 1;
-                                    break;
-                                }
-                                2 => if let Ok(field) = Addition::from_str(&field, version).map(|a| a.unwrap()) {
-                                    addition = Some(field);
-                                    field_parse_attempt_index += 1;
-                                    break;
-                                }
-                                3 => if let Ok(field) = field.parse() {
-                                    custom_sample_set = Some(field);
-                                    field_parse_attempt_index += 1;
-                                    break;
-                                } else {
-                                    return Err(ParseTriggerTypeError::UnknownHitSoundType)
-                                }
-                                _ => unreachable!("The check for field size is already done so this is impossible to reach")
+                        for field in fields {
+                            loop {
+                                match field_parse_attempt_index {
+                                        0 => if let Ok(field) = SampleSet::from_str(&field, version).map(|s| s.unwrap()) {
+                                            sample_set = Some(field);
+                                            field_parse_attempt_index += 1;
+                                            break;
+                                        }
+                                        1 => if let Ok(field) = SampleSet::from_str(&field, version).map(|f| f.unwrap()) {
+                                            additions_sample_set = Some(field);
+                                            field_parse_attempt_index += 1;
+                                            break;
+                                        }
+                                        2 => if let Ok(field) = Addition::from_str(&field, version).map(|a| a.unwrap()) {
+                                            addition = Some(field);
+                                            field_parse_attempt_index += 1;
+                                            break;
+                                        }
+                                        3 => if let Ok(field) = field.parse() {
+                                            custom_sample_set = Some(field);
+                                            field_parse_attempt_index += 1;
+                                            break;
+                                        } else {
+                                            return Err(ParseTriggerTypeError::UnknownHitSoundType)
+                                        }
+                                        _ => unreachable!("The check for field size is already done so this is impossible to reach")
+                                    }
+                                field_parse_attempt_index += 1;
                             }
-                            field_parse_attempt_index += 1;
                         }
-                    }
 
-                    Ok(Some(TriggerType::HitSound {
-                        sample_set,
-                        additions_sample_set,
-                        addition,
-                        custom_sample_set,
-                    }))
-                }
+                        Ok(Some(TriggerType::HitSound {
+                            sample_set,
+                            additions_sample_set,
+                            addition,
+                            custom_sample_set,
+                        }))
+                    }
+                },
+                None => Err(ParseTriggerTypeError::UnknownTriggerType),
             },
-            None => Err(ParseTriggerTypeError::UnknownTriggerType),
         }
     }
 }
