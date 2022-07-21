@@ -2,10 +2,15 @@ pub mod error;
 pub mod types;
 
 use std::fmt::Debug;
-use std::num::ParseIntError;
+use std::num::{IntErrorKind, ParseIntError};
 use std::path::PathBuf;
 
 use crate::osu_file::types::Decimal;
+use crate::parsers::comma;
+use nom::bytes::complete::take_till;
+use nom::combinator::map_res;
+use nom::multi::separated_list0;
+use nom::Finish;
 use rust_decimal_macros::dec;
 
 use crate::helper;
@@ -34,6 +39,49 @@ versioned_field!(CountdownOffset, Integer, no_versions, |s| { s.parse() } -> Par
 versioned_field!(SpecialStyle, bool, no_versions, |s| { helper::parse_zero_one_bool(s) } -> helper::ParseZeroOneBoolError, boolean, false);
 versioned_field!(WidescreenStoryboard, bool, no_versions, |s| { helper::parse_zero_one_bool(s) } -> helper::ParseZeroOneBoolError, boolean, false);
 versioned_field!(SamplesMatchPlaybackRate, bool, no_versions, |s| { helper::parse_zero_one_bool(s) } -> helper::ParseZeroOneBoolError, boolean, false);
+versioned_field!(EditorBookmarks, Vec<Integer>, no_versions, |s| {
+    let bookmark = map_res(take_till(|c| c == ','), |s: &str| s.parse::<Integer>());
+    let mut bookmarks = separated_list0(comma::<nom::error::Error<_>>(), bookmark);
+    let input_len = s.len();
+
+    let (s, bookmarks) = bookmarks(s).finish().unwrap();
+
+    if s.is_empty() {
+        Ok(bookmarks)
+    } else {
+        let (_, s) = {
+            let s = if s.len() < input_len {
+                match s.strip_prefix(',') {
+                    Some(s) => s,
+                    None => s,
+                }
+            } else {
+                s
+            };
+
+            take_till::<_, _, nom::error::Error<_>>(|c| c == ',')(s).unwrap()
+        };
+
+        // re-parse to get error
+        let err = s.parse::<Integer>().unwrap_err();
+
+        let err = if let IntErrorKind::Empty = err.kind() {
+            ParseError::InvalidCommaList
+        } else {
+            ParseError::ParseIntError(err)
+        };
+
+        Err(err)
+    }
+} -> ParseError,
+|v, version| {
+    if version > 3 {
+        return None;
+    }
+
+    Some(v.iter().map(|v| v.to_string()).collect::<Vec<_>>().join(","))
+},
+);
 
 general_section!(
     /// A struct representing the general section of an osu file.

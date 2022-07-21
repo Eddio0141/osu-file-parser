@@ -42,6 +42,9 @@ pub enum ParseError {
     /// Field doesn't exist in version.
     #[error("Field doesn't exist in version")]
     InvalidVersion,
+    /// Invalid comma list, expected format of `key: value, value, value, ...`
+    #[error("Invalid comma list, expected format of `key: value, value, value, ...`")]
+    InvalidCommaList,
 }
 
 unreachable_err_impl!(ParseError);
