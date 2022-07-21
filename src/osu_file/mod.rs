@@ -238,7 +238,7 @@ impl FromStr for OsuFile {
 
         let mut spacing = SectionSpacing::default();
 
-        let mut line_number = dbg!(trailing_ws.lines().count());
+        let mut line_number = trailing_ws.lines().count();
 
         for (i, (ws, section_name, ws2, section)) in sections.iter().enumerate() {
             line_number += ws.lines().count();
