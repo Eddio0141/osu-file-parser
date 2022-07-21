@@ -116,6 +116,14 @@ fn v14() {
 }
 
 #[test]
+fn v14_2() {
+    let v14_2 = include_str!("./files/v14_2.osu").replace("\r\n", "\n");
+    let osu_file = v14_2.parse::<OsuFile>().unwrap();
+
+    assert_eq!(v14_2, osu_file.to_string());
+}
+
+#[test]
 fn acid_rain() {
     let acid_rain = include_str!("./files/acid_rain.osu").replace("\r\n", "\n");
     let acid_rain_osb = include_str!("./files/acid_rain.osb").replace("\r\n", "\n");
