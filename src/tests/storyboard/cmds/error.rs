@@ -74,7 +74,6 @@ fn continuing_error() {
     let missing_green = "C,0,0,1,255";
     let invalid_continuing_red = "C,0,0,0,255,255,255,foo";
     let missing_second_field = "V,0,0,0,0.5";
-    let invalid_move_x_continuing = "M,0,0,0,100,-100,foo";
 
     assert_eq!(
         "Invalid continuing colour value",
@@ -97,12 +96,6 @@ fn continuing_error() {
     assert_eq!(
         "Missing `scale_y` field",
         Command::from_str(missing_second_field, 14)
-            .unwrap_err()
-            .to_string()
-    );
-    assert_eq!(
-        "Invalid continuing move value",
-        Command::from_str(invalid_move_x_continuing, 14)
             .unwrap_err()
             .to_string()
     );
