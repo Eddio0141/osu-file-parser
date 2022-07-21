@@ -10,6 +10,7 @@ use nom::Parser;
 use nom::{bytes::complete::tag, combinator::rest, sequence::preceded};
 
 use crate::helper::trait_ext::MapOptStringNewLine;
+use crate::osb::Variable;
 use crate::parsers::comma;
 
 use self::storyboard::cmds::Command;
@@ -31,6 +32,16 @@ impl VersionedFromStr for Events {
     type Err = Error<ParseError>;
 
     fn from_str(s: &str, version: Version) -> std::result::Result<Option<Self>, Self::Err> {
+        Events::from_str_variables(s, version, &[])
+    }
+}
+
+impl Events {
+    pub(crate) fn from_str_variables(
+        s: &str,
+        version: Version,
+        variables: &[Variable],
+    ) -> std::result::Result<Option<Self>, Error<ParseError>> {
         let mut events = Events(Vec::new());
 
         #[derive(Clone)]
@@ -94,10 +105,32 @@ impl VersionedFromStr for Events {
             if indent > 0 {
                 match events.0.last_mut() {
                     Some(Event::StoryboardObject(sprite)) => {
-                        let cmd = Error::new_from_result_into(
-                            Command::from_str(line, version),
-                            line_index,
-                        )?;
+                        let line_without_header = match line.chars().position(|c| c == ',') {
+                            Some(i) => &line[i + 1..],
+                            None => line,
+                        };
+
+                        let mut line_with_variable = None;
+                        for variable in variables {
+                            let variable_full = format!("${}", variable.name);
+
+                            if line_without_header.contains(&variable_full) {
+                                line_with_variable =
+                                    Some(line.replace(&variable_full, &variable.value));
+                                break;
+                            }
+                        }
+
+                        let cmd = match line_with_variable {
+                            Some(line_with_variable) => Error::new_from_result_into(
+                                Command::from_str(&line_with_variable, version),
+                                line_index,
+                            )?,
+                            None => Error::new_from_result_into(
+                                Command::from_str(line, version),
+                                line_index,
+                            )?,
+                        };
                         if let Some(cmd) = cmd {
                             Error::new_from_result_into(
                                 sprite.try_push_cmd(cmd, indent),
