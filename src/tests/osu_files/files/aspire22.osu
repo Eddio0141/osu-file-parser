@@ -9,8 +9,8 @@ SampleSet: Normal
 StackLeniency: 0
 Mode: 0
 LetterboxInBreaks: 0
-WidescreenStoryboard: 1
 UseSkinSprites: 1
+WidescreenStoryboard: 1
 
 [Editor]
 Bookmarks: 1152,1752,2352,2952,16352,22752,29152,31952,32352,35552,37152,38352,41952,43502,54752,67552,80352,93152,105952
