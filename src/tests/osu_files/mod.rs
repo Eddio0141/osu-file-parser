@@ -396,3 +396,13 @@ fn error_line_index_variable_osb() {
 
     assert_eq!(err.to_string(), "Line 3, Missing the header `$`");
 }
+
+#[test]
+fn error_line_index_sb_in_osu() {
+    let err = include_str!("./files/error_line_index_sb.osu")
+        .parse::<OsuFile>()
+        .unwrap_err();
+
+    // line 45
+    assert_eq!(err.to_string(), "Line 45, Unknown Command type");
+}
