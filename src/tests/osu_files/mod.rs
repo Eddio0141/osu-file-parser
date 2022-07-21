@@ -406,3 +406,10 @@ fn error_line_index_sb_in_osu() {
     // line 45
     assert_eq!(err.to_string(), "Line 45, Unknown Command type");
 }
+
+#[test]
+fn v5_timingpoint_full() {
+    let i = include_str!("./files/v5_timingpoint_full.osu").replace("\r\n", "\n");
+    let o = i.parse::<OsuFile>().unwrap();
+    assert_eq!(i, o.to_string());
+}
