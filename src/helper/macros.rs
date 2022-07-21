@@ -59,6 +59,12 @@ macro_rules! versioned_field {
         versioned_field_to_string!($name, $version_to_string, $v, $to_string_inner);
         versioned_field_default!($name, $version_default, { $default.map(|v| v.into()) });
     };
+    ($name:ident, $field_type:ty, no_versions, |$s:ident| $from_str_inner:block -> $parse_str_error:ty, |$v:ident, $version_to_string:ident| $to_string_inner:block,) => {
+        versioned_inner!($name, $field_type, $parse_str_error, $s, _version, {
+            $from_str_inner.map(|value| Some(Self(value)))
+        });
+        versioned_field_to_string!($name, $version_to_string, $v, $to_string_inner);
+    };
     ($name:ident, $field_type:ty, no_versions, |$s:ident| $from_str_inner:block -> $parse_str_error:ty, |$v:ident| $to_string_inner:block, $default:expr) => {
         versioned_inner!($name, $field_type, $parse_str_error, $s, _version, {
             $from_str_inner.map(|value| Some(Self(value)))
