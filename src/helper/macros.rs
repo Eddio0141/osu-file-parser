@@ -288,8 +288,19 @@ macro_rules! verbose_error_to_error {
     };
 }
 
+macro_rules! unreachable_err_impl {
+    ($error_type:ty) => {
+        impl From<()> for $error_type {
+            fn from(_: ()) -> Self {
+                unreachable!("Unreachable error")
+            }
+        }
+    };
+}
+
 pub(crate) use general_section;
 pub(crate) use general_section_inner;
+pub(crate) use unreachable_err_impl;
 pub(crate) use verbose_error_to_error;
 pub(crate) use versioned_field;
 pub(crate) use versioned_field_default;
