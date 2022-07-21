@@ -52,6 +52,15 @@ versioned_field!(DistanceSpacing, Decimal, no_versions, |s| { s.parse() } -> (),
 versioned_field!(BeatDivisor, Decimal, no_versions, |s| { s.parse() } -> (),,);
 versioned_field!(GridSize, Integer, no_versions, |s| { s.parse() } -> ParseIntError,,);
 versioned_field!(TimelineZoom, Decimal, no_versions, |s| { s.parse() } -> (),,);
+versioned_field!(CurrentTime, Integer, no_versions, |s| { s.parse() } -> ParseIntError,
+|s, version| {
+    if version != 10 {
+        None
+    } else {
+        Some(s.to_string())
+    }
+}
+,);
 
 general_section!(
     /// A struct representing the editor section of the .osu file.
@@ -66,6 +75,8 @@ general_section!(
         pub grid_size: GridSize,
         /// Scale factor for the objecct timeline.
         pub timeline_zoom: TimelineZoom,
+        /// Deprecated.
+        pub current_time: CurrentTime,
     },
     ParseError,
     " ",
