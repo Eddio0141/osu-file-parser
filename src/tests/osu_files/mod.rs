@@ -421,3 +421,13 @@ fn v5_timingpoint_full() {
     let o = i.parse::<OsuFile>().unwrap();
     assert_eq!(i, o.to_string());
 }
+
+#[test]
+fn osb() {
+    let mut osu = OsuFile::default(14);
+    let osb = include_str!("./files/osb.osb").replace("\r\n", "\n");
+
+    osu.append_osb(&osb).unwrap();
+
+    assert_eq!(osu.osb_to_string().unwrap(), osb);
+}
