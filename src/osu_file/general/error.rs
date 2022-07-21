@@ -2,7 +2,7 @@ use std::num::ParseIntError;
 
 use thiserror::Error;
 
-use crate::helper::ParseZeroOneBoolError;
+use crate::helper::{macros::unreachable_err_impl, ParseZeroOneBoolError};
 
 #[derive(Debug, Error)]
 #[non_exhaustive]
@@ -44,11 +44,7 @@ pub enum ParseError {
     InvalidVersion,
 }
 
-impl From<()> for ParseError {
-    fn from(_: ()) -> Self {
-        unreachable!()
-    }
-}
+unreachable_err_impl!(ParseError);
 
 /// Error used when there's an error parsing the string as enum.
 #[derive(Debug, Error)]

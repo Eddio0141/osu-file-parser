@@ -5,7 +5,7 @@ use std::fmt::Debug;
 use std::num::ParseIntError;
 use std::path::PathBuf;
 
-use rust_decimal::Decimal;
+use crate::osu_file::types::Decimal;
 use rust_decimal_macros::dec;
 
 use crate::helper;
@@ -23,7 +23,7 @@ versioned_field!(AudioHash, String, no_versions, |s| { Ok(s.to_string()) } -> ()
     |version| { if version > 13 { None } else { Some(String::new())}
 });
 versioned_field!(PreviewTime, Integer, no_versions, |s| { s.parse() } -> ParseIntError,, -1);
-versioned_field!(StackLeniency, Decimal, no_versions, |s| { s.parse() } -> rust_decimal::Error,, dec!(0.7));
+versioned_field!(StackLeniency, Decimal, no_versions, |s| { s.parse() } -> (),, Decimal::from(dec!(0.7)));
 versioned_field!(LetterboxInBreaks, bool, no_versions, |s| { helper::parse_zero_one_bool(s) } -> helper::ParseZeroOneBoolError, boolean, false);
 versioned_field!(StoryFireInFront, bool, no_versions, |s| { helper::parse_zero_one_bool(s) } -> helper::ParseZeroOneBoolError, boolean, true);
 versioned_field!(UseSkinSprites, bool, no_versions, |s| { helper::parse_zero_one_bool(s) } -> helper::ParseZeroOneBoolError, boolean, false);

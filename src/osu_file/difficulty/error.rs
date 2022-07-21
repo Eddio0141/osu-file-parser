@@ -2,6 +2,8 @@ use std::num::ParseIntError;
 
 use thiserror::Error;
 
+use crate::helper::macros::unreachable_err_impl;
+
 #[derive(Debug, Error)]
 #[non_exhaustive]
 /// Error used when there was a problem parsing the `Difficulty` section.
@@ -22,3 +24,5 @@ pub enum ParseError {
     #[error("Duplicate field in `Difficulty`")]
     DuplicateField,
 }
+
+unreachable_err_impl!(ParseError);

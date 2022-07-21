@@ -1,17 +1,17 @@
 pub mod error;
 
-use rust_decimal::Decimal;
+use crate::osu_file::types::Decimal;
 
 use crate::helper::macros::*;
 
 pub use error::*;
 
-versioned_field!(HPDrainRate, Decimal, no_versions, |s| { s.parse() } -> rust_decimal::Error,,);
-versioned_field!(CircleSize, Decimal, no_versions, |s| { s.parse() } -> rust_decimal::Error,,);
-versioned_field!(OverallDifficulty, Decimal, no_versions, |s| { s.parse() } -> rust_decimal::Error,,);
-versioned_field!(ApproachRate, Decimal, no_versions, |s| { s.parse() } -> rust_decimal::Error,,);
-versioned_field!(SliderMultiplier, Decimal, no_versions, |s| { s.parse() } -> rust_decimal::Error,,);
-versioned_field!(SliderTickRate, Decimal, no_versions, |s| { s.parse() } -> rust_decimal::Error,,);
+versioned_field!(HPDrainRate, Decimal, no_versions, |s| { s.parse() } -> (),,);
+versioned_field!(CircleSize, Decimal, no_versions, |s| { s.parse() } -> (),,);
+versioned_field!(OverallDifficulty, Decimal, no_versions, |s| { s.parse() } -> (),,);
+versioned_field!(ApproachRate, Decimal, no_versions, |s| { s.parse() } -> (),,);
+versioned_field!(SliderMultiplier, Decimal, no_versions, |s| { s.parse() } -> (),,);
+versioned_field!(SliderTickRate, Decimal, no_versions, |s| { s.parse() } -> (),,);
 
 general_section!(
     /// Difficulty settings.

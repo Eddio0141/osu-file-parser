@@ -1,17 +1,15 @@
 pub mod error;
 pub mod types;
 
-use std::str::FromStr;
-
+use crate::osu_file::types::Decimal;
 use either::Either;
 use nom::{
     branch::alt,
-    combinator::{cut, map_res, rest, success, verify},
+    combinator::{cut, map_res, success, verify},
     error::context,
     sequence::{preceded, tuple},
     Parser,
 };
-use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
 
 use crate::{helper::parse_zero_one_bool, helper::trait_ext::MapStringNewLineVersion, parsers::*};
@@ -80,8 +78,7 @@ impl VersionedDefault for TimingPoints {
 pub struct TimingPoint {
     // for some reason decimal is parsed anyway in the beatmap???
     time: Decimal,
-    beat_length: Option<Decimal>,
-    beat_length_string: Option<String>,
+    beat_length: Decimal,
     meter: Integer,
     sample_set: SampleSet,
     sample_index: SampleIndex,
@@ -92,34 +89,32 @@ pub struct TimingPoint {
 
 impl TimingPoint {
     /// Converts beat duration in milliseconds to BPM.
-    pub fn beat_duration_ms_to_bpm(beat_duration_ms: Decimal) -> Decimal {
-        Decimal::ONE / beat_duration_ms * dec!(60000)
+    pub fn beat_duration_ms_to_bpm(
+        beat_duration_ms: rust_decimal::Decimal,
+    ) -> rust_decimal::Decimal {
+        rust_decimal::Decimal::ONE / beat_duration_ms * dec!(60000)
     }
 
     /// Converts BPM to beat duration in milliseconds.
-    pub fn bpm_to_beat_duration_ms(bpm: Decimal) -> Decimal {
-        Decimal::ONE / (bpm / dec!(60000))
+    pub fn bpm_to_beat_duration_ms(bpm: rust_decimal::Decimal) -> rust_decimal::Decimal {
+        rust_decimal::Decimal::ONE / (bpm / dec!(60000))
     }
 
     /// New instance of `TimingPoint` that is inherited.
     pub fn new_inherited(
         time: Integer,
-        slider_velocity_multiplier: Either<Decimal, String>,
+        slider_velocity_multiplier: rust_decimal::Decimal,
         meter: Integer,
         sample_set: SampleSet,
         sample_index: SampleIndex,
         volume: Volume,
         effects: Effects,
     ) -> Self {
-        let (beat_length, beat_length_string) = match slider_velocity_multiplier {
-            Either::Left(beat_length) => (Some(beat_length), None),
-            Either::Right(beat_length_string) => (None, Some(beat_length_string)),
-        };
+        let beat_length = (rust_decimal::Decimal::ONE / slider_velocity_multiplier) * dec!(-100);
 
         Self {
             time: time.into(),
-            beat_length,
-            beat_length_string,
+            beat_length: beat_length.into(),
             meter,
             sample_set,
             sample_index,
@@ -132,22 +127,16 @@ impl TimingPoint {
     /// New instance of `TimingPoint` that is uninherited.
     pub fn new_uninherited(
         time: Integer,
-        beat_duration_ms: Either<Decimal, String>,
+        beat_duration_ms: Decimal,
         meter: Integer,
         sample_set: SampleSet,
         sample_index: SampleIndex,
         volume: Volume,
         effects: Effects,
     ) -> Self {
-        let (beat_length, beat_length_string) = match beat_duration_ms {
-            Either::Left(beat_length) => (Some(beat_length), None),
-            Either::Right(beat_length_string) => (None, Some(beat_length_string)),
-        };
-
         Self {
             time: time.into(),
-            beat_length,
-            beat_length_string,
+            beat_length: beat_duration_ms,
             meter,
             sample_set,
             sample_index,
@@ -159,28 +148,33 @@ impl TimingPoint {
 
     /// Calculates BPM using the `beatLength` field when unherited.
     /// - Returns `None` if the timing point is inherited or `beat_length` isn't a valid decimal.
-    pub fn calc_bpm(&self) -> Option<Decimal> {
+    pub fn calc_bpm(&self) -> Option<rust_decimal::Decimal> {
         if self.uninherited {
-            self.beat_length.map(Self::beat_duration_ms_to_bpm)
+            match self.beat_length.get() {
+                Either::Left(value) => Some(Self::beat_duration_ms_to_bpm(*value)),
+                Either::Right(_) => None,
+            }
         } else {
             None
         }
     }
     /// Calculates the slider velocity multiplier when the timing point is inherited.
     /// - Returns `None` if the timing point is uninherited or `beat_length` isn't a valid decimal.
-    pub fn calc_slider_velocity_multiplier(&self) -> Option<Decimal> {
+    pub fn calc_slider_velocity_multiplier(&self) -> Option<rust_decimal::Decimal> {
         if self.uninherited {
             None
         } else {
-            self.beat_length
-                .map(|beat_length| Decimal::ONE / (beat_length / dec!(-100)))
+            match self.beat_length.get() {
+                Either::Left(value) => Some(rust_decimal::Decimal::ONE / (value / dec!(-100))),
+                Either::Right(_) => None,
+            }
         }
     }
 
     /// Start time of the timing section, in milliseconds from the beginning of the beatmap's audio.
     /// The end of the timing section is the next timing point's time (or never, if this is the last timing point).
-    pub fn time(&self) -> Decimal {
-        self.time
+    pub fn time(&self) -> &Decimal {
+        &self.time
     }
 
     /// Set the timing point's start time.
@@ -249,7 +243,7 @@ impl TimingPoint {
     }
 }
 
-const OLD_VERSION_TIME_OFFSET: Decimal = dec!(24);
+const OLD_VERSION_TIME_OFFSET: rust_decimal::Decimal = dec!(24);
 
 impl VersionedFromStr for TimingPoint {
     type Err = ParseTimingPointError;
@@ -268,41 +262,40 @@ impl VersionedFromStr for TimingPoint {
             _,
             (
                 time,
-                (
-                    beat_length_string,
-                    meter,
-                    sample_set,
-                    (sample_index, (volume, uninherited, effects)),
-                ),
+                (beat_length, meter, sample_set, (sample_index, (volume, uninherited, effects))),
             ),
         ) = tuple((
             context(
                 ParseTimingPointError::InvalidTime.into(),
                 comma_field_type(),
             )
-            .map(|t| {
+            .map(|mut t: Decimal| {
                 if (3..=4).contains(&version) {
-                    t + OLD_VERSION_TIME_OFFSET
-                } else {
-                    t
+                    if let Either::Left(value) = t.get_mut() {
+                        *value += OLD_VERSION_TIME_OFFSET;
+                    }
                 }
+
+                t
             }),
             preceded(
                 context(ParseTimingPointError::MissingBeatLength.into(), comma()),
                 alt((
-                    preceded(verify(success(0), |_| version == 3), rest).map(|beat_length| {
-                        (
-                            beat_length,
-                            meter_fallback,
-                            sample_set_fallback,
+                    preceded(verify(success(0), |_| version == 3), consume_rest_type()).map(
+                        |beat_length| {
                             (
-                                sample_index_fallback,
-                                (volume_fallback, uninherited_fallback, effects_fallback),
-                            ),
-                        )
-                    }),
+                                beat_length,
+                                meter_fallback,
+                                sample_set_fallback,
+                                (
+                                    sample_index_fallback,
+                                    (volume_fallback, uninherited_fallback, effects_fallback),
+                                ),
+                            )
+                        },
+                    ),
                     tuple((
-                        comma_field(),
+                        comma_field_type(),
                         preceded(
                             context(ParseTimingPointError::MissingMeter.into(), comma()),
                             context(
@@ -421,15 +414,9 @@ impl VersionedFromStr for TimingPoint {
             ),
         ))(s)?;
 
-        let (beat_length, beat_length_string) = match Decimal::from_str(beat_length_string) {
-            Ok(beat_length) => (Some(beat_length), None),
-            Err(_) => (None, Some(beat_length_string.to_string())),
-        };
-
         Ok(Some(TimingPoint {
             time,
             beat_length,
-            beat_length_string,
             meter,
             sample_set,
             sample_index,
@@ -448,20 +435,16 @@ impl VersionedToString for &TimingPoint {
 
 impl VersionedToString for TimingPoint {
     fn to_string(&self, version: Version) -> Option<String> {
-        let beat_length = if let Some(beat_length) = &self.beat_length {
-            beat_length.to_string()
-        } else {
-            self.beat_length_string.clone().unwrap()
-        };
-
         let mut fields = vec![
             if (3..=4).contains(&version) {
-                self.time - OLD_VERSION_TIME_OFFSET
+                match self.time.get() {
+                    Either::Left(value) => (value - OLD_VERSION_TIME_OFFSET).to_string(),
+                    Either::Right(value) => value.to_string(),
+                }
             } else {
-                self.time
-            }
-            .to_string(),
-            beat_length,
+                self.time.to_string()
+            },
+            self.beat_length.to_string(),
         ];
 
         if version > 3 {

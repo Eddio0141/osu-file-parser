@@ -1,6 +1,7 @@
 pub mod error;
 pub mod types;
 
+use crate::osu_file::types::Decimal;
 use nom::branch::alt;
 use nom::bytes::complete::*;
 use nom::character::streaming::char;
@@ -8,7 +9,6 @@ use nom::combinator::*;
 use nom::error::context;
 use nom::sequence::*;
 use nom::*;
-use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
 
 use crate::helper::trait_ext::MapStringNewLineVersion;
@@ -140,7 +140,7 @@ impl HitObject {
     pub fn osu_mania_hold_default() -> Self {
         Self {
             position: Position {
-                x: dec!(0),
+                x: dec!(0).into(),
                 ..Default::default()
             },
             time: Default::default(),
@@ -481,7 +481,7 @@ impl VersionedToString for HitObject {
 
                 if version == 3 {
                     let mut curve_points = curve_points.clone();
-                    curve_points.insert(0, CurvePoint(self.position));
+                    curve_points.insert(0, CurvePoint(self.position.clone()));
                     properties_2.push(pipe_vec_to_string(&curve_points, version));
                 } else if has_curve_points {
                     properties_2.push(pipe_vec_to_string(curve_points, version));

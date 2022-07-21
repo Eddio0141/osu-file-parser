@@ -2,7 +2,6 @@ mod error;
 
 use std::path::Path;
 
-use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
 
 use crate::osu_file::events::storyboard::cmds::*;
@@ -55,8 +54,8 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
             layer: Layer::Pass,
             origin: Origin::Centre,
             position: Position {
-                x: dec!(320),
-                y: dec!(240),
+                x: dec!(320).into(),
+                y: dec!(240).into(),
             },
             object_type: ObjectType::Sprite(
                 Sprite::new(Path::new("\"Text\\Play2-HaveFunH.png\"")).unwrap(),
@@ -67,7 +66,7 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
                     properties: CommandProperties::Fade {
                         easing: Easing::from_repr(0, 14).unwrap().unwrap(),
                         end_time: None,
-                        start_opacity: Decimal::ONE,
+                        start_opacity: rust_decimal::Decimal::ONE.into(),
                         continuing_opacities: Vec::new(),
                     },
                 },
@@ -77,8 +76,8 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
                         easing: Easing::from_repr(3, 14).unwrap().unwrap(),
                         end_time: Some(120),
                         positions_xy: ContinuingFields::new(
-                            (dec!(140), dec!(180.123123)),
-                            vec![(dec!(200), Some(dec!(200)))],
+                            (dec!(140).into(), dec!(180.123123).into()),
+                            vec![(dec!(200).into(), Some(dec!(200).into()))],
                         )
                         .unwrap(),
                     },
@@ -88,8 +87,8 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
                     properties: CommandProperties::MoveX {
                         easing: Easing::from_repr(3, 14).unwrap().unwrap(),
                         end_time: Some(120),
-                        start_x: dec!(140),
-                        continuing_x: vec![dec!(180.123123)],
+                        start_x: dec!(140).into(),
+                        continuing_x: vec![dec!(180.123123).into()],
                     },
                 },
                 Command {
@@ -97,8 +96,8 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
                     properties: CommandProperties::MoveY {
                         easing: Easing::from_repr(3, 14).unwrap().unwrap(),
                         end_time: Some(120),
-                        start_y: dec!(140),
-                        continuing_y: vec![dec!(180.123123)],
+                        start_y: dec!(140).into(),
+                        continuing_y: vec![dec!(180.123123).into()],
                     },
                 },
                 Command {
@@ -106,7 +105,7 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
                     properties: CommandProperties::Scale {
                         easing: Easing::from_repr(0, 14).unwrap().unwrap(),
                         end_time: None,
-                        start_scale: dec!(0.4),
+                        start_scale: dec!(0.4).into(),
                         continuing_scales: Vec::new(),
                     },
                 },
@@ -116,8 +115,8 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
                         easing: Easing::from_repr(8, 14).unwrap().unwrap(),
                         end_time: Some(5500),
                         scales_xy: ContinuingFields::new(
-                            (dec!(0.5), dec!(2)),
-                            vec![(dec!(2), Some(dec!(0.5)))],
+                            (dec!(0.5).into(), dec!(2).into()),
+                            vec![(dec!(2).into(), Some(dec!(0.5).into()))],
                         )
                         .unwrap(),
                     },
@@ -127,8 +126,8 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
                     properties: CommandProperties::Rotate {
                         easing: Easing::from_repr(7, 14).unwrap().unwrap(),
                         end_time: Some(5500),
-                        start_rotation: dec!(-0.785),
-                        continuing_rotations: vec![dec!(0.785)],
+                        start_rotation: dec!(-0.785).into(),
+                        continuing_rotations: vec![dec!(0.785).into()],
                     },
                 },
                 Command {
@@ -182,8 +181,8 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
                                             easing: Easing::from_repr(3, 14).unwrap().unwrap(),
                                             end_time: Some(120),
                                             positions_xy: ContinuingFields::new(
-                                                (dec!(140), dec!(180.123123)),
-                                                vec![(dec!(200), Some(dec!(200)))],
+                                                (dec!(140).into(), dec!(180.123123).into()),
+                                                vec![(dec!(200).into(), Some(dec!(200).into()))],
                                             )
                                             .unwrap(),
                                         },
@@ -193,7 +192,7 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
                                         properties: CommandProperties::Scale {
                                             easing: Easing::from_repr(0, 14).unwrap().unwrap(),
                                             end_time: None,
-                                            start_scale: dec!(0.4),
+                                            start_scale: dec!(0.4).into(),
                                             continuing_scales: Vec::new(),
                                         },
                                     },
@@ -223,8 +222,8 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
                                         easing: Easing::from_repr(3, 14).unwrap().unwrap(),
                                         end_time: Some(120),
                                         positions_xy: ContinuingFields::new(
-                                            (dec!(140), dec!(180.123123)),
-                                            vec![(dec!(200), Some(dec!(200)))],
+                                            (dec!(140).into(), dec!(180.123123).into()),
+                                            vec![(dec!(200).into(), Some(dec!(200).into()))],
                                         )
                                         .unwrap(),
                                     },
@@ -239,8 +238,8 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
             layer: Layer::Fail,
             origin: Origin::BottomCentre,
             position: Position {
-                x: dec!(418),
-                y: dec!(108),
+                x: dec!(418).into(),
+                y: dec!(108).into(),
             },
             object_type: ObjectType::Animation(Animation {
                 frame_count: 12,
@@ -483,8 +482,11 @@ fn move_command() {
         properties: CommandProperties::Move {
             easing: Easing::from_repr(0, 14).unwrap().unwrap(),
             end_time: Some(0),
-            positions_xy: ContinuingFields::new((dec!(-5), dec!(10)), vec![(dec!(55), None)])
-                .unwrap(),
+            positions_xy: ContinuingFields::new(
+                (dec!(-5).into(), dec!(10).into()),
+                vec![(dec!(55).into(), None)],
+            )
+            .unwrap(),
         },
     };
 
@@ -501,13 +503,13 @@ fn fade_chain() {
         properties: CommandProperties::Fade {
             easing: Easing::from_repr(0, 14).unwrap().unwrap(),
             end_time: Some(0),
-            start_opacity: Decimal::ONE,
+            start_opacity: rust_decimal::Decimal::ONE.into(),
             continuing_opacities: vec![
-                Decimal::ZERO,
-                dec!(0.5),
-                Decimal::ZERO,
-                dec!(0.25),
-                Decimal::ZERO,
+                rust_decimal::Decimal::ZERO.into(),
+                dec!(0.5).into(),
+                rust_decimal::Decimal::ZERO.into(),
+                dec!(0.25).into(),
+                rust_decimal::Decimal::ZERO.into(),
             ],
         },
     };

@@ -4,9 +4,8 @@ mod osu_files;
 mod parsers;
 mod storyboard;
 
-use either::Either;
+use crate::osu_file::types::Decimal;
 use pretty_assertions::assert_eq;
-use rust_decimal::Decimal;
 use std::path::{Path, PathBuf};
 
 use rust_decimal_macros::dec;
@@ -54,7 +53,7 @@ SamplesMatchPlaybackRate: 1";
         preview_time: Some(5.into()),
         countdown: Some(Countdown::Double),
         sample_set: Some(SampleSet::Soft),
-        stack_leniency: Some(dec!(0.9).into()),
+        stack_leniency: Some(Decimal::from(dec!(0.9)).into()),
         mode: Some(Mode::Taiko),
         letterbox_in_breaks: Some(true.into()),
         story_fire_in_front: Some(false.into()),
@@ -90,10 +89,10 @@ TimelineZoom: 2";
             ]
             .into(),
         ),
-        distance_spacing: Some(dec!(0.8).into()),
-        beat_divisor: Some(dec!(12).into()),
+        distance_spacing: Some(Decimal::from(dec!(0.8)).into()),
+        beat_divisor: Some(Decimal::from(dec!(12)).into()),
         grid_size: Some(8.into()),
-        timeline_zoom: Some(dec!(2).into()),
+        timeline_zoom: Some(Decimal::from(dec!(2)).into()),
     };
 
     assert_eq!(i, e);
@@ -155,12 +154,12 @@ SliderTickRate:1";
     let i = Difficulty::from_str(i_str, 14).unwrap().unwrap();
 
     let d = Difficulty {
-        hp_drain_rate: Some(dec!(8).into()),
-        circle_size: Some(dec!(5).into()),
-        overall_difficulty: Some(dec!(8).into()),
-        approach_rate: Some(dec!(5).into()),
-        slider_multiplier: Some(dec!(1.4).into()),
-        slider_tickrate: Some(Decimal::ONE.into()),
+        hp_drain_rate: Some(Decimal::from(dec!(8)).into()),
+        circle_size: Some(Decimal::from(dec!(5)).into()),
+        overall_difficulty: Some(Decimal::from(dec!(8)).into()),
+        approach_rate: Some(Decimal::from(dec!(5)).into()),
+        slider_multiplier: Some(Decimal::from(dec!(1.4)).into()),
+        slider_tickrate: Some(Decimal::from(rust_decimal::Decimal::ONE).into()),
         spacing: Default::default(),
     };
 
@@ -209,7 +208,7 @@ fn timing_points_parse_v14() {
     let t = vec![
         TimingPoint::new_uninherited(
             10000,
-            Either::Left(dec!(333.33)),
+            dec!(333.33).into(),
             4,
             timingpoints::SampleSet::BeatmapDefault,
             SampleIndex::OsuDefaultHitsounds,
@@ -221,7 +220,7 @@ fn timing_points_parse_v14() {
         ),
         TimingPoint::new_inherited(
             12000,
-            Either::Left(dec!(-25)),
+            dec!(-25),
             4,
             timingpoints::SampleSet::Drum,
             SampleIndex::OsuDefaultHitsounds,
@@ -250,16 +249,16 @@ fn events_parse_v14() {
             start_time: 0,
             file_name: Path::new("\"bg2.jpg\"").into(),
             position: Some(Position {
-                x: dec!(0),
-                y: dec!(0),
+                x: dec!(0).into(),
+                y: dec!(0).into(),
             }),
         }),
         Event::Background(Background {
             start_time: 0,
             file_name: Path::new("bg2.jpg").into(),
             position: Some(Position {
-                x: dec!(0),
-                y: dec!(1),
+                x: dec!(0).into(),
+                y: dec!(1).into(),
             }),
         }),
         Event::Comment("Break Periods".to_string()),

@@ -3,7 +3,7 @@ pub mod error;
 use std::num::{IntErrorKind, ParseIntError};
 
 use nom::{bytes::complete::take_till, combinator::map_res, multi::separated_list0, Finish};
-use rust_decimal::Decimal;
+use crate::osu_file::types::Decimal;
 
 use crate::parsers::comma;
 
@@ -48,10 +48,10 @@ versioned_field!(Bookmarks, Vec<Integer>, no_versions, |s| {
     }
 } -> ParseError, |v| { v.iter().map(|v| v.to_string())
     .collect::<Vec<_>>().join(",") },);
-versioned_field!(DistanceSpacing, Decimal, no_versions, |s| { s.parse() } -> rust_decimal::Error,,);
-versioned_field!(BeatDivisor, Decimal, no_versions, |s| { s.parse() } -> rust_decimal::Error,,);
+versioned_field!(DistanceSpacing, Decimal, no_versions, |s| { s.parse() } -> (),,);
+versioned_field!(BeatDivisor, Decimal, no_versions, |s| { s.parse() } -> (),,);
 versioned_field!(GridSize, Integer, no_versions, |s| { s.parse() } -> ParseIntError,,);
-versioned_field!(TimelineZoom, Decimal, no_versions, |s| { s.parse() } -> rust_decimal::Error,,);
+versioned_field!(TimelineZoom, Decimal, no_versions, |s| { s.parse() } -> (),,);
 
 general_section!(
     /// A struct representing the editor section of the .osu file.

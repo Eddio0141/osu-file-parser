@@ -114,7 +114,7 @@ impl VersionedFromStr for Events {
                 }
                 continue;
             }
-            
+
             // normal event trying
             let (_, type_) = alt((
                 background(),
@@ -149,7 +149,7 @@ impl VersionedFromStr for Events {
                                 // try AudioSample
                                 AudioSample::from_str(line, version)
                                     .map(|e| e.map(Event::AudioSample))
-                                    .map_err(|err| ParseError::ParseAudioSampleError(err))
+                                    .map_err(ParseError::ParseAudioSampleError)
                             } else {
                                 Err(ParseError::ParseStoryboardObjectError(err))
                             }

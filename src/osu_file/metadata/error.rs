@@ -2,6 +2,8 @@ use thiserror::Error;
 
 use std::num::ParseIntError;
 
+use crate::helper::macros::unreachable_err_impl;
+
 #[derive(Debug, Error)]
 #[non_exhaustive]
 /// Error used when there was a problem parsing the `Metadata` section.
@@ -20,8 +22,4 @@ pub enum ParseError {
     InvalidKey,
 }
 
-impl From<()> for ParseError {
-    fn from(_: ()) -> Self {
-        unreachable!()
-    }
-}
+unreachable_err_impl!(ParseError);

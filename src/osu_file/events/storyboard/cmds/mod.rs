@@ -14,7 +14,7 @@ use nom::error::context;
 use nom::multi::many0;
 use nom::sequence::*;
 use nom::Parser;
-use rust_decimal::Decimal;
+use crate::osu_file::types::Decimal;
 
 pub use error::*;
 pub use types::*;

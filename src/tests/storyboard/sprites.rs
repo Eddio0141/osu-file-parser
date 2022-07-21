@@ -18,8 +18,8 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
             layer: Layer::Pass,
             origin: Origin::Centre,
             position: Position {
-                x: dec!(320),
-                y: dec!(240),
+                x: dec!(320).into(),
+                y: dec!(240).into(),
             },
             object_type: ObjectType::Sprite(
                 Sprite::new(Path::new("\"Text\\Play2-HaveFunH.png\"")).unwrap(),
@@ -30,8 +30,8 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
             layer: Layer::Fail,
             origin: Origin::BottomCentre,
             position: Position {
-                x: dec!(418),
-                y: dec!(108),
+                x: dec!(418).into(),
+                y: dec!(108).into(),
             },
             object_type: ObjectType::Animation(Animation {
                 frame_count: 12,
@@ -53,8 +53,8 @@ fn frame_file_names() {
         layer: Layer::Background,
         origin: Origin::BottomCentre,
         position: Position {
-            x: dec!(0),
-            y: dec!(0),
+            x: dec!(0).into(),
+            y: dec!(0).into(),
         },
         object_type: ObjectType::Animation(Animation {
             frame_count: 4,
