@@ -5,6 +5,7 @@ use std::fmt::Display;
 
 use super::error::*;
 use super::types::*;
+use crate::osb::Variable;
 use crate::osu_file::types::Decimal;
 use crate::osu_file::{Integer, Version, VersionedFromRepr, VersionedFromStr, VersionedToString};
 use crate::parsers::*;
@@ -63,8 +64,30 @@ where
 
 impl VersionedToString for Command {
     fn to_string(&self, version: Version) -> Option<String> {
+        self.to_string_variables(version, &[])
+    }
+}
+
+impl Command {
+    pub(crate) fn to_string_variables(
+        &self,
+        version: Version,
+        variables: &[Variable],
+    ) -> Option<String> {
         let end_time_to_string =
             |end_time: &Option<i32>| end_time.map_or("".to_string(), |t| t.to_string());
+        let variable_replace = |header, cmd: String| {
+            let mut cmd = cmd;
+
+            for variable in variables {
+                if cmd.contains(&variable.value) {
+                    cmd = cmd.replace(&variable.value, &format!("${}", variable.name));
+                    break;
+                }
+            }
+
+            format!("{header},{cmd}")
+        };
 
         let cmd_str = match &self.properties {
             CommandProperties::Fade {
@@ -72,124 +95,168 @@ impl VersionedToString for Command {
                 end_time,
                 start_opacity,
                 continuing_opacities,
-            } => format!(
-                "F,{},{},{},{start_opacity}{}",
-                *easing as usize,
-                self.start_time,
-                end_time_to_string(end_time),
-                continuing_to_string(continuing_opacities),
-            ),
+            } => {
+                let cmd = format!(
+                    "{},{},{},{start_opacity}{}",
+                    *easing as usize,
+                    self.start_time,
+                    end_time_to_string(end_time),
+                    continuing_to_string(continuing_opacities),
+                );
+
+                variable_replace("F", cmd)
+            }
             CommandProperties::Move {
                 easing,
                 end_time,
                 positions_xy,
-            } => format!(
-                "M,{},{},{},{positions_xy}",
-                *easing as usize,
-                self.start_time,
-                end_time_to_string(end_time),
-            ),
+            } => {
+                let cmd = format!(
+                    "{},{},{},{positions_xy}",
+                    *easing as usize,
+                    self.start_time,
+                    end_time_to_string(end_time),
+                );
+
+                variable_replace("M", cmd)
+            }
             CommandProperties::MoveX {
                 easing,
                 end_time,
                 start_x,
                 continuing_x,
-            } => format!(
-                "MX,{},{},{},{start_x}{}",
-                *easing as usize,
-                self.start_time,
-                end_time_to_string(end_time),
-                continuing_to_string(continuing_x),
-            ),
+            } => {
+                let cmd = format!(
+                    "{},{},{},{start_x}{}",
+                    *easing as usize,
+                    self.start_time,
+                    end_time_to_string(end_time),
+                    continuing_to_string(continuing_x),
+                );
+
+                variable_replace("MX", cmd)
+            }
             CommandProperties::MoveY {
                 easing,
                 end_time,
                 start_y,
                 continuing_y,
-            } => format!(
-                "MY,{},{},{},{start_y}{}",
-                *easing as usize,
-                self.start_time,
-                end_time_to_string(end_time),
-                continuing_to_string(continuing_y),
-            ),
+            } => {
+                let cmd = format!(
+                    "{},{},{},{start_y}{}",
+                    *easing as usize,
+                    self.start_time,
+                    end_time_to_string(end_time),
+                    continuing_to_string(continuing_y),
+                );
+
+                variable_replace("MY", cmd)
+            }
             CommandProperties::Scale {
                 easing,
                 end_time,
                 start_scale,
                 continuing_scales,
-            } => format!(
-                "S,{},{},{},{start_scale}{}",
-                *easing as usize,
-                self.start_time,
-                end_time_to_string(end_time),
-                continuing_to_string(continuing_scales),
-            ),
+            } => {
+                let cmd = format!(
+                    "{},{},{},{start_scale}{}",
+                    *easing as usize,
+                    self.start_time,
+                    end_time_to_string(end_time),
+                    continuing_to_string(continuing_scales),
+                );
+
+                variable_replace("S", cmd)
+            }
             CommandProperties::VectorScale {
                 easing,
                 end_time,
                 scales_xy,
-            } => format!(
-                "V,{},{},{},{}",
-                *easing as usize,
-                self.start_time,
-                end_time_to_string(end_time),
-                scales_xy,
-            ),
+            } => {
+                let cmd = format!(
+                    "{},{},{},{}",
+                    *easing as usize,
+                    self.start_time,
+                    end_time_to_string(end_time),
+                    scales_xy,
+                );
+
+                variable_replace("V", cmd)
+            }
             CommandProperties::Rotate {
                 easing,
                 end_time,
                 start_rotation,
                 continuing_rotations,
-            } => format!(
-                "R,{},{},{},{start_rotation}{}",
-                *easing as usize,
-                self.start_time,
-                end_time_to_string(end_time),
-                continuing_to_string(continuing_rotations),
-            ),
+            } => {
+                let cmd = format!(
+                    "{},{},{},{start_rotation}{}",
+                    *easing as usize,
+                    self.start_time,
+                    end_time_to_string(end_time),
+                    continuing_to_string(continuing_rotations),
+                );
+
+                variable_replace("R", cmd)
+            }
             CommandProperties::Colour {
                 easing,
                 end_time,
                 colours,
-            } => format!(
-                "C,{},{},{},{}",
-                *easing as usize,
-                self.start_time,
-                end_time_to_string(end_time),
-                colours.to_string(version).unwrap(),
-            ),
+            } => {
+                let cmd = format!(
+                    "{},{},{},{}",
+                    *easing as usize,
+                    self.start_time,
+                    end_time_to_string(end_time),
+                    colours.to_string(version).unwrap(),
+                );
+
+                variable_replace("C", cmd)
+            }
             CommandProperties::Parameter {
                 easing,
                 end_time,
                 parameter,
                 continuing_parameters,
-            } => format!(
-                "P,{},{},{},{}{}",
-                *easing as usize,
-                self.start_time,
-                end_time_to_string(end_time),
-                parameter.to_string(version).unwrap(),
-                continuing_versioned_to_string(continuing_parameters, version),
-            ),
+            } => {
+                let cmd = format!(
+                    "{},{},{},{}{}",
+                    *easing as usize,
+                    self.start_time,
+                    end_time_to_string(end_time),
+                    parameter.to_string(version).unwrap(),
+                    continuing_versioned_to_string(continuing_parameters, version),
+                );
+
+                variable_replace("P", cmd)
+            }
             CommandProperties::Loop {
                 loop_count,
                 // ignore commands since its handled separately
                 commands: _,
-            } => format!("L,{},{loop_count}", self.start_time),
+            } => {
+                let cmd = format!("{},{loop_count}", self.start_time);
+
+                variable_replace("L", cmd)
+            }
             CommandProperties::Trigger {
                 trigger_type,
                 end_time,
                 group_number,
                 // ignore commands since its handled separately
                 commands: _,
-            } => format!(
-                "T,{},{},{}{}",
-                trigger_type.to_string(version).unwrap(),
-                self.start_time,
-                end_time_to_string(end_time),
-                group_number.map_or(String::new(), |group_number| format!(",{group_number}")),
-            ),
+            } => {
+                let cmd = format!(
+                    "{},{},{}{}",
+                    trigger_type.to_string(version).unwrap(),
+                    self.start_time,
+                    end_time_to_string(end_time),
+                    group_number.map_or(String::new(), |group_number| format!(",{group_number}")),
+                );
+
+                variable_replace("T", cmd)
+            }
         };
 
         Some(cmd_str)

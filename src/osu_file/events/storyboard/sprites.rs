@@ -7,6 +7,7 @@ use nom::error::context;
 use nom::sequence::{preceded, tuple};
 use nom::Parser;
 
+use crate::osb::Variable;
 use crate::osu_file::{
     FilePath, Position, Version, VersionedDefault, VersionedFromStr, VersionedToString,
 };
@@ -68,111 +69,7 @@ pub struct Object {
 
 impl VersionedToString for Object {
     fn to_string(&self, version: Version) -> Option<String> {
-        let pos_str = format!("{},{}", self.position.x, self.position.y);
-
-        let object_str = match &self.object_type {
-            ObjectType::Sprite(sprite) => format!(
-                "Sprite,{},{},{},{}",
-                self.layer.to_string(version).unwrap(),
-                self.origin.to_string(version).unwrap(),
-                sprite.filepath.to_string(version).unwrap(),
-                pos_str
-            ),
-            ObjectType::Animation(anim) => {
-                format!(
-                    "Animation,{},{},{},{},{},{},{}",
-                    self.layer.to_string(version).unwrap(),
-                    self.origin.to_string(version).unwrap(),
-                    anim.filepath.to_string(version).unwrap(),
-                    pos_str,
-                    anim.frame_count,
-                    anim.frame_delay,
-                    anim.loop_type.to_string(version).unwrap()
-                )
-            }
-        };
-
-        let cmds = {
-            if self.commands.is_empty() {
-                None
-            } else {
-                let mut builder = Vec::new();
-                let mut indentation = 1usize;
-
-                for cmd in &self.commands {
-                    builder.push(format!(
-                        "{}{}",
-                        " ".repeat(indentation),
-                        cmd.to_string(version).unwrap()
-                    ));
-
-                    if let CommandProperties::Loop { commands, .. }
-                    | CommandProperties::Trigger { commands, .. } = &cmd.properties
-                    {
-                        if commands.is_empty() {
-                            continue;
-                        }
-
-                        let starting_indentation = indentation;
-                        indentation += 1;
-
-                        let mut current_cmds = commands;
-                        let mut current_index = 0;
-                        // stack of commands, index, and indentation
-                        let mut cmds_stack = Vec::new();
-
-                        loop {
-                            let cmd = &current_cmds[current_index];
-                            current_index += 1;
-
-                            builder.push(format!(
-                                "{}{}",
-                                " ".repeat(indentation),
-                                cmd.to_string(version).unwrap()
-                            ));
-                            match &cmd.properties {
-                                CommandProperties::Loop { commands, .. }
-                                | CommandProperties::Trigger { commands, .. }
-                                    if !commands.is_empty() =>
-                                {
-                                    // save the current cmds and index
-                                    // ignore if index is already at the end of the current cmds
-                                    if current_index < current_cmds.len() {
-                                        cmds_stack.push((current_cmds, current_index, indentation));
-                                    }
-
-                                    current_cmds = commands;
-                                    current_index = 0;
-                                    indentation += 1;
-                                }
-                                _ => {
-                                    if current_index >= current_cmds.len() {
-                                        // check for end of commands
-                                        match cmds_stack.pop() {
-                                            Some((last_cmds, last_index, last_indentation)) => {
-                                                current_cmds = last_cmds;
-                                                current_index = last_index;
-                                                indentation = last_indentation;
-                                            }
-                                            None => break,
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        indentation = starting_indentation;
-                    }
-                }
-
-                Some(builder.join("\n"))
-            }
-        };
-
-        match cmds {
-            Some(cmds) => Some(format!("{object_str}\n{cmds}")),
-            None => Some(object_str),
-        }
+        self.to_string_variables(version, &[])
     }
 }
 
@@ -218,6 +115,118 @@ impl Object {
             }
 
             unreachable!();
+        }
+    }
+
+    pub(crate) fn to_string_variables(
+        &self,
+        version: Version,
+        variables: &[Variable],
+    ) -> Option<String> {
+        let pos_str = format!("{},{}", self.position.x, self.position.y);
+
+        let object_str = match &self.object_type {
+            ObjectType::Sprite(sprite) => format!(
+                "Sprite,{},{},{},{}",
+                self.layer.to_string(version).unwrap(),
+                self.origin.to_string(version).unwrap(),
+                sprite.filepath.to_string(version).unwrap(),
+                pos_str
+            ),
+            ObjectType::Animation(anim) => {
+                format!(
+                    "Animation,{},{},{},{},{},{},{}",
+                    self.layer.to_string(version).unwrap(),
+                    self.origin.to_string(version).unwrap(),
+                    anim.filepath.to_string(version).unwrap(),
+                    pos_str,
+                    anim.frame_count,
+                    anim.frame_delay,
+                    anim.loop_type.to_string(version).unwrap()
+                )
+            }
+        };
+
+        let cmds = {
+            if self.commands.is_empty() {
+                None
+            } else {
+                let mut builder = Vec::new();
+                let mut indentation = 1usize;
+
+                for cmd in &self.commands {
+                    builder.push(format!(
+                        "{}{}",
+                        " ".repeat(indentation),
+                        cmd.to_string_variables(version, variables).unwrap()
+                    ));
+
+                    if let CommandProperties::Loop { commands, .. }
+                    | CommandProperties::Trigger { commands, .. } = &cmd.properties
+                    {
+                        if commands.is_empty() {
+                            continue;
+                        }
+
+                        let starting_indentation = indentation;
+                        indentation += 1;
+
+                        let mut current_cmds = commands;
+                        let mut current_index = 0;
+                        // stack of commands, index, and indentation
+                        let mut cmds_stack = Vec::new();
+
+                        loop {
+                            let cmd = &current_cmds[current_index];
+                            current_index += 1;
+
+                            builder.push(format!(
+                                "{}{}",
+                                " ".repeat(indentation),
+                                cmd.to_string_variables(version, variables).unwrap()
+                            ));
+                            match &cmd.properties {
+                                CommandProperties::Loop { commands, .. }
+                                | CommandProperties::Trigger { commands, .. }
+                                    if !commands.is_empty() =>
+                                {
+                                    // save the current cmds and index
+                                    // ignore if index is already at the end of the current cmds
+                                    if current_index < current_cmds.len() {
+                                        cmds_stack.push((current_cmds, current_index, indentation));
+                                    }
+
+                                    current_cmds = commands;
+                                    current_index = 0;
+                                    indentation += 1;
+                                }
+                                _ => {
+                                    if current_index >= current_cmds.len() {
+                                        // check for end of commands
+                                        match cmds_stack.pop() {
+                                            Some((last_cmds, last_index, last_indentation)) => {
+                                                current_cmds = last_cmds;
+                                                current_index = last_index;
+                                                indentation = last_indentation;
+                                            }
+                                            None => break,
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        indentation = starting_indentation;
+                    }
+                }
+
+                Some(builder.join("\n"))
+            }
+        };
+
+        match cmds {
+            Some(cmds) => Some(format!("{object_str}\n{cmds}")),
+            None => Some(object_str),
         }
     }
 }

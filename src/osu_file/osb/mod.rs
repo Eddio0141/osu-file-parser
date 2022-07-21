@@ -100,7 +100,15 @@ impl VersionedToString for Osb {
             }
             if let Some(events) = &self.events {
                 // Events existed longer than storyboards I think
-                sections.push(("Events", events.to_string(version).unwrap()))
+                sections.push((
+                    "Events",
+                    events
+                        .to_string_variables(
+                            version,
+                            self.variables.as_ref().unwrap_or(&Vec::new()),
+                        )
+                        .unwrap(),
+                ))
             }
 
             Some(

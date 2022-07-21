@@ -203,13 +203,24 @@ impl Events {
 
         Ok(Some(events))
     }
+
+    pub(crate) fn to_string_variables(
+        &self,
+        version: Version,
+        variables: &[Variable],
+    ) -> Option<String> {
+        let mut s = self
+            .0
+            .iter()
+            .map(|event| event.to_string_variables(version, variables));
+
+        Some(s.map_string_new_line())
+    }
 }
 
 impl VersionedToString for Events {
     fn to_string(&self, version: Version) -> Option<String> {
-        let mut s = self.0.iter().map(|i| i.to_string(version));
-
-        Some(s.map_string_new_line())
+        self.to_string_variables(version, &[])
     }
 }
 
@@ -234,13 +245,23 @@ pub enum Event {
 
 impl VersionedToString for Event {
     fn to_string(&self, version: Version) -> Option<String> {
+        self.to_string_variables(version, &[])
+    }
+}
+
+impl Event {
+    pub(crate) fn to_string_variables(
+        &self,
+        version: Version,
+        variables: &[Variable],
+    ) -> Option<String> {
         match self {
             Event::Comment(comment) => Some(format!("//{comment}")),
             Event::Background(background) => background.to_string(version),
             Event::Video(video) => video.to_string(version),
             Event::Break(break_) => break_.to_string(version),
             Event::ColourTransformation(colour_trans) => colour_trans.to_string(version),
-            Event::StoryboardObject(object) => object.to_string(version),
+            Event::StoryboardObject(object) => object.to_string_variables(version, variables),
             Event::AudioSample(audio_sample) => Some(audio_sample.to_string(version).unwrap()),
         }
     }
