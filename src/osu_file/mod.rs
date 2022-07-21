@@ -221,7 +221,7 @@ impl FromStr for OsuFile {
             return Err(ParseError::InvalidFileVersion.into());
         }
 
-        let (_, sections) = many0::<_, _, nom::error::Error<_>, _>(square_section())(s).unwrap();
+        let (_, sections) = many0(square_section())(s).unwrap();
 
         let mut section_parsed = Vec::with_capacity(8);
 

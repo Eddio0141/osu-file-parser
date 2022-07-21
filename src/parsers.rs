@@ -1,14 +1,15 @@
 use std::str::FromStr;
 
 use nom::{
-    bytes::complete::{tag, take_till, take_while, take_until},
+    branch::alt,
+    bytes::complete::{tag, take_till, take_until, take_while},
     character::complete::multispace0,
     character::complete::{char, space0},
     combinator::{eof, map_res, rest},
     error::{FromExternalError, ParseError},
     multi::{many0, separated_list0},
     sequence::{delimited, preceded, terminated, tuple},
-    IResult, branch::alt,
+    IResult,
 };
 
 use crate::osu_file::{Version, VersionedFromStr};
@@ -132,16 +133,13 @@ where
     preceded(space0, eof)
 }
 
-pub fn square_section<'a, E>(
-) -> impl FnMut(&'a str) -> IResult<&'a str, (&str, &str, &str, &str), E>
-where
-    E: ParseError<&'a str>,
-{
+pub fn square_section<'a>(
+) -> impl FnMut(&'a str) -> IResult<&'a str, (&str, &str, &str, &str), nom::error::Error<&str>> {
     let section_open = tag("[");
     let section_close = tag("]");
-    let section_name_inner = take_till(|c: char| c == ']' || c == '\r' || c == '\n');
+    let section_name_inner = take_till(|c: char| c == ']' || c == '\n');
     let section_name = delimited(section_open, section_name_inner, section_close);
     let section_until = alt((take_until("\n["), rest));
-    
+
     tuple((multispace0, section_name, multispace0, section_until))
 }
