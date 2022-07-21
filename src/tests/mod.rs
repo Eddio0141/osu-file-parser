@@ -66,6 +66,7 @@ SamplesMatchPlaybackRate: 1";
         special_style: Some(true.into()),
         widescreen_storyboard: Some(true.into()),
         samples_match_playback_rate: Some(true.into()),
+        ..General::new()
     };
 
     assert_eq!(i, g);
@@ -93,6 +94,7 @@ TimelineZoom: 2";
         beat_divisor: Some(Decimal::from(dec!(12)).into()),
         grid_size: Some(8.into()),
         timeline_zoom: Some(Decimal::from(dec!(2)).into()),
+        current_time: None,
     };
 
     assert_eq!(i, e);
