@@ -10,10 +10,26 @@ use super::{Error, Events, Version, VersionedFromStr, VersionedToString};
 pub use error::*;
 pub use types::*;
 
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+pub struct OsbSpacing {
+    pub variables: usize,
+    pub events: usize,
+}
+
+impl Default for OsbSpacing {
+    fn default() -> Self {
+        Self {
+            variables: 1,
+            events: 1,
+        }
+    }
+}
+
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Osb {
-    pub events: Option<Events>,
     pub variables: Option<Vec<Variable>>,
+    pub events: Option<Events>,
+    pub spacing: OsbSpacing,
 }
 
 impl VersionedFromStr for Osb {
@@ -33,7 +49,9 @@ impl VersionedFromStr for Osb {
 
         let (mut events, mut variables) = (None, None);
 
-        for (ws, section_name, ws2, section) in sections {
+        let mut spacing = OsbSpacing::default();
+
+        for (i, (ws, section_name, ws2, section)) in sections.iter().enumerate() {
             line_number += ws.lines().count();
 
             if section_parsed.contains(&section_name) {
@@ -43,7 +61,25 @@ impl VersionedFromStr for Osb {
             let section_name_line = line_number;
             line_number += ws2.lines().count();
 
-            match section_name {
+            // count empty lines in section from reverse
+            let empty_line_count = || {
+                let mut empty_lines = section
+                    .chars()
+                    .rev()
+                    .take_while(|c| c.is_whitespace())
+                    .filter(|c| *c == '\n')
+                    .count();
+
+                if let Some((ws, _, _, _)) = sections.get(i + 1) {
+                    if ws.lines().count() == 0 {
+                        empty_lines -= 1;
+                    }
+                }
+
+                empty_lines
+            };
+
+            match *section_name {
                 "Variables" => {
                     let mut vars = Vec::new();
                     for (i, line) in section.lines().enumerate() {
@@ -59,6 +95,7 @@ impl VersionedFromStr for Osb {
                         vars.push(variable);
                     }
                     variables = Some(vars);
+                    spacing.variables = empty_line_count();
                 }
                 "Events" => {
                     events = Error::processing_line(
@@ -69,15 +106,20 @@ impl VersionedFromStr for Osb {
                         ),
                         line_number,
                     )?;
+                    spacing.events = empty_line_count();
                 }
                 _ => return Err(Error::new(ParseError::UnknownSection, section_name_line)),
             }
 
             section_parsed.push(section_name);
-            line_number += section.lines().count().checked_sub(1).unwrap_or(0);
+            line_number += section.lines().count().saturating_sub(1);
         }
 
-        Ok(Some(Osb { events, variables }))
+        Ok(Some(Osb {
+            events,
+            variables,
+            spacing,
+        }))
     }
 }
 
@@ -89,35 +131,31 @@ impl VersionedToString for Osb {
             let mut sections = Vec::new();
 
             if let Some(variables) = &self.variables {
-                sections.push((
-                    "Variables",
+                sections.push(format!(
+                    "[Variables]\n{}{}",
                     variables
                         .iter()
                         .map(|v| v.to_string(version).unwrap())
                         .collect::<Vec<_>>()
                         .join("\n"),
+                    "\n".repeat(self.spacing.variables + 1),
                 ));
             }
             if let Some(events) = &self.events {
                 // Events existed longer than storyboards I think
-                sections.push((
-                    "Events",
+                sections.push(format!(
+                    "[Events]\n{}{}",
                     events
                         .to_string_variables(
                             version,
                             self.variables.as_ref().unwrap_or(&Vec::new()),
                         )
                         .unwrap(),
+                    "\n".repeat(self.spacing.events),
                 ))
             }
 
-            Some(
-                sections
-                    .iter()
-                    .map(|(name, section)| format!("[{name}]\n{section}"))
-                    .collect::<Vec<_>>()
-                    .join("\n\n"),
-            )
+            Some(sections.join(""))
         }
     }
 }
