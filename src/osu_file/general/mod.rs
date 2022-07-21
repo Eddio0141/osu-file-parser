@@ -82,6 +82,15 @@ versioned_field!(EditorBookmarks, Vec<Integer>, no_versions, |s| {
     Some(v.iter().map(|v| v.to_string()).collect::<Vec<_>>().join(","))
 },
 );
+versioned_field!(EditorDistanceSpacing, Decimal, no_versions, |s| { s.parse() } -> (),
+|v, version| {
+    if version > 5 {
+        return None;
+    }
+
+    Some(v.to_string())
+}
+,);
 
 general_section!(
     /// A struct representing the general section of an osu file.
