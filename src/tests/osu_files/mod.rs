@@ -376,3 +376,23 @@ fn variable_osb() {
 
     assert_eq!(osu.osb_to_string().unwrap(), osb);
 }
+
+#[test]
+fn error_line_index_osb() {
+    let mut osu = OsuFile::default(14);
+    let osb = include_str!("./files/error_line_index.osb");
+
+    let err = osu.append_osb(osb).unwrap_err();
+
+    assert_eq!(err.to_string(), "Line 21, Unknown command type");
+}
+
+#[test]
+fn error_line_index_variable_osb() {
+    let mut osu = OsuFile::default(14);
+    let osb = include_str!("./files/error_line_index_variable.osb");
+
+    let err = osu.append_osb(osb).unwrap_err();
+
+    assert_eq!(err.to_string(), "Line 3, Missing the header `$`");
+}

@@ -1,0 +1,20 @@
+[Variables]
+$c1=255,128,255
+asdf
+$c3=119,108,181
+
+[Events]
+//Background and Video events
+//Storyboard Layer 0 (Background)
+Sprite,Background,TopLeft,"new-beginnings.jpg",0,0
+Sprite,Background,Centre,"SB\omega tringle.jpg",320,0
+ F,0,-28,,1
+ S,0,-28,,0.4
+ MY,0,-28,4587,260,200
+ F,0,4587,,0
+ F,0,126433,,1
+ MY,0,127356,133818,280,200
+ F,0,133818,,0
+Sprite,Background,Centre,"SB\gray with a hole.png",320,240
+ F,0,-200,,0
+ F,0,-28,,1
