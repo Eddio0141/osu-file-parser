@@ -182,7 +182,13 @@ impl Events {
                                 // try AudioSample
                                 AudioSample::from_str(line, version)
                                     .map(|e| e.map(Event::AudioSample))
-                                    .map_err(ParseError::ParseAudioSampleError)
+                                    .map_err(|e| {
+                                        if let ParseAudioSampleError::WrongEvent = e {
+                                            ParseError::UnknownEventType
+                                        } else {
+                                            ParseError::ParseAudioSampleError(e)
+                                        }
+                                    })
                             } else {
                                 Err(ParseError::ParseStoryboardObjectError(err))
                             }

@@ -38,4 +38,7 @@ pub enum ParseError {
     /// Event doesn't exist on the version.
     #[error("Event type doesn't exist on version")]
     EventNotExistOnVersion,
+    /// Unknown event type.
+    #[error("Unknown event type")]
+    UnknownEventType,
 }
