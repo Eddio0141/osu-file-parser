@@ -12,7 +12,7 @@ use nom::{
 };
 use rust_decimal_macros::dec;
 
-use crate::{helper::parse_zero_one_bool, helper::trait_ext::MapStringNewLineVersion, parsers::*};
+use crate::{helper::parse_zero_one_bool, parsers::*};
 
 use super::{
     Error, Integer, Version, VersionedDefault, VersionedFrom, VersionedFromStr, VersionedToString,
@@ -60,7 +60,13 @@ impl VersionedFromStr for TimingPoints {
 
 impl VersionedToString for TimingPoints {
     fn to_string(&self, version: Version) -> Option<String> {
-        Some(self.0.iter().map_string_new_line(version))
+        Some(
+            self.0
+                .iter()
+                .filter_map(|t| t.to_string(version))
+                .collect::<Vec<_>>()
+                .join("\n"),
+        )
     }
 }
 
@@ -344,12 +350,17 @@ impl VersionedFromStr for TimingPoint {
                                                 ),
                                             )
                                             .map(|volume| (volume, None, None)),
+                                            context(
+                                                ParseTimingPointError::InvalidVolume.into(),
+                                                consume_rest_versioned_type(version),
+                                            )
+                                            .map(|volume| (volume, None, None)),
                                             tuple((
                                                 context(
                                                     ParseTimingPointError::InvalidVolume.into(),
                                                     comma_field_versioned_type(version),
                                                 ),
-                                                cut(preceded(
+                                                preceded(
                                                     context(
                                                         ParseTimingPointError::MissingUninherited
                                                             .into(),
@@ -360,8 +371,8 @@ impl VersionedFromStr for TimingPoint {
                                                             .into(),
                                                         map_res(comma_field(), parse_zero_one_bool),
                                                     ),
-                                                )),
-                                                cut(preceded(
+                                                ),
+                                                preceded(
                                                     context(
                                                         ParseTimingPointError::MissingEffects
                                                             .into(),
@@ -372,18 +383,13 @@ impl VersionedFromStr for TimingPoint {
                                                             .into(),
                                                         consume_rest_versioned_type(version),
                                                     ),
-                                                )),
+                                                ),
                                             ))
                                             .map(
                                                 |(volume, uninherited, effects)| {
                                                     (volume, Some(uninherited), Some(effects))
                                                 },
                                             ),
-                                            context(
-                                                ParseTimingPointError::InvalidVolume.into(),
-                                                cut(consume_rest_versioned_type(version)),
-                                            )
-                                            .map(|volume| (volume, None, None)),
                                         )),
                                     ),
                                 ))
@@ -427,12 +433,6 @@ impl VersionedFromStr for TimingPoint {
     }
 }
 
-impl VersionedToString for &TimingPoint {
-    fn to_string(&self, version: Version) -> Option<String> {
-        self.to_owned().to_string(version)
-    }
-}
-
 impl VersionedToString for TimingPoint {
     fn to_string(&self, version: Version) -> Option<String> {
         let mut fields = vec![
@@ -454,11 +454,13 @@ impl VersionedToString for TimingPoint {
         }
         if version > 4 {
             fields.push(self.volume.to_string(version).unwrap());
-        }
-        if version > 4 {
             match self.uninherited {
                 Some(value) => fields.push((value as u8).to_string()),
-                None => fields.push(String::new()),
+                None => {
+                    if self.effects.is_some() {
+                        fields.push(String::new())
+                    }
+                }
             }
             if let Some(value) = self.effects {
                 fields.push(value.to_string(version).unwrap())
