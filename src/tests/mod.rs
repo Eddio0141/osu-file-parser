@@ -215,10 +215,7 @@ fn timing_points_parse_v14() {
             timingpoints::SampleSet::BeatmapDefault,
             SampleIndex::OsuDefaultHitsounds,
             Volume::new(100, 14).unwrap(),
-            Effects {
-                kiai_time_enabled: true,
-                no_first_barline_in_taiko_mania: false,
-            },
+            Effects::new(true, false),
         ),
         TimingPoint::new_inherited(
             12000,
@@ -227,10 +224,7 @@ fn timing_points_parse_v14() {
             timingpoints::SampleSet::Drum,
             SampleIndex::OsuDefaultHitsounds,
             Volume::new(100, 14).unwrap(),
-            Effects {
-                kiai_time_enabled: true,
-                no_first_barline_in_taiko_mania: false,
-            },
+            Effects::new(true, false),
         ),
     ];
 
