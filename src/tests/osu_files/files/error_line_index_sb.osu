@@ -42,6 +42,7 @@ SliderTickRate:1
 //Background and Video events
 0,0,"65927 (1).jpg",0,0
 Video,0,"l.mp4"
+Sprite,Pass,Centre,"Text\Play2-HaveFunH.png",320,240
  asdf
 
 
