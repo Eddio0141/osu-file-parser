@@ -62,7 +62,7 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
             ),
             commands: vec![
                 Command {
-                    start_time: -28,
+                    start_time: Some(-28),
                     properties: CommandProperties::Fade {
                         easing: Easing::from_repr(0, 14).unwrap().unwrap(),
                         end_time: None,
@@ -71,7 +71,7 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
                     },
                 },
                 Command {
-                    start_time: 100,
+                    start_time: Some(100),
                     properties: CommandProperties::Move {
                         easing: Easing::from_repr(3, 14).unwrap().unwrap(),
                         end_time: Some(120),
@@ -83,7 +83,7 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
                     },
                 },
                 Command {
-                    start_time: 100,
+                    start_time: Some(100),
                     properties: CommandProperties::MoveX {
                         easing: Easing::from_repr(3, 14).unwrap().unwrap(),
                         end_time: Some(120),
@@ -92,7 +92,7 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
                     },
                 },
                 Command {
-                    start_time: 100,
+                    start_time: Some(100),
                     properties: CommandProperties::MoveY {
                         easing: Easing::from_repr(3, 14).unwrap().unwrap(),
                         end_time: Some(120),
@@ -101,7 +101,7 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
                     },
                 },
                 Command {
-                    start_time: -28,
+                    start_time: Some(-28),
                     properties: CommandProperties::Scale {
                         easing: Easing::from_repr(0, 14).unwrap().unwrap(),
                         end_time: None,
@@ -110,7 +110,7 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
                     },
                 },
                 Command {
-                    start_time: 5000,
+                    start_time: Some(5000),
                     properties: CommandProperties::VectorScale {
                         easing: Easing::from_repr(8, 14).unwrap().unwrap(),
                         end_time: Some(5500),
@@ -122,7 +122,7 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
                     },
                 },
                 Command {
-                    start_time: 5000,
+                    start_time: Some(5000),
                     properties: CommandProperties::Rotate {
                         easing: Easing::from_repr(7, 14).unwrap().unwrap(),
                         end_time: Some(5500),
@@ -131,7 +131,7 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
                     },
                 },
                 Command {
-                    start_time: 50000,
+                    start_time: Some(50000),
                     properties: CommandProperties::Colour {
                         easing: Easing::from_repr(6, 14).unwrap().unwrap(),
                         end_time: Some(50001),
@@ -140,7 +140,7 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
                     },
                 },
                 Command {
-                    start_time: 300,
+                    start_time: Some(300),
                     properties: CommandProperties::Parameter {
                         easing: Easing::from_repr(5, 14).unwrap().unwrap(),
                         end_time: Some(350),
@@ -149,7 +149,7 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
                     },
                 },
                 Command {
-                    start_time: 300,
+                    start_time: Some(300),
                     properties: CommandProperties::Parameter {
                         easing: Easing::from_repr(5, 14).unwrap().unwrap(),
                         end_time: Some(350),
@@ -158,7 +158,7 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
                     },
                 },
                 Command {
-                    start_time: 300,
+                    start_time: Some(300),
                     properties: CommandProperties::Parameter {
                         easing: Easing::from_repr(5, 14).unwrap().unwrap(),
                         end_time: Some(350),
@@ -167,16 +167,16 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
                     },
                 },
                 Command {
-                    start_time: 500,
+                    start_time: Some(500),
                     properties: CommandProperties::Loop {
                         loop_count: 10,
                         commands: vec![Command {
-                            start_time: 10,
+                            start_time: Some(10),
                             properties: CommandProperties::Loop {
                                 loop_count: 10,
                                 commands: vec![
                                     Command {
-                                        start_time: 100,
+                                        start_time: Some(100),
                                         properties: CommandProperties::Move {
                                             easing: Easing::from_repr(3, 14).unwrap().unwrap(),
                                             end_time: Some(120),
@@ -188,7 +188,7 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
                                         },
                                     },
                                     Command {
-                                        start_time: -28,
+                                        start_time: Some(-28),
                                         properties: CommandProperties::Scale {
                                             easing: Easing::from_repr(0, 14).unwrap().unwrap(),
                                             end_time: None,
@@ -202,7 +202,7 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
                     },
                 },
                 Command {
-                    start_time: 0,
+                    start_time: Some(0),
                     properties: CommandProperties::Trigger {
                         trigger_type: TriggerType::HitSound {
                             sample_set: None,
@@ -213,11 +213,11 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
                         end_time: Some(10),
                         group_number: None,
                         commands: vec![Command {
-                            start_time: 10,
+                            start_time: Some(10),
                             properties: CommandProperties::Loop {
                                 loop_count: 10,
                                 commands: vec![Command {
-                                    start_time: 100,
+                                    start_time: Some(100),
                                     properties: CommandProperties::Move {
                                         easing: Easing::from_repr(3, 14).unwrap().unwrap(),
                                         end_time: Some(120),
@@ -249,7 +249,7 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
             }),
             commands: vec![
                 Command {
-                    start_time: 0,
+                    start_time: Some(0),
                     properties: CommandProperties::Trigger {
                         trigger_type: TriggerType::HitSound {
                             sample_set: None,
@@ -263,7 +263,7 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
                     },
                 },
                 Command {
-                    start_time: 0,
+                    start_time: Some(0),
                     properties: CommandProperties::Trigger {
                         trigger_type: TriggerType::HitSound {
                             sample_set: None,
@@ -277,7 +277,7 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
                     },
                 },
                 Command {
-                    start_time: 0,
+                    start_time: Some(0),
                     properties: CommandProperties::Trigger {
                         trigger_type: TriggerType::HitSound {
                             sample_set: None,
@@ -291,7 +291,7 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
                     },
                 },
                 Command {
-                    start_time: 0,
+                    start_time: Some(0),
                     properties: CommandProperties::Trigger {
                         trigger_type: TriggerType::HitSound {
                             sample_set: Some(SampleSet::Drum),
@@ -305,7 +305,7 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
                     },
                 },
                 Command {
-                    start_time: 0,
+                    start_time: Some(0),
                     properties: CommandProperties::Trigger {
                         trigger_type: TriggerType::HitSound {
                             sample_set: Some(SampleSet::Soft),
@@ -319,7 +319,7 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
                     },
                 },
                 Command {
-                    start_time: 0,
+                    start_time: Some(0),
                     properties: CommandProperties::Trigger {
                         trigger_type: TriggerType::HitSound {
                             sample_set: Some(SampleSet::All),
@@ -333,7 +333,7 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
                     },
                 },
                 Command {
-                    start_time: 0,
+                    start_time: Some(0),
                     properties: CommandProperties::Trigger {
                         trigger_type: TriggerType::HitSound {
                             sample_set: Some(SampleSet::Drum),
@@ -347,7 +347,7 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
                     },
                 },
                 Command {
-                    start_time: 0,
+                    start_time: Some(0),
                     properties: CommandProperties::Trigger {
                         trigger_type: TriggerType::HitSound {
                             sample_set: None,
@@ -361,7 +361,7 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
                     },
                 },
                 Command {
-                    start_time: 0,
+                    start_time: Some(0),
                     properties: CommandProperties::Trigger {
                         trigger_type: TriggerType::Passing,
                         end_time: Some(10),
@@ -370,7 +370,7 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
                     },
                 },
                 Command {
-                    start_time: 0,
+                    start_time: Some(0),
                     properties: CommandProperties::Trigger {
                         trigger_type: TriggerType::Failing,
                         end_time: Some(10),
@@ -392,7 +392,7 @@ fn colours() {
     let i = Command::from_str(i, 14).unwrap().unwrap();
 
     let cmd = Command {
-        start_time: 0,
+        start_time: Some(0),
         properties: CommandProperties::Colour {
             easing: Easing::from_repr(0, 14).unwrap().unwrap(),
             end_time: Some(0),
@@ -412,7 +412,7 @@ fn parameters() {
     let i = Command::from_str(i, 14).unwrap().unwrap();
 
     let cmd = Command {
-        start_time: 0,
+        start_time: Some(0),
         properties: CommandProperties::Parameter {
             easing: Easing::from_repr(0, 14).unwrap().unwrap(),
             end_time: None,
@@ -455,7 +455,7 @@ fn trigger_group_number() {
     let i = Command::from_str(i, 14).unwrap().unwrap();
 
     let cmd = Command {
-        start_time: 0,
+        start_time: Some(0),
         properties: CommandProperties::Trigger {
             trigger_type: TriggerType::HitSound {
                 sample_set: None,
@@ -478,7 +478,7 @@ fn move_command() {
     let i = Command::from_str(i, 14).unwrap().unwrap();
 
     let cmd = Command {
-        start_time: 0,
+        start_time: Some(0),
         properties: CommandProperties::Move {
             easing: Easing::from_repr(0, 14).unwrap().unwrap(),
             end_time: Some(0),
@@ -499,7 +499,7 @@ fn fade_chain() {
     let i = Command::from_str(i, 14).unwrap().unwrap();
 
     let cmd = Command {
-        start_time: 0,
+        start_time: Some(0),
         properties: CommandProperties::Fade {
             easing: Easing::from_repr(0, 14).unwrap().unwrap(),
             end_time: Some(0),

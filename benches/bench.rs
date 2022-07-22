@@ -173,7 +173,7 @@ fn storyboard_cmds_to_string(c: &mut Criterion) {
 
 fn storyboard_loop_cmd_to_string(c: &mut Criterion) {
     let loop_cmd = |commands| Command {
-        start_time: 0,
+        start_time: Some(0),
         properties: CommandProperties::Loop {
             loop_count: 5,
             commands,
