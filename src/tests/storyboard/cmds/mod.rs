@@ -45,8 +45,8 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
  T,HitSoundAllSoft,0,10
  T,HitSoundDrumClap0,0,10
  T,HitSound6,0,10
- T,HitSoundPassing,0,10
- T,HitSoundFailing,0,10";
+ T,Passing,0,10
+ T,Failing,0,10";
     let i: Events = Events::from_str(i_str, 14).unwrap().unwrap();
 
     let s = Events(vec![
