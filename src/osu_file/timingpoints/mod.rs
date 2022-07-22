@@ -349,7 +349,7 @@ impl VersionedFromStr for TimingPoint {
                                                     ParseTimingPointError::InvalidVolume.into(),
                                                     comma_field_versioned_type(version),
                                                 ),
-                                                preceded(
+                                                cut(preceded(
                                                     context(
                                                         ParseTimingPointError::MissingUninherited
                                                             .into(),
@@ -360,8 +360,8 @@ impl VersionedFromStr for TimingPoint {
                                                             .into(),
                                                         map_res(comma_field(), parse_zero_one_bool),
                                                     ),
-                                                ),
-                                                preceded(
+                                                )),
+                                                cut(preceded(
                                                     context(
                                                         ParseTimingPointError::MissingEffects
                                                             .into(),
@@ -372,7 +372,7 @@ impl VersionedFromStr for TimingPoint {
                                                             .into(),
                                                         consume_rest_versioned_type(version),
                                                     ),
-                                                ),
+                                                )),
                                             ))
                                             .map(
                                                 |(volume, uninherited, effects)| {
