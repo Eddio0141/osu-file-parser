@@ -22,7 +22,7 @@ pub use types::*;
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Command {
-    pub start_time: Integer,
+    pub start_time: Option<Integer>,
     pub properties: CommandProperties,
 }
 
@@ -88,6 +88,7 @@ impl Command {
 
             format!("{header},{cmd}")
         };
+        let start_time = self.start_time.map_or(String::new(), |t| t.to_string());
 
         let cmd_str = match &self.properties {
             CommandProperties::Fade {
@@ -97,9 +98,8 @@ impl Command {
                 continuing_opacities,
             } => {
                 let cmd = format!(
-                    "{},{},{},{start_opacity}{}",
+                    "{},{start_time},{},{start_opacity}{}",
                     *easing as usize,
-                    self.start_time,
                     end_time_to_string(end_time),
                     continuing_to_string(continuing_opacities),
                 );
@@ -112,9 +112,8 @@ impl Command {
                 positions_xy,
             } => {
                 let cmd = format!(
-                    "{},{},{},{positions_xy}",
+                    "{},{start_time},{},{positions_xy}",
                     *easing as usize,
-                    self.start_time,
                     end_time_to_string(end_time),
                 );
 
@@ -127,9 +126,8 @@ impl Command {
                 continuing_x,
             } => {
                 let cmd = format!(
-                    "{},{},{},{start_x}{}",
+                    "{},{start_time},{},{start_x}{}",
                     *easing as usize,
-                    self.start_time,
                     end_time_to_string(end_time),
                     continuing_to_string(continuing_x),
                 );
@@ -143,9 +141,8 @@ impl Command {
                 continuing_y,
             } => {
                 let cmd = format!(
-                    "{},{},{},{start_y}{}",
+                    "{},{start_time},{},{start_y}{}",
                     *easing as usize,
-                    self.start_time,
                     end_time_to_string(end_time),
                     continuing_to_string(continuing_y),
                 );
@@ -159,9 +156,8 @@ impl Command {
                 continuing_scales,
             } => {
                 let cmd = format!(
-                    "{},{},{},{start_scale}{}",
+                    "{},{start_time},{},{start_scale}{}",
                     *easing as usize,
-                    self.start_time,
                     end_time_to_string(end_time),
                     continuing_to_string(continuing_scales),
                 );
@@ -174,9 +170,8 @@ impl Command {
                 scales_xy,
             } => {
                 let cmd = format!(
-                    "{},{},{},{}",
+                    "{},{start_time},{},{}",
                     *easing as usize,
-                    self.start_time,
                     end_time_to_string(end_time),
                     scales_xy,
                 );
@@ -190,9 +185,8 @@ impl Command {
                 continuing_rotations,
             } => {
                 let cmd = format!(
-                    "{},{},{},{start_rotation}{}",
+                    "{},{start_time},{},{start_rotation}{}",
                     *easing as usize,
-                    self.start_time,
                     end_time_to_string(end_time),
                     continuing_to_string(continuing_rotations),
                 );
@@ -205,9 +199,8 @@ impl Command {
                 colours,
             } => {
                 let cmd = format!(
-                    "{},{},{},{}",
+                    "{},{start_time},{},{}",
                     *easing as usize,
-                    self.start_time,
                     end_time_to_string(end_time),
                     colours.to_string(version).unwrap(),
                 );
@@ -221,9 +214,8 @@ impl Command {
                 continuing_parameters,
             } => {
                 let cmd = format!(
-                    "{},{},{},{}{}",
+                    "{},{start_time},{},{}{}",
                     *easing as usize,
-                    self.start_time,
                     end_time_to_string(end_time),
                     parameter.to_string(version).unwrap(),
                     continuing_versioned_to_string(continuing_parameters, version),
@@ -236,7 +228,7 @@ impl Command {
                 // ignore commands since its handled separately
                 commands: _,
             } => {
-                let cmd = format!("{},{loop_count}", self.start_time);
+                let cmd = format!("{start_time},{loop_count}");
 
                 variable_replace("L", cmd)
             }
@@ -248,9 +240,8 @@ impl Command {
                 commands: _,
             } => {
                 let cmd = format!(
-                    "{},{},{}{}",
+                    "{},{start_time},{}{}",
                     trigger_type.to_string(version).unwrap(),
-                    self.start_time,
                     end_time_to_string(end_time),
                     group_number.map_or(String::new(), |group_number| format!(",{group_number}")),
                 );
@@ -336,10 +327,10 @@ impl VersionedFromStr for Command {
         let indentation = take_while(|c: char| c == ' ' || c == '_');
         let start_time = || {
             preceded(
-                context(ParseCommandError::MissingStartTime.into(), cut(comma())),
+                context(ParseCommandError::MissingStartTime.into(), comma()),
                 context(
                     ParseCommandError::InvalidStartTime.into(),
-                    cut(comma_field_type()),
+                    comma_field_type().map(Some),
                 ),
             )
         };
@@ -366,7 +357,19 @@ impl VersionedFromStr for Command {
                 ),
             ))
         };
-        let start_time_end_time_easing = || tuple((easing(), start_time(), end_time()));
+        // cases for start_time and end_time
+        // ...,easing,start_time,end_time,...
+        // ...,easing,start_time,,...
+        // ...,easing,,,...
+        let easing_start_end_time = || {
+            tuple((
+                easing(),
+                alt((
+                    tuple((tag(",,"), peek(comma()))).map(|_| (None, None)),
+                    tuple((start_time(), end_time())),
+                )),
+            ))
+        };
         let continuing_decimal_two_fields =
             |command_type: &'static str,
              missing_starting_first,
@@ -382,18 +385,18 @@ impl VersionedFromStr for Command {
 
                 preceded(
                     tag(command_type),
-                    tuple((
-                        start_time_end_time_easing(),
-                        cut(preceded(
+                    cut(tuple((
+                        easing_start_end_time(),
+                        preceded(
                             context(missing_starting_first, comma()),
                             context(invalid_start_first, comma_field_type()),
-                        )),
-                        cut(preceded(
+                        ),
+                        preceded(
                             context(missing_starting_second, comma()),
                             context(invalid_starting_second, comma_field_type()),
-                        )),
-                        terminated(continuing, context(invalid_continuing, cut(eof))),
-                    )),
+                        ),
+                        terminated(continuing, context(invalid_continuing, eof)),
+                    ))),
                 )
             };
         let continuing_decimal_fields =
@@ -402,21 +405,21 @@ impl VersionedFromStr for Command {
 
                 preceded(
                     tag(command_type),
-                    tuple((
-                        start_time_end_time_easing(),
-                        cut(preceded(
+                    cut(tuple((
+                        easing_start_end_time(),
+                        preceded(
                             context(missing_start, comma()),
                             context(invalid_start, comma_field_type()),
-                        )),
-                        terminated(continuing, context(invalid_continuing, cut(eof))),
-                    )),
+                        ),
+                        terminated(continuing, context(invalid_continuing, eof)),
+                    ))),
                 )
             };
 
         let loop_ = preceded(
             tag("L"),
             cut(tuple((
-                start_time(),
+                alt((tuple((comma(), peek(comma()))).map(|_| None), start_time())),
                 preceded(
                     context(ParseCommandError::MissingLoopCount.into(), comma()),
                     context(
@@ -435,7 +438,7 @@ impl VersionedFromStr for Command {
         });
         let trigger = {
             let trigger_nothing = alt((
-                eof.map(|_| (None, None)),
+                verify(rest, |s: &str| s.trim().is_empty()).map(|_| (None, None)),
                 verify(rest, |s: &str| s == ",").map(|_| (None, None)),
             ));
             let trigger_group_number = preceded(
@@ -478,7 +481,7 @@ impl VersionedFromStr for Command {
                             TriggerType::from_str(s, version).map(|t| t.unwrap())
                         }),
                     ),
-                    start_time(),
+                    alt((tuple((comma(), peek(comma()))).map(|_| None), start_time())),
                     // there are 4 possibilities:
                     alt((
                         // has everything
@@ -518,37 +521,39 @@ impl VersionedFromStr for Command {
 
             preceded(
                 tag("C"),
-                tuple((
-                    start_time_end_time_easing(),
-                    cut(preceded(
+                cut(tuple((
+                    easing_start_end_time(),
+                    preceded(
                         context(ParseCommandError::MissingRed.into(), comma()),
                         context(ParseCommandError::InvalidRed.into(), comma_field_type()),
-                    )),
-                    cut(preceded(
+                    ),
+                    preceded(
                         context(ParseCommandError::MissingGreen.into(), comma()),
                         context(ParseCommandError::InvalidGreen.into(), comma_field_type()),
-                    )),
-                    cut(preceded(
+                    ),
+                    preceded(
                         context(ParseCommandError::MissingBlue.into(), comma()),
                         context(ParseCommandError::InvalidBlue.into(), comma_field_type()),
-                    )),
+                    ),
                     terminated(
                         continuing_colours,
-                        context(ParseCommandError::InvalidContinuingColours.into(), cut(eof)),
+                        context(ParseCommandError::InvalidContinuingColours.into(), eof),
                     ),
-                )),
+                ))),
             )
             .map(
-                |((easing, start_time, end_time), start_r, start_g, start_b, continuing)| Command {
-                    start_time,
-                    properties: CommandProperties::Colour {
-                        easing,
-                        end_time,
-                        colours: Colours {
-                            start: (start_r, start_g, start_b),
-                            continuing,
+                |((easing, (start_time, end_time)), start_r, start_g, start_b, continuing)| {
+                    Command {
+                        start_time,
+                        properties: CommandProperties::Colour {
+                            easing,
+                            end_time,
+                            colours: Colours {
+                                start: (start_r, start_g, start_b),
+                                continuing,
+                            },
                         },
-                    },
+                    }
                 },
             )
         };
@@ -558,26 +563,23 @@ impl VersionedFromStr for Command {
 
             preceded(
                 tag("P"),
-                tuple((
-                    start_time_end_time_easing(),
-                    cut(preceded(
+                cut(tuple((
+                    easing_start_end_time(),
+                    preceded(
                         context(ParseCommandError::MissingParameterType.into(), comma()),
                         context(
                             ParseCommandError::InvalidParameterType.into(),
                             comma_field_versioned_type(version),
                         ),
-                    )),
+                    ),
                     terminated(
                         continuing_parameters,
-                        context(
-                            ParseCommandError::InvalidContinuingParameters.into(),
-                            cut(eof),
-                        ),
+                        context(ParseCommandError::InvalidContinuingParameters.into(), eof),
                     ),
-                )),
+                ))),
             )
             .map(
-                |((easing, start_time, end_time), parameter, continuing_parameters)| Command {
+                |((easing, (start_time, end_time)), parameter, continuing_parameters)| Command {
                     start_time,
                     properties: CommandProperties::Parameter {
                         easing,
@@ -598,26 +600,26 @@ impl VersionedFromStr for Command {
 
                 preceded(
                     tuple(((tag("M")), peek(comma()))),
-                    tuple((
-                        start_time_end_time_easing(),
-                        cut(preceded(
+                    cut(tuple((
+                        easing_start_end_time(),
+                        preceded(
                             context(ParseCommandError::MissingMoveX.into(), comma()),
                             context(ParseCommandError::InvalidMoveX.into(), comma_field_type()),
-                        )),
-                        cut(preceded(
+                        ),
+                        preceded(
                             context(ParseCommandError::MissingMoveY.into(), comma()),
                             context(ParseCommandError::InvalidMoveY.into(), comma_field_type()),
-                        )),
+                        ),
                         terminated(
                             continuing,
-                            context(ParseCommandError::InvalidContinuingMove.into(), cut(eof)),
+                            context(ParseCommandError::InvalidContinuingMove.into(), eof),
                         ),
-                    )),
+                    ))),
                 )
             }
         }
         .map(
-            |((easing, start_time, end_time), start_x, start_y, continuing)| Command {
+            |((easing, (start_time, end_time)), start_x, start_y, continuing)| Command {
                 start_time,
                 properties: CommandProperties::Move {
                     easing,
@@ -638,7 +640,7 @@ impl VersionedFromStr for Command {
             ParseCommandError::InvalidContinuingScales.into(),
         )
         .map(
-            |((easing, start_time, end_time), start_x, start_y, continuing)| Command {
+            |((easing, (start_time, end_time)), start_x, start_y, continuing)| Command {
                 start_time,
                 properties: CommandProperties::VectorScale {
                     easing,
@@ -657,7 +659,7 @@ impl VersionedFromStr for Command {
             ParseCommandError::InvalidContinuingOpacities.into(),
         )
         .map(
-            |((easing, start_time, end_time), start_opacity, continuing_opacities)| Command {
+            |((easing, (start_time, end_time)), start_opacity, continuing_opacities)| Command {
                 start_time,
                 properties: CommandProperties::Fade {
                     easing,
@@ -674,7 +676,7 @@ impl VersionedFromStr for Command {
             ParseCommandError::InvalidContinuingMove.into(),
         )
         .map(
-            |((easing, start_time, end_time), start_x, continuing_x)| Command {
+            |((easing, (start_time, end_time)), start_x, continuing_x)| Command {
                 start_time,
                 properties: CommandProperties::MoveX {
                     easing,
@@ -691,7 +693,7 @@ impl VersionedFromStr for Command {
             ParseCommandError::InvalidContinuingMove.into(),
         )
         .map(
-            |((easing, start_time, end_time), start_y, continuing_y)| Command {
+            |((easing, (start_time, end_time)), start_y, continuing_y)| Command {
                 start_time,
                 properties: CommandProperties::MoveY {
                     easing,
@@ -708,7 +710,7 @@ impl VersionedFromStr for Command {
             ParseCommandError::InvalidContinuingScales.into(),
         )
         .map(
-            |((easing, start_time, end_time), start_scale, continuing_scales)| Command {
+            |((easing, (start_time, end_time)), start_scale, continuing_scales)| Command {
                 start_time,
                 properties: CommandProperties::Scale {
                     easing,
@@ -725,7 +727,7 @@ impl VersionedFromStr for Command {
             ParseCommandError::InvalidContinuingRotation.into(),
         )
         .map(
-            |((easing, start_time, end_time), start_rotation, continuing_rotations)| Command {
+            |((easing, (start_time, end_time)), start_rotation, continuing_rotations)| Command {
                 start_time,
                 properties: CommandProperties::Rotate {
                     easing,
