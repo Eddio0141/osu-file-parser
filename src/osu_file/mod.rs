@@ -319,7 +319,7 @@ impl FromStr for OsuFile {
             }
 
             section_parsed.push(section_name);
-            line_number += section.lines().count();
+            line_number += section.lines().count() - 1;
         }
 
         Ok(OsuFile {
