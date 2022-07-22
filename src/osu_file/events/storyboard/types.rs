@@ -123,8 +123,8 @@ impl VersionedToString for TriggerType {
                 addition.map_or(String::new(), |s| s.to_string(version).unwrap()),
                 custom_sample_set.map_or(String::new(), |s| s.to_string())
             ),
-            TriggerType::Passing => "HitSoundPassing".to_string(),
-            TriggerType::Failing => "HitSoundFailing".to_string(),
+            TriggerType::Passing => "Passing".to_string(),
+            TriggerType::Failing => "Failing".to_string(),
         };
 
         Some(trigger_type)
