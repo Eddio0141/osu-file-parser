@@ -411,8 +411,8 @@ fn error_line_index_sb_in_osu() {
         .parse::<OsuFile>()
         .unwrap_err();
 
-    // line 45
-    assert_eq!(err.to_string(), "Line 45, Unknown Command type");
+    // line 46
+    assert_eq!(err.to_string(), "Line 46, Unknown command type");
 }
 
 #[test]
