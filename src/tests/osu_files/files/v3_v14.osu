@@ -23,7 +23,7 @@ SliderTickRate:2
 0,0,"katamari2.jpg"
 
 [TimingPoints]
-142,500.004999999999,4,1,1,100,1,0
+142,500.004999999999,4,1,1,100
 
 
 [HitObjects]
