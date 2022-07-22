@@ -95,5 +95,5 @@ fn double_sections() {
     let osu_file = "osu file format v14\n[General]\n\nAudioFilename: audio.mp3\n\n\n[TimingPoints]\n350,333.333333333333,4,2,1,60,1,0\nfoobar";
     let osu_file_err = osu_file.parse::<OsuFile>().unwrap_err();
 
-    assert_eq!(osu_file_err.line_index(), 8);
+    assert_eq!(osu_file_err.line_index(), 7);
 }
