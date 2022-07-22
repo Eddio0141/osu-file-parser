@@ -12,7 +12,6 @@ use nom::sequence::*;
 use nom::*;
 use rust_decimal_macros::dec;
 
-use crate::helper::trait_ext::MapStringNewLineVersion;
 use crate::helper::*;
 use crate::parsers::*;
 
@@ -54,7 +53,13 @@ impl VersionedFromStr for HitObjects {
 
 impl VersionedToString for HitObjects {
     fn to_string(&self, version: Version) -> Option<String> {
-        Some(self.0.iter().map_string_new_line(version))
+        Some(
+            self.0
+                .iter()
+                .filter_map(|o| o.to_string(version))
+                .collect::<Vec<_>>()
+                .join("\n"),
+        )
     }
 }
 
@@ -444,12 +449,6 @@ impl VersionedFromStr for HitObject {
         };
 
         Ok(Some(hitobject))
-    }
-}
-
-impl VersionedToString for &HitObject {
-    fn to_string(&self, version: Version) -> Option<String> {
-        self.to_owned().to_string(version)
     }
 }
 
