@@ -124,6 +124,14 @@ fn v14_2() {
 }
 
 #[test]
+fn v14_3() {
+    let v14_3 = include_str!("./files/v14_3.osu").replace("\r\n", "\n");
+    let osu_file = v14_3.parse::<OsuFile>().unwrap();
+
+    assert_eq!(v14_3, osu_file.to_string());
+}
+
+#[test]
 fn acid_rain() {
     let acid_rain = include_str!("./files/acid_rain.osu").replace("\r\n", "\n");
     let acid_rain_osb = include_str!("./files/acid_rain.osb").replace("\r\n", "\n");
@@ -426,6 +434,16 @@ fn v5_timingpoint_full() {
 fn osb() {
     let mut osu = OsuFile::default(14);
     let osb = include_str!("./files/osb.osb").replace("\r\n", "\n");
+
+    osu.append_osb(&osb).unwrap();
+
+    assert_eq!(osu.osb_to_string().unwrap(), osb);
+}
+
+#[test]
+fn osb_2() {
+    let mut osu = OsuFile::default(14);
+    let osb = include_str!("./files/osb_2.osb").replace("\r\n", "\n");
 
     osu.append_osb(&osb).unwrap();
 
