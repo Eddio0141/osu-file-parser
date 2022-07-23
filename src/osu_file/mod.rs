@@ -13,9 +13,10 @@ use std::fmt::{Debug, Display};
 use std::hash::Hash;
 use std::str::FromStr;
 
+use nom::branch::alt;
 use nom::bytes::complete::{tag, take_till};
 use nom::character::complete::multispace0;
-use nom::combinator::map_res;
+use nom::combinator::{map_res, success};
 use nom::multi::many0;
 use nom::sequence::{preceded, tuple};
 use thiserror::Error;
@@ -192,7 +193,10 @@ impl FromStr for OsuFile {
     type Err = Error<ParseError>;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let version_text = tag::<_, _, nom::error::Error<_>>("osu file format v");
+        let version_text = preceded(
+            alt((tag("\u{feff}"), success(""))),
+            tag::<_, _, nom::error::Error<_>>("osu file format v"),
+        );
         let version_number = map_res(take_till(|c| c == '\r' || c == '\n'), |s: &str| s.parse());
 
         let (s, (trailing_ws, version)) = match tuple((
