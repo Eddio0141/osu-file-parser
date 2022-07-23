@@ -14,7 +14,7 @@ use std::hash::Hash;
 use std::str::FromStr;
 
 use nom::bytes::complete::{tag, take_till};
-use nom::character::streaming::multispace0;
+use nom::character::complete::multispace0;
 use nom::combinator::map_res;
 use nom::multi::many0;
 use nom::sequence::{preceded, tuple};
