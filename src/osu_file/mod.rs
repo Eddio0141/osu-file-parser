@@ -195,27 +195,30 @@ impl FromStr for OsuFile {
         let version_text = tag::<_, _, nom::error::Error<_>>("osu file format v");
         let version_number = map_res(take_till(|c| c == '\r' || c == '\n'), |s: &str| s.parse());
 
-        let (s, (trailing_ws, version)) =
-            match tuple((multispace0, preceded(version_text, version_number)))(s) {
-                Ok(ok) => ok,
-                Err(err) => {
-                    // wrong line?
-                    let err = if let nom::Err::Error(err) = err {
-                        // can find out error by checking the error type
-                        match err.code {
-                            nom::error::ErrorKind::Tag => ParseError::FileVersionDefinedWrong,
-                            nom::error::ErrorKind::MapRes => ParseError::InvalidFileVersion,
-                            _ => {
-                                unreachable!("Not possible to have the error kind {:#?}", err.code)
-                            }
+        let (s, (trailing_ws, version)) = match tuple((
+            multispace0,
+            preceded(version_text, version_number),
+        ))(s)
+        {
+            Ok(ok) => ok,
+            Err(err) => {
+                // wrong line?
+                let err = if let nom::Err::Error(err) = err {
+                    // can find out error by checking the error type
+                    match err.code {
+                        nom::error::ErrorKind::Tag => ParseError::FileVersionDefinedWrong,
+                        nom::error::ErrorKind::MapRes => ParseError::InvalidFileVersion,
+                        _ => {
+                            unreachable!("Not possible to have the error kind {:#?}", err.code)
                         }
-                    } else {
-                        unreachable!("Not possible to reach when the errors are already handled");
-                    };
+                    }
+                } else {
+                    unreachable!("Not possible to reach when the errors are already handled, error type is {:#?}", err)
+                };
 
-                    return Err(err.into());
-                }
-            };
+                return Err(err.into());
+            }
+        };
 
         if !(MIN_VERSION..=LATEST_VERSION).contains(&version) {
             return Err(ParseError::InvalidFileVersion.into());
