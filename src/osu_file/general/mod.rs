@@ -148,6 +148,10 @@ general_section!(
         /// Whether or not sound samples will change rate when playing with speed-changing mods.
         /// - Defaults to `false`.
         pub samples_match_playback_rate: SamplesMatchPlaybackRate,
+        /// Deprecated.
+        pub editor_bookmarks: EditorBookmarks,
+        /// Deprecated.
+        pub editor_distance_spacing: EditorDistanceSpacing,
     },
     ParseError,
     " ",
