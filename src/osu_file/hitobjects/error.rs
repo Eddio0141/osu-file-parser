@@ -1,6 +1,6 @@
 //! Module defining `error` types that's used for the `hitobject` related modules.
 
-use std::num::{ParseIntError, TryFromIntError};
+use std::num::ParseIntError;
 
 use strum_macros::{EnumString, IntoStaticStr};
 use thiserror::Error;
@@ -182,6 +182,4 @@ pub enum ParseCurveTypeError {
 pub enum ParseHitSoundError {
     #[error(transparent)]
     ParseIntError(#[from] ParseIntError),
-    #[error(transparent)]
-    TryFromIntError(#[from] TryFromIntError),
 }

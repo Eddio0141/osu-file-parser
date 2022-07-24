@@ -11,18 +11,12 @@ pub enum ParseError {
     /// A Field in `General` failed to parse as a `Integer`.
     #[error(transparent)]
     ParseIntError(#[from] ParseIntError),
-    /// A Field in `General` failed to parse as a `Decimal`.
-    #[error(transparent)]
-    ParseDecimalError(#[from] rust_decimal::Error),
     /// A field in `General` failed to parse as a `bool` from an `Integer`.
     #[error(transparent)]
     ParseZeroOneBoolError(#[from] ParseZeroOneBoolError),
     /// A field in `General` failed to parse as a `CountdownSpeed`.
     #[error(transparent)]
     ParseCountdownSpeedError(#[from] ParseCountdownSpeedError),
-    /// A field in `General` failed to parse as an enum string.
-    #[error(transparent)]
-    ParseStrumError(#[from] strum::ParseError),
     /// A field in `General` failed to parse as a `GameMode`.
     #[error(transparent)]
     ParseGameModeError(#[from] ParseGameModeError),

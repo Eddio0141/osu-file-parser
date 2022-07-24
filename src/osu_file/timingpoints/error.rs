@@ -1,4 +1,4 @@
-use std::num::{ParseIntError, TryFromIntError};
+use std::num::ParseIntError;
 
 use strum_macros::{EnumString, IntoStaticStr};
 use thiserror::Error;
@@ -84,8 +84,6 @@ pub struct ParseEffectsError(#[from] ParseIntError);
 pub enum ParseSampleIndexError {
     #[error(transparent)]
     ParseIntError(#[from] ParseIntError),
-    #[error(transparent)]
-    TryFromIntError(#[from] TryFromIntError),
 }
 
 /// Error for when there was a problem setting / parsing the volume.
