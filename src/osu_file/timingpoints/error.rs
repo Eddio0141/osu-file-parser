@@ -19,9 +19,6 @@ pub enum ParseTimingPointError {
     /// Missing `beat_length` field.
     #[error("Missing `beat_length` field")]
     MissingBeatLength,
-    /// Invalid `beat_length` value.
-    #[error("Invalid `beat_length` value")]
-    InvalidBeatLength,
     /// Missing `meter` field.
     #[error("Missing `meter` field")]
     MissingMeter,
