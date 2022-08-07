@@ -9,11 +9,13 @@ use nom::sequence::tuple;
 use nom::Parser;
 use nom::{bytes::complete::tag, combinator::rest, sequence::preceded};
 
+use crate::events::storyboard::cmds::CommandProperties;
 use crate::helper::trait_ext::MapOptStringNewLine;
 use crate::osb::Variable;
 use crate::parsers::comma;
 
 use self::storyboard::cmds::Command;
+use self::storyboard::error::CommandPushError;
 use self::storyboard::{error::ParseObjectError, sprites::Object};
 
 use super::Version;
@@ -271,4 +273,50 @@ impl Event {
             Event::AudioSample(audio_sample) => Some(audio_sample.to_string(version).unwrap()),
         }
     }
+}
+
+pub trait EventWithCommands {
+    fn try_push_cmd(&mut self, cmd: Command, indentation: usize) -> Result<(), CommandPushError> {
+        if indentation == 1 {
+            // first match no loop required
+            self.commands_mut().push(cmd);
+            Ok(())
+        } else {
+            let mut last_cmd = match self.commands_mut().last_mut() {
+                Some(last_cmd) => last_cmd,
+                None => return Err(CommandPushError::InvalidIndentation(1, indentation)),
+            };
+
+            for i in 1..indentation {
+                last_cmd = if let CommandProperties::Loop { commands, .. }
+                | CommandProperties::Trigger { commands, .. } =
+                    &mut last_cmd.properties
+                {
+                    if i + 1 == indentation {
+                        // last item
+                        commands.push(cmd);
+                        return Ok(());
+                    } else {
+                        match commands.last_mut() {
+                            Some(sub_cmd) => sub_cmd,
+                            None => {
+                                return Err(CommandPushError::InvalidIndentation(
+                                    i - 1,
+                                    indentation,
+                                ))
+                            }
+                        }
+                    }
+                } else {
+                    return Err(CommandPushError::InvalidIndentation(1, indentation));
+                };
+            }
+
+            unreachable!();
+        }
+    }
+
+    fn commands(&self) -> &[Command];
+
+    fn commands_mut(&mut self) -> &mut Vec<Command>;
 }
