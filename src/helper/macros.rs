@@ -101,46 +101,20 @@ macro_rules! versioned_field {
 }
 
 macro_rules! general_section_inner {
-    ($(#[$outer:meta])*, $section_name:ident, $($(#[$inner:meta])*, $field:ident, $field_type:ty)*, $parse_error:ty, $default_spacing:expr, $default_version:ident, $default_field_name:ident) => {
-        #[derive(Default, Debug, Clone)]
-        pub struct SectionSpacing {
-            $(
-                pub $field: Option<usize>,
-            )*
-        }
-
-        #[derive(Debug, Clone)]
+    ($(#[$outer:meta])*, $section_name:ident, $($(#[$inner:meta])*, $field:ident, $field_type:ty)*, $parse_error:ty, $spacing:expr, $default_version:ident, $default_field_name:ident) => {
+        #[derive(Debug, Clone, PartialEq, Hash)]
         $(#[$outer])*
         pub struct $section_name {
-            pub spacing: SectionSpacing,
             $(
                 $(#[$inner])*
                 pub $field: Option<$field_type>,
             )*
         }
 
-        impl PartialEq for $section_name {
-            fn eq(&self, other: &Self) -> bool {
-                $(
-                    self.$field == other.$field &&
-                )*
-                true
-            }
-        }
-
-        impl std::hash::Hash for $section_name {
-            fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-                $(
-                    self.$field.hash(state);
-                )*
-            }
-        }
-
         impl $section_name {
             /// Creates a new instance, with all fields being `None`.
             pub fn new() -> Self {
                 $section_name {
-                    spacing: Default::default(),
                     $($field: None),*
                 }
             }
@@ -160,7 +134,7 @@ macro_rules! general_section_inner {
                 let mut line_count = 0;
                 let mut parsed_fields = Vec::new();
 
-                for (name, ws, value, ws_2) in fields {
+                for (name, _, value, ws_2) in fields {
                     if parsed_fields.contains(&name) {
                         return Err(crate::osu_file::types::Error::new(ParseError::DuplicateField, line_count));
                     }
@@ -169,7 +143,6 @@ macro_rules! general_section_inner {
                         $(
                             stringify!($field_type) => {
                                 section.$field = crate::osu_file::types::Error::new_from_result_into(<$field_type as crate::osu_file::types::VersionedFromStr>::from_str(value, version), line_count)?;
-                                section.spacing.$field = Some(ws.len());
                             }
                         )*
                         _ => return Err(crate::osu_file::types::Error::new(ParseError::InvalidKey, line_count)),
@@ -188,25 +161,14 @@ macro_rules! general_section_inner {
                 $(
                     if let Some(value) = &self.$field {
                         if let Some($default_field_name) = crate::osu_file::types::VersionedToString::to_string(value, $default_version) {
-                            let spacing = match self.spacing.$field {
-                                Some(spacing) => " ".repeat(spacing),
-                                None => $default_spacing,
-                            };
                             let field_name = stringify!($field_type);
 
-                            v.push(format!("{field_name}:{spacing}{}", $default_field_name));
+                            v.push(format!("{field_name}:{}{}", $spacing, $default_field_name));
                         }
                     }
                 )*
 
                 Some(v.join("\n"))
-            }
-
-            /// Resets the custom spacings of the gap between the colon and the value.
-            pub fn reset_spacing(&mut self) {
-                $(
-                    self.spacing.$field = None;
-                )*
             }
         }
 
@@ -228,9 +190,9 @@ macro_rules! general_section {
             )*
         },
         $parse_error:ty,
-        $default_spacing:expr,
+        $spacing:expr,
     ) => {
-        general_section_inner!($(#[$outer])*, $section_name, $($(#[$inner])*, $field, $field_type)*, $parse_error, { $default_spacing.to_string() }, _version, _field_name);
+        general_section_inner!($(#[$outer])*, $section_name, $($(#[$inner])*, $field, $field_type)*, $parse_error, { $spacing.to_string() }, _version, _field_name);
     };
     (
         $(#[$outer:meta])*
@@ -241,7 +203,7 @@ macro_rules! general_section {
             )*
         },
         $parse_error:ty,
-        $default_spacing:expr,
+        $spacing:expr,
         $(
             {
                 $version:expr,
@@ -251,7 +213,7 @@ macro_rules! general_section {
     ) => {
         general_section_inner!($(#[$outer])*, $section_name, $($(#[$inner])*, $field, $field_type)*, $parse_error,
             {
-                let mut spacing = $default_spacing.to_string();
+                let mut spacing = $spacing.to_string();
 
                 $(
                     if $version.contains(&version) {
