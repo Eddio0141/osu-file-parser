@@ -52,5 +52,5 @@ pub fn assert_eq_osu_str<L: AsRef<str>, R: AsRef<str>>(left: L, right: R) {
     let left = trimmer(left.as_ref());
     let right = trimmer(right.as_ref());
 
-    assert_eq!(left, right);
+    pretty_assertions::assert_eq!(left, right);
 }
