@@ -14,7 +14,7 @@ pub fn assert_eq_osu_str<L: AsRef<str>, R: AsRef<str>>(left: L, right: R) {
         s.lines()
             .filter_map(|s| {
                 // remove the weird \u{feff} characters
-                let s = s.trim().replace("\u{feff}", "");
+                let s = s.trim().replace('\u{feff}', "");
 
                 if s.is_empty() {
                     return None;
