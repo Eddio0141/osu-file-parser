@@ -1,4 +1,4 @@
-use crate::osu_file::OsuFile;
+use crate::{osu_file::OsuFile, assert_eq_osu_str};
 use pretty_assertions::assert_eq;
 
 #[test]
@@ -128,7 +128,7 @@ fn v14_3() {
     let v14_3 = include_str!("./files/v14_3.osu").replace("\r\n", "\n");
     let osu_file = v14_3.parse::<OsuFile>().unwrap();
 
-    assert_eq!(v14_3, osu_file.to_string());
+    assert_eq_osu_str(v14_3, osu_file.to_string());
 }
 
 #[test]
