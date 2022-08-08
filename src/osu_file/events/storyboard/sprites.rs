@@ -7,6 +7,7 @@ use nom::error::context;
 use nom::sequence::{preceded, tuple};
 use nom::Parser;
 
+use crate::events::EventWithCommands;
 use crate::osb::Variable;
 use crate::osu_file::{
     FilePath, Position, Version, VersionedDefault, VersionedFromStr, VersionedToString,
@@ -73,51 +74,17 @@ impl VersionedToString for Object {
     }
 }
 
-impl Object {
-    pub fn try_push_cmd(
-        &mut self,
-        cmd: Command,
-        indentation: usize,
-    ) -> Result<(), CommandPushError> {
-        if indentation == 1 {
-            // first match no loop required
-            self.commands.push(cmd);
-            Ok(())
-        } else {
-            let mut last_cmd = match self.commands.last_mut() {
-                Some(last_cmd) => last_cmd,
-                None => return Err(CommandPushError::InvalidIndentation(1, indentation)),
-            };
-
-            for i in 1..indentation {
-                last_cmd = if let CommandProperties::Loop { commands, .. }
-                | CommandProperties::Trigger { commands, .. } =
-                    &mut last_cmd.properties
-                {
-                    if i + 1 == indentation {
-                        // last item
-                        commands.push(cmd);
-                        return Ok(());
-                    } else {
-                        match commands.last_mut() {
-                            Some(sub_cmd) => sub_cmd,
-                            None => {
-                                return Err(CommandPushError::InvalidIndentation(
-                                    i - 1,
-                                    indentation,
-                                ))
-                            }
-                        }
-                    }
-                } else {
-                    return Err(CommandPushError::InvalidIndentation(1, indentation));
-                };
-            }
-
-            unreachable!();
-        }
+impl EventWithCommands for Object {
+    fn commands(&self) -> &[Command] {
+        &self.commands
     }
 
+    fn commands_mut(&mut self) -> &mut Vec<Command> {
+        &mut self.commands
+    }
+}
+
+impl Object {
     pub(crate) fn to_string_variables(
         &self,
         version: Version,
@@ -147,87 +114,15 @@ impl Object {
             }
         };
 
-        let cmds = {
-            if self.commands.is_empty() {
-                None
-            } else {
-                let mut builder = Vec::new();
-                let mut indentation = 1usize;
+        let cmds = self.commands_to_string_variables(version, variables);
 
-                for cmd in &self.commands {
-                    builder.push(format!(
-                        "{}{}",
-                        " ".repeat(indentation),
-                        cmd.to_string_variables(version, variables).unwrap()
-                    ));
-
-                    if let CommandProperties::Loop { commands, .. }
-                    | CommandProperties::Trigger { commands, .. } = &cmd.properties
-                    {
-                        if commands.is_empty() {
-                            continue;
-                        }
-
-                        let starting_indentation = indentation;
-                        indentation += 1;
-
-                        let mut current_cmds = commands;
-                        let mut current_index = 0;
-                        // stack of commands, index, and indentation
-                        let mut cmds_stack = Vec::new();
-
-                        loop {
-                            let cmd = &current_cmds[current_index];
-                            current_index += 1;
-
-                            builder.push(format!(
-                                "{}{}",
-                                " ".repeat(indentation),
-                                cmd.to_string_variables(version, variables).unwrap()
-                            ));
-                            match &cmd.properties {
-                                CommandProperties::Loop { commands, .. }
-                                | CommandProperties::Trigger { commands, .. }
-                                    if !commands.is_empty() =>
-                                {
-                                    // save the current cmds and index
-                                    // ignore if index is already at the end of the current cmds
-                                    if current_index < current_cmds.len() {
-                                        cmds_stack.push((current_cmds, current_index, indentation));
-                                    }
-
-                                    current_cmds = commands;
-                                    current_index = 0;
-                                    indentation += 1;
-                                }
-                                _ => {
-                                    if current_index >= current_cmds.len() {
-                                        // check for end of commands
-                                        match cmds_stack.pop() {
-                                            Some((last_cmds, last_index, last_indentation)) => {
-                                                current_cmds = last_cmds;
-                                                current_index = last_index;
-                                                indentation = last_indentation;
-                                            }
-                                            None => break,
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        indentation = starting_indentation;
-                    }
-                }
-
-                Some(builder.join("\n"))
+        if let Some(cmds) = cmds {
+            if !cmds.is_empty() {
+                return Some(format!("{object_str}\n{cmds}"));
             }
-        };
-
-        match cmds {
-            Some(cmds) => Some(format!("{object_str}\n{cmds}")),
-            None => Some(object_str),
         }
+
+        Some(object_str)
     }
 }
 
