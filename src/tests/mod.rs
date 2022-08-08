@@ -238,6 +238,7 @@ fn events_parse_v14() {
 
     let e = Events(vec![
         Event::Background(Background {
+            commands: Vec::new(),
             start_time: 0,
             file_name: Path::new("\"bg2.jpg\"").into(),
             position: Some(Position {
@@ -246,6 +247,7 @@ fn events_parse_v14() {
             }),
         }),
         Event::Background(Background {
+            commands: Vec::new(),
             start_time: 0,
             file_name: Path::new("bg2.jpg").into(),
             position: Some(Position {

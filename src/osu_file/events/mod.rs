@@ -105,41 +105,68 @@ impl Events {
 
             // its a storyboard command
             if indent > 0 {
-                match events.0.last_mut() {
-                    Some(Event::StoryboardObject(sprite)) => {
-                        let line_without_header = match line.chars().position(|c| c == ',') {
-                            Some(i) => &line[i + 1..],
-                            None => line,
-                        };
+                let cmd_parse = || {
+                    let line_without_header = match line.chars().position(|c| c == ',') {
+                        Some(i) => &line[i + 1..],
+                        None => line,
+                    };
 
-                        let mut line_with_variable = None;
-                        for variable in variables {
-                            let variable_full = format!("${}", variable.name);
+                    let mut line_with_variable = None;
+                    for variable in variables {
+                        let variable_full = format!("${}", variable.name);
 
-                            if line_without_header.contains(&variable_full) {
-                                line_with_variable =
-                                    Some(line.replace(&variable_full, &variable.value));
-                                break;
-                            }
-                        }
-
-                        let cmd = match line_with_variable {
-                            Some(line_with_variable) => Error::new_from_result_into(
-                                Command::from_str(&line_with_variable, version),
-                                line_index,
-                            )?,
-                            None => Error::new_from_result_into(
-                                Command::from_str(line, version),
-                                line_index,
-                            )?,
-                        };
-                        if let Some(cmd) = cmd {
-                            Error::new_from_result_into(
-                                sprite.try_push_cmd(cmd, indent),
-                                line_index,
-                            )?
+                        if line_without_header.contains(&variable_full) {
+                            line_with_variable =
+                                Some(line.replace(&variable_full, &variable.value));
+                            break;
                         }
                     }
+
+                    match line_with_variable {
+                        Some(line_with_variable) => Error::new_from_result_into(
+                            Command::from_str(&line_with_variable, version),
+                            line_index,
+                        ),
+                        None => Error::new_from_result_into(
+                            Command::from_str(line, version),
+                            line_index,
+                        ),
+                    }
+                };
+
+                match events.0.last_mut() {
+                    Some(event) => match event {
+                        Event::Background(bg) => {
+                            if let Some(cmd) = cmd_parse()? {
+                                Error::new_from_result_into(
+                                    bg.try_push_cmd(cmd, indent),
+                                    line_index,
+                                )?
+                            }
+                        }
+                        Event::Video(video) => {
+                            if let Some(cmd) = cmd_parse()? {
+                                Error::new_from_result_into(
+                                    video.try_push_cmd(cmd, indent),
+                                    line_index,
+                                )?
+                            }
+                        }
+                        Event::StoryboardObject(obj) => {
+                            if let Some(cmd) = cmd_parse()? {
+                                Error::new_from_result_into(
+                                    obj.try_push_cmd(cmd, indent),
+                                    line_index,
+                                )?
+                            }
+                        }
+                        _ => {
+                            return Err(Error::new(
+                                ParseError::StoryboardCmdWithNoSprite,
+                                line_index,
+                            ))
+                        }
+                    },
                     _ => {
                         return Err(Error::new(
                             ParseError::StoryboardCmdWithNoSprite,
