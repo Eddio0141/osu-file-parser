@@ -440,7 +440,7 @@ fn trigger() {
     let group = Command::from_str(group_str, 14).unwrap().unwrap();
     let end_time_str = "T,HitSound,0,1";
     let end_time = Command::from_str(end_time_str, 14).unwrap().unwrap();
-    let nothing_str = "T,HitSound,0,";
+    let nothing_str = "T,HitSound,0";
     let nothing = Command::from_str(nothing_str, 14).unwrap().unwrap();
 
     assert_eq!(everything_str, everything.to_string(14).unwrap());
