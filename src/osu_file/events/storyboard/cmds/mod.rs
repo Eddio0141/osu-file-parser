@@ -240,10 +240,37 @@ impl Command {
                 commands: _,
             } => {
                 let cmd = format!(
-                    "{},{start_time},{}{}",
+                    "{},{}{}{}",
                     trigger_type.to_string(version).unwrap(),
-                    end_time_to_string(end_time),
-                    group_number.map_or(String::new(), |group_number| format!(",{group_number}")),
+                    match self.start_time {
+                        Some(t) =>
+                            if end_time.is_none() && group_number.is_none() {
+                                t.to_string()
+                            } else {
+                                format!("{t},")
+                            },
+                        None =>
+                            if end_time.is_some() || group_number.is_some() {
+                                ",".to_string()
+                            } else {
+                                String::new()
+                            },
+                    },
+                    match end_time {
+                        Some(t) =>
+                            if group_number.is_none() {
+                                t.to_string()
+                            } else {
+                                format!("{t},")
+                            },
+                        None =>
+                            if group_number.is_some() {
+                                ",".to_string()
+                            } else {
+                                String::new()
+                            },
+                    },
+                    group_number.map_or(String::new(), |group_number| group_number.to_string()),
                 );
 
                 variable_replace("T", cmd)
@@ -481,7 +508,11 @@ impl VersionedFromStr for Command {
                             TriggerType::from_str(s, version).map(|t| t.unwrap())
                         }),
                     ),
-                    alt((tuple((comma(), peek(comma()))).map(|_| None), start_time())),
+                    alt((
+                        tuple((comma(), peek(comma()))).map(|_| None),
+                        verify(rest, |s: &str| s.trim().is_empty()).map(|_| None),
+                        start_time(),
+                    )),
                     // there are 4 possibilities:
                     alt((
                         // has everything
