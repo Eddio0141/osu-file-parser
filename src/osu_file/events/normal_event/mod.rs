@@ -13,7 +13,7 @@ use crate::{
 
 pub use error::*;
 
-use super::OLD_VERSION_TIME_OFFSET;
+use super::{storyboard::cmds::Command, EventWithCommands, OLD_VERSION_TIME_OFFSET};
 
 pub mod error;
 mod parsers;
@@ -41,6 +41,7 @@ pub struct Background {
     pub start_time: Integer,
     pub file_name: FilePath,
     pub position: Option<Position>,
+    pub commands: Vec<Command>,
 }
 
 pub const BACKGROUND_HEADER: &str = "0";
@@ -78,6 +79,7 @@ impl VersionedFromStr for Background {
             start_time,
             file_name: filename,
             position,
+            commands: Vec::new(),
         }))
     }
 }
@@ -93,17 +95,29 @@ impl VersionedToString for Background {
     }
 }
 
+impl EventWithCommands for Background {
+    fn commands(&self) -> &[Command] {
+        &self.commands
+    }
+
+    fn commands_mut(&mut self) -> &mut Vec<Command> {
+        &mut self.commands
+    }
+}
+
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Video {
     pub start_time: Integer,
     pub file_name: FilePath,
     pub position: Option<Position>,
+    pub commands: Vec<Command>,
     short_hand: bool,
 }
 
 impl Video {
     pub fn new(start_time: Integer, file_name: FilePath, position: Option<Position>) -> Self {
         Self {
+            commands: Vec::new(),
             start_time,
             file_name,
             position,
@@ -143,6 +157,7 @@ impl VersionedFromStr for Video {
         ))(s)?;
 
         Ok(Some(Video {
+            commands: Vec::new(),
             start_time,
             file_name,
             position,
@@ -164,6 +179,16 @@ impl VersionedToString for Video {
             self.file_name.to_string(version).unwrap(),
             position_str(&self.position)
         ))
+    }
+}
+
+impl EventWithCommands for Video {
+    fn commands(&self) -> &[Command] {
+        &self.commands
+    }
+
+    fn commands_mut(&mut self) -> &mut Vec<Command> {
+        &mut self.commands
     }
 }
 
