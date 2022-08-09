@@ -7,8 +7,9 @@ use super::error::*;
 use super::types::*;
 use crate::osb::Variable;
 use crate::osu_file::types::Decimal;
-use crate::osu_file::{Integer, Version, VersionedFromRepr, VersionedFromStr, VersionedToString};
+use crate::osu_file::{Integer, Version, VersionedFromStr, VersionedToString};
 use crate::parsers::*;
+use crate::VersionedFrom;
 use nom::branch::alt;
 use nom::bytes::complete::{tag, take_while};
 use nom::combinator::*;
@@ -99,7 +100,7 @@ impl Command {
             } => {
                 let cmd = format!(
                     "{},{start_time},{},{start_opacity}{}",
-                    *easing as usize,
+                    easing.to_string(version).unwrap(),
                     end_time_to_string(end_time),
                     continuing_to_string(continuing_opacities),
                 );
@@ -113,7 +114,7 @@ impl Command {
             } => {
                 let cmd = format!(
                     "{},{start_time},{},{positions_xy}",
-                    *easing as usize,
+                    easing.to_string(version).unwrap(),
                     end_time_to_string(end_time),
                 );
 
@@ -127,7 +128,7 @@ impl Command {
             } => {
                 let cmd = format!(
                     "{},{start_time},{},{start_x}{}",
-                    *easing as usize,
+                    easing.to_string(version).unwrap(),
                     end_time_to_string(end_time),
                     continuing_to_string(continuing_x),
                 );
@@ -142,7 +143,7 @@ impl Command {
             } => {
                 let cmd = format!(
                     "{},{start_time},{},{start_y}{}",
-                    *easing as usize,
+                    easing.to_string(version).unwrap(),
                     end_time_to_string(end_time),
                     continuing_to_string(continuing_y),
                 );
@@ -157,7 +158,7 @@ impl Command {
             } => {
                 let cmd = format!(
                     "{},{start_time},{},{start_scale}{}",
-                    *easing as usize,
+                    easing.to_string(version).unwrap(),
                     end_time_to_string(end_time),
                     continuing_to_string(continuing_scales),
                 );
@@ -171,7 +172,7 @@ impl Command {
             } => {
                 let cmd = format!(
                     "{},{start_time},{},{}",
-                    *easing as usize,
+                    easing.to_string(version).unwrap(),
                     end_time_to_string(end_time),
                     scales_xy,
                 );
@@ -186,7 +187,7 @@ impl Command {
             } => {
                 let cmd = format!(
                     "{},{start_time},{},{start_rotation}{}",
-                    *easing as usize,
+                    easing.to_string(version).unwrap(),
                     end_time_to_string(end_time),
                     continuing_to_string(continuing_rotations),
                 );
@@ -200,7 +201,7 @@ impl Command {
             } => {
                 let cmd = format!(
                     "{},{start_time},{},{}",
-                    *easing as usize,
+                    easing.to_string(version).unwrap(),
                     end_time_to_string(end_time),
                     colours.to_string(version).unwrap(),
                 );
@@ -215,7 +216,7 @@ impl Command {
             } => {
                 let cmd = format!(
                     "{},{start_time},{},{}{}",
-                    *easing as usize,
+                    easing.to_string(version).unwrap(),
                     end_time_to_string(end_time),
                     parameter.to_string(version).unwrap(),
                     continuing_versioned_to_string(continuing_parameters, version),
@@ -378,8 +379,8 @@ impl VersionedFromStr for Command {
                 context(ParseCommandError::MissingEasing.into(), comma()),
                 context(
                     ParseCommandError::InvalidEasing.into(),
-                    map_res(comma_field_type(), |easing| {
-                        Easing::from_repr(easing, version).map(|easing| easing.unwrap())
+                    map_opt(comma_field_type(), |easing| {
+                        <Easing as VersionedFrom<usize>>::from(easing, version)
                     }),
                 ),
             ))

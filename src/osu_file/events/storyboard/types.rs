@@ -1,5 +1,6 @@
-use crate::osu_file::{
-    InvalidRepr, Version, VersionedFromRepr, VersionedFromStr, VersionedToString,
+use crate::{
+    osu_file::{Version, VersionedFromStr, VersionedToString},
+    VersionedFrom,
 };
 
 use super::error::*;
@@ -238,48 +239,98 @@ pub enum Easing {
     BounceIn,
     BounceOut,
     BounceInOut,
+    Other(usize),
 }
 
-impl VersionedFromRepr for Easing {
-    fn from_repr(repr: usize, _: Version) -> Result<Option<Self>, InvalidRepr> {
-        match repr {
-            0 => Ok(Some(Easing::Linear)),
-            1 => Ok(Some(Easing::EasingOut)),
-            2 => Ok(Some(Easing::EasingIn)),
-            3 => Ok(Some(Easing::QuadIn)),
-            4 => Ok(Some(Easing::QuadOut)),
-            5 => Ok(Some(Easing::QuadInOut)),
-            6 => Ok(Some(Easing::CubicIn)),
-            7 => Ok(Some(Easing::CubicOut)),
-            8 => Ok(Some(Easing::CubicInOut)),
-            9 => Ok(Some(Easing::QuartIn)),
-            10 => Ok(Some(Easing::QuartOut)),
-            11 => Ok(Some(Easing::QuartInOut)),
-            12 => Ok(Some(Easing::QuintIn)),
-            13 => Ok(Some(Easing::QuintOut)),
-            14 => Ok(Some(Easing::QuintInOut)),
-            15 => Ok(Some(Easing::SineIn)),
-            16 => Ok(Some(Easing::SineOut)),
-            17 => Ok(Some(Easing::SineInOut)),
-            18 => Ok(Some(Easing::ExpoIn)),
-            19 => Ok(Some(Easing::ExpoOut)),
-            20 => Ok(Some(Easing::ExpoInOut)),
-            21 => Ok(Some(Easing::CircIn)),
-            22 => Ok(Some(Easing::CircOut)),
-            23 => Ok(Some(Easing::CircInOut)),
-            24 => Ok(Some(Easing::ElasticIn)),
-            25 => Ok(Some(Easing::ElasticOut)),
-            26 => Ok(Some(Easing::ElasticHalfOut)),
-            27 => Ok(Some(Easing::ElasticQuarterOut)),
-            28 => Ok(Some(Easing::ElasticInOut)),
-            29 => Ok(Some(Easing::BackIn)),
-            30 => Ok(Some(Easing::BackOut)),
-            31 => Ok(Some(Easing::BackInOut)),
-            32 => Ok(Some(Easing::BounceIn)),
-            33 => Ok(Some(Easing::BounceOut)),
-            34 => Ok(Some(Easing::BounceInOut)),
-            _ => Err(InvalidRepr),
+impl VersionedFrom<usize> for Easing {
+    fn from(value: usize, _: Version) -> Option<Self> {
+        match value {
+            0 => Some(Easing::Linear),
+            1 => Some(Easing::EasingOut),
+            2 => Some(Easing::EasingIn),
+            3 => Some(Easing::QuadIn),
+            4 => Some(Easing::QuadOut),
+            5 => Some(Easing::QuadInOut),
+            6 => Some(Easing::CubicIn),
+            7 => Some(Easing::CubicOut),
+            8 => Some(Easing::CubicInOut),
+            9 => Some(Easing::QuartIn),
+            10 => Some(Easing::QuartOut),
+            11 => Some(Easing::QuartInOut),
+            12 => Some(Easing::QuintIn),
+            13 => Some(Easing::QuintOut),
+            14 => Some(Easing::QuintInOut),
+            15 => Some(Easing::SineIn),
+            16 => Some(Easing::SineOut),
+            17 => Some(Easing::SineInOut),
+            18 => Some(Easing::ExpoIn),
+            19 => Some(Easing::ExpoOut),
+            20 => Some(Easing::ExpoInOut),
+            21 => Some(Easing::CircIn),
+            22 => Some(Easing::CircOut),
+            23 => Some(Easing::CircInOut),
+            24 => Some(Easing::ElasticIn),
+            25 => Some(Easing::ElasticOut),
+            26 => Some(Easing::ElasticHalfOut),
+            27 => Some(Easing::ElasticQuarterOut),
+            28 => Some(Easing::ElasticInOut),
+            29 => Some(Easing::BackIn),
+            30 => Some(Easing::BackOut),
+            31 => Some(Easing::BackInOut),
+            32 => Some(Easing::BounceIn),
+            33 => Some(Easing::BounceOut),
+            34 => Some(Easing::BounceInOut),
+            _ => Some(Easing::Other(value)),
         }
+    }
+}
+
+impl VersionedFrom<Easing> for usize {
+    fn from(value: Easing, _: Version) -> Option<Self> {
+        match value {
+            Easing::Linear => Some(0),
+            Easing::EasingOut => Some(1),
+            Easing::EasingIn => Some(2),
+            Easing::QuadIn => Some(3),
+            Easing::QuadOut => Some(4),
+            Easing::QuadInOut => Some(5),
+            Easing::CubicIn => Some(6),
+            Easing::CubicOut => Some(7),
+            Easing::CubicInOut => Some(8),
+            Easing::QuartIn => Some(9),
+            Easing::QuartOut => Some(10),
+            Easing::QuartInOut => Some(11),
+            Easing::QuintIn => Some(12),
+            Easing::QuintOut => Some(13),
+            Easing::QuintInOut => Some(14),
+            Easing::SineIn => Some(15),
+            Easing::SineOut => Some(16),
+            Easing::SineInOut => Some(17),
+            Easing::ExpoIn => Some(18),
+            Easing::ExpoOut => Some(19),
+            Easing::ExpoInOut => Some(20),
+            Easing::CircIn => Some(21),
+            Easing::CircOut => Some(22),
+            Easing::CircInOut => Some(23),
+            Easing::ElasticIn => Some(24),
+            Easing::ElasticOut => Some(25),
+            Easing::ElasticHalfOut => Some(26),
+            Easing::ElasticQuarterOut => Some(27),
+            Easing::ElasticInOut => Some(28),
+            Easing::BackIn => Some(29),
+            Easing::BackOut => Some(30),
+            Easing::BackInOut => Some(31),
+            Easing::BounceIn => Some(32),
+            Easing::BounceOut => Some(33),
+            Easing::BounceInOut => Some(34),
+            Easing::Other(value) => Some(value),
+        }
+    }
+}
+
+impl VersionedToString for Easing {
+    fn to_string(&self, version: Version) -> Option<String> {
+        <usize as VersionedFrom<Easing>>::from(*self, version).map(|value| value.to_string())
     }
 }
 
