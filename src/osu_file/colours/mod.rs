@@ -92,7 +92,7 @@ impl VersionedFromStr for Colour {
         let combo_type = tag("Combo");
         let combo_count = map_res(digit1, |s: &str| s.parse());
         let slider_track_override_type = tag("SliderTrackOverride");
-        let slider_border_type = tag("SliderBorder");
+        let slider_border_type = tag("Sliderborder");
         let rgb_parse_error = "rgb_parse_error";
         let rgb = || {
             context(
