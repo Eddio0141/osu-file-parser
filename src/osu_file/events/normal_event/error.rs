@@ -94,3 +94,30 @@ pub enum ParseColourTransformationError {
 }
 
 verbose_error_to_error!(ParseColourTransformationError);
+
+#[derive(Debug, Error, IntoStaticStr, EnumString)]
+#[non_exhaustive]
+pub enum ParseEvent4Error {
+    #[error("Wrong event type")]
+    WrongEventType,
+    #[error("Missing `field1` field")]
+    MissingField1,
+    #[error("Invalid `field1` value")]
+    InvalidField1,
+    #[error("Missing `field2` field")]
+    MissingField2,
+    #[error("Invalid `field2` value")]
+    InvalidField2,
+    #[error("Missing `file_name` field")]
+    MissingFileName,
+    #[error("Missing `x` field")]
+    MissingX,
+    #[error("Invalid `x` value")]
+    InvalidX,
+    #[error("Missing `y` field")]
+    MissingY,
+    #[error("Invalid `y` value")]
+    InvalidY,
+}
+
+verbose_error_to_error!(ParseEvent4Error);

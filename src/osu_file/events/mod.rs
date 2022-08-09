@@ -52,6 +52,7 @@ impl Events {
             Video,
             Break,
             ColourTransformation,
+            Event4,
             Other,
         }
 
@@ -89,6 +90,13 @@ impl Events {
                 cut(alt((eof, comma()))),
             )))
             .map(|_| NormalEventType::ColourTransformation)
+        };
+        let event4 = || {
+            peek(tuple((
+                tag(normal_event::EVENT4_HEADER),
+                cut(alt((eof, comma()))),
+            )))
+            .map(|_| NormalEventType::Event4)
         };
 
         for (line_index, line) in s.lines().enumerate() {
@@ -152,6 +160,14 @@ impl Events {
                                 )?
                             }
                         }
+                        Event::Event4(event4) => {
+                            if let Some(cmd) = cmd_parse()? {
+                                Error::new_from_result_into(
+                                    event4.try_push_cmd(cmd, indent),
+                                    line_index,
+                                )?
+                            }
+                        }
                         Event::StoryboardObject(obj) => {
                             if let Some(cmd) = cmd_parse()? {
                                 Error::new_from_result_into(
@@ -183,6 +199,7 @@ impl Events {
                 video(),
                 break_(),
                 colour_transformation(),
+                event4(),
                 success(NormalEventType::Other),
             ))(line)
             .unwrap();
@@ -202,6 +219,9 @@ impl Events {
                         .map(|e| e.map(Event::ColourTransformation))
                         .map_err(ParseError::ParseColourTransformationError)
                 }
+                NormalEventType::Event4 => Event4::from_str(line, version)
+                    .map(|e| e.map(Event::Event4))
+                    .map_err(ParseError::ParseEvent4Error),
                 NormalEventType::Other => {
                     // is it a storyboard object?
                     match Object::from_str(line, version) {
@@ -274,6 +294,7 @@ pub enum Event {
     Video(Video),
     Break(Break),
     ColourTransformation(ColourTransformation),
+    Event4(Event4),
     StoryboardObject(Object),
     AudioSample(AudioSample),
 }
@@ -296,6 +317,7 @@ impl Event {
             Event::Video(video) => video.to_string(version),
             Event::Break(break_) => break_.to_string(version),
             Event::ColourTransformation(colour_trans) => colour_trans.to_string(version),
+            Event::Event4(event4) => event4.to_string(version),
             Event::StoryboardObject(object) => object.to_string_variables(version, variables),
             Event::AudioSample(audio_sample) => Some(audio_sample.to_string(version).unwrap()),
         }

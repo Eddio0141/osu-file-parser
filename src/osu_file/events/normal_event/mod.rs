@@ -335,3 +335,73 @@ impl VersionedToString for ColourTransformation {
         }
     }
 }
+
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
+pub struct Event4 {
+    pub field1: Integer,
+    pub field2: Integer,
+    pub file_name: FilePath,
+    pub position: Option<Position>,
+    pub commands: Vec<Command>,
+}
+
+pub const EVENT4_HEADER: &str = "4";
+
+impl VersionedFromStr for Event4 {
+    type Err = ParseEvent4Error;
+
+    fn from_str(s: &str, _: Version) -> std::result::Result<Option<Self>, Self::Err> {
+        let (_, (field1, field2, (filename, position))) = preceded(
+            tuple((
+                context(ParseEvent4Error::WrongEventType.into(), tag(EVENT4_HEADER)),
+                context(ParseEvent4Error::MissingField1.into(), comma()),
+            )),
+            tuple((
+                context(ParseEvent4Error::InvalidField1.into(), comma_field_type()),
+                preceded(
+                    context(ParseEvent4Error::MissingField2.into(), comma()),
+                    context(ParseEvent4Error::InvalidField2.into(), comma_field_type()),
+                ),
+                preceded(
+                    context(ParseEvent4Error::MissingFileName.into(), comma()),
+                    file_name_and_position(
+                        ParseEvent4Error::MissingX.into(),
+                        ParseEvent4Error::InvalidX.into(),
+                        ParseEvent4Error::MissingY.into(),
+                        ParseEvent4Error::InvalidY.into(),
+                    ),
+                ),
+            )),
+        )(s)?;
+
+        Ok(Some(Event4 {
+            field1,
+            field2,
+            file_name: filename,
+            position,
+            commands: Vec::new(),
+        }))
+    }
+}
+
+impl VersionedToString for Event4 {
+    fn to_string(&self, version: Version) -> Option<String> {
+        Some(format!(
+            "{EVENT4_HEADER},{},{},{}{}",
+            self.field1,
+            self.field2,
+            self.file_name.to_string(version).unwrap(),
+            position_str(&self.position),
+        ))
+    }
+}
+
+impl EventWithCommands for Event4 {
+    fn commands(&self) -> &[Command] {
+        &self.commands
+    }
+
+    fn commands_mut(&mut self) -> &mut Vec<Command> {
+        &mut self.commands
+    }
+}
