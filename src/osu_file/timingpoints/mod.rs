@@ -371,7 +371,7 @@ impl VersionedFromStr for TimingPoint {
                                                     preceded(verify(success(0), |_| version <= 5), 
                                                     context(
                                                         ParseTimingPointError::InvalidUninherited.into(),
-                                                        cut(map_res(rest, parse_zero_one_bool)),
+                                                        map_res(rest, parse_zero_one_bool),
                                                     )
                                                 ).map(|uninherited| (Some(uninherited), None)),         
                                                 tuple((
