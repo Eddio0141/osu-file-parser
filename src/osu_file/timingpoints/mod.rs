@@ -5,7 +5,7 @@ use crate::osu_file::types::Decimal;
 use either::Either;
 use nom::{
     branch::alt,
-    combinator::{cut, map_res, success, verify},
+    combinator::{cut, map_res, success, verify, rest},
     error::context,
     sequence::{preceded, tuple},
     Parser,
@@ -271,6 +271,8 @@ impl VersionedFromStr for TimingPoint {
         let sample_index_fallback = <SampleIndex as VersionedFrom<u32>>::from(1, version).unwrap();
         let volume_fallback = <Volume as VersionedFrom<i8>>::from(100, version).unwrap();
 
+        // for now we limit some fields for certain versions since we aren't sure if they are optional or not
+        // could change in the future to be more flexible
         let (
             _,
             (
@@ -294,7 +296,7 @@ impl VersionedFromStr for TimingPoint {
             preceded(
                 context(ParseTimingPointError::MissingBeatLength.into(), comma()),
                 alt((
-                    preceded(verify(success(0), |_| version == 3), consume_rest_type()).map(
+                    preceded(verify(success(0), |_| version <= 3), consume_rest_type()).map(
                         |beat_length| {
                             (
                                 beat_length,
@@ -324,7 +326,7 @@ impl VersionedFromStr for TimingPoint {
                             context(ParseTimingPointError::MissingSampleIndex.into(), comma()),
                             alt((
                                 preceded(
-                                    verify(success(0), |_| version == 4),
+                                    verify(success(0), |_| version <= 4),
                                     context(
                                         ParseTimingPointError::InvalidSampleIndex.into(),
                                         cut(consume_rest_versioned_type(version)),
@@ -343,7 +345,7 @@ impl VersionedFromStr for TimingPoint {
                                         ),
                                         alt((
                                             preceded(
-                                                verify(success(0), |_| version == 4),
+                                                verify(success(0), |_| version <= 4),
                                                 context(
                                                     ParseTimingPointError::InvalidVolume.into(),
                                                     cut(consume_rest_versioned_type(version)),
@@ -360,18 +362,24 @@ impl VersionedFromStr for TimingPoint {
                                                     ParseTimingPointError::InvalidVolume.into(),
                                                     comma_field_versioned_type(version),
                                                 ),
-                                                preceded(
+                                                preceded(context(
+                                                    ParseTimingPointError::MissingUninherited
+                                                        .into(),
+                                                    comma(),
+                                                ), 
+                                                alt((
+                                                    preceded(verify(success(0), |_| version <= 5), 
                                                     context(
-                                                        ParseTimingPointError::MissingUninherited
-                                                            .into(),
-                                                        comma(),
-                                                    ),
+                                                        ParseTimingPointError::InvalidUninherited.into(),
+                                                        cut(map_res(rest, parse_zero_one_bool)),
+                                                    )
+                                                ).map(|uninherited| (Some(uninherited), None)),         
+                                                tuple((
                                                     context(
                                                         ParseTimingPointError::InvalidUninherited
                                                             .into(),
                                                         map_res(comma_field(), parse_zero_one_bool),
                                                     ),
-                                                ),
                                                 preceded(
                                                     context(
                                                         ParseTimingPointError::MissingEffects
@@ -384,10 +392,12 @@ impl VersionedFromStr for TimingPoint {
                                                         consume_rest_versioned_type(version),
                                                     ),
                                                 ),
+                                                )).map(|(uninherited, effects)| (Some(uninherited), Some(effects))),
                                             ))
+                                            )))
                                             .map(
-                                                |(volume, uninherited, effects)| {
-                                                    (volume, Some(uninherited), Some(effects))
+                                                |(volume, (uninherited, effects))| {
+                                                    (volume, uninherited, effects)
                                                 },
                                             ),
                                         )),
