@@ -8,7 +8,6 @@ use nom::sequence::{preceded, tuple};
 use nom::Parser;
 
 use crate::events::EventWithCommands;
-use crate::osb::Variable;
 use crate::osu_file::{
     FilePath, Position, Version, VersionedDefault, VersionedFromStr, VersionedToString,
 };
@@ -82,17 +81,11 @@ impl EventWithCommands for Object {
     fn commands_mut(&mut self) -> &mut Vec<Command> {
         &mut self.commands
     }
-}
 
-impl Object {
-    pub(crate) fn to_string_variables(
-        &self,
-        version: Version,
-        variables: &[Variable],
-    ) -> Option<String> {
+    fn to_string_cmd(&self, version: Version) -> Option<String> {
         let pos_str = format!("{},{}", self.position.x, self.position.y);
 
-        let object_str = match &self.object_type {
+        let obj = match &self.object_type {
             ObjectType::Sprite(sprite) => format!(
                 "Sprite,{},{},{},{}",
                 self.layer.to_string(version).unwrap(),
@@ -114,15 +107,7 @@ impl Object {
             }
         };
 
-        let cmds = self.commands_to_string_variables(version, variables);
-
-        if let Some(cmds) = cmds {
-            if !cmds.is_empty() {
-                return Some(format!("{object_str}\n{cmds}"));
-            }
-        }
-
-        Some(object_str)
+        Some(obj)
     }
 }
 
