@@ -10,7 +10,8 @@ mod parsers;
 /// - Ignores all empty lines and key value pair's spacing between the key and comma.
 /// - Deletes `\u{feff}` characters.
 pub fn osu_str_trimmer(s: &str) -> String {
-    s.lines()
+    s.replace("\r\n", "\n")
+        .lines()
         .filter_map(|s| {
             // remove the weird \u{feff} characters
             let s = s.trim().replace('\u{feff}', "");
