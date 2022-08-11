@@ -289,13 +289,13 @@ pub enum ObjectType {
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub struct Origin {
-    pub type_: OriginTypes,
+    pub type_: OriginType,
     pub shorthand: bool,
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 #[non_exhaustive]
-pub enum OriginTypes {
+pub enum OriginType {
     TopLeft,
     Centre,
     CentreLeft,
@@ -308,8 +308,8 @@ pub enum OriginTypes {
     BottomRight,
 }
 
-impl From<OriginTypes> for Origin {
-    fn from(type_: OriginTypes) -> Self {
+impl From<OriginType> for Origin {
+    fn from(type_: OriginType) -> Self {
         Self {
             type_,
             shorthand: true,
@@ -320,21 +320,21 @@ impl From<OriginTypes> for Origin {
 impl VersionedToString for Origin {
     fn to_string(&self, version: Version) -> Option<String> {
         let origin = if self.shorthand {
-            let origin = <usize as VersionedFrom<OriginTypes>>::from(self.type_, version).unwrap();
+            let origin = <usize as VersionedFrom<OriginType>>::from(self.type_, version).unwrap();
 
             origin.to_string()
         } else {
             let origin = match self.type_ {
-                OriginTypes::TopLeft => "TopLeft",
-                OriginTypes::Centre => "Centre",
-                OriginTypes::CentreLeft => "CentreLeft",
-                OriginTypes::TopRight => "TopRight",
-                OriginTypes::BottomCentre => "BottomCentre",
-                OriginTypes::TopCentre => "TopCentre",
-                OriginTypes::Custom => "Custom",
-                OriginTypes::CentreRight => "CentreRight",
-                OriginTypes::BottomLeft => "BottomLeft",
-                OriginTypes::BottomRight => "BottomRight",
+                OriginType::TopLeft => "TopLeft",
+                OriginType::Centre => "Centre",
+                OriginType::CentreLeft => "CentreLeft",
+                OriginType::TopRight => "TopRight",
+                OriginType::BottomCentre => "BottomCentre",
+                OriginType::TopCentre => "TopCentre",
+                OriginType::Custom => "Custom",
+                OriginType::CentreRight => "CentreRight",
+                OriginType::BottomLeft => "BottomLeft",
+                OriginType::BottomRight => "BottomRight",
             };
 
             origin.to_string()
@@ -351,48 +351,48 @@ impl VersionedFromStr for Origin {
         match s {
             "TopLeft" => Ok(Some(Origin {
                 shorthand: false,
-                type_: OriginTypes::TopLeft,
+                type_: OriginType::TopLeft,
             })),
             "Centre" => Ok(Some(Origin {
                 shorthand: false,
-                type_: OriginTypes::Centre,
+                type_: OriginType::Centre,
             })),
             "CentreLeft" => Ok(Some(Origin {
                 shorthand: false,
-                type_: OriginTypes::CentreLeft,
+                type_: OriginType::CentreLeft,
             })),
             "TopRight" => Ok(Some(Origin {
                 shorthand: false,
-                type_: OriginTypes::TopRight,
+                type_: OriginType::TopRight,
             })),
             "BottomCentre" => Ok(Some(Origin {
                 shorthand: false,
-                type_: OriginTypes::BottomCentre,
+                type_: OriginType::BottomCentre,
             })),
             "TopCentre" => Ok(Some(Origin {
                 shorthand: false,
-                type_: OriginTypes::TopCentre,
+                type_: OriginType::TopCentre,
             })),
             "Custom" => Ok(Some(Origin {
                 shorthand: false,
-                type_: OriginTypes::Custom,
+                type_: OriginType::Custom,
             })),
             "CentreRight" => Ok(Some(Origin {
                 shorthand: false,
-                type_: OriginTypes::CentreRight,
+                type_: OriginType::CentreRight,
             })),
             "BottomLeft" => Ok(Some(Origin {
                 shorthand: false,
-                type_: OriginTypes::BottomLeft,
+                type_: OriginType::BottomLeft,
             })),
             "BottomRight" => Ok(Some(Origin {
                 shorthand: false,
-                type_: OriginTypes::BottomRight,
+                type_: OriginType::BottomRight,
             })),
             _ => {
                 let s = s.parse()?;
                 let type_ =
-                    <OriginTypes as VersionedTryFrom<usize>>::try_from(s, version)?.unwrap();
+                    <OriginType as VersionedTryFrom<usize>>::try_from(s, version)?.unwrap();
 
                 Ok(Some(Origin {
                     type_,
@@ -403,39 +403,39 @@ impl VersionedFromStr for Origin {
     }
 }
 
-impl VersionedTryFrom<usize> for OriginTypes {
+impl VersionedTryFrom<usize> for OriginType {
     type Error = OriginTryFromIntError;
 
     fn try_from(value: usize, _: Version) -> Result<Option<Self>, Self::Error> {
         match value {
-            0 => Ok(Some(OriginTypes::TopLeft)),
-            1 => Ok(Some(OriginTypes::Centre)),
-            2 => Ok(Some(OriginTypes::CentreLeft)),
-            3 => Ok(Some(OriginTypes::TopRight)),
-            4 => Ok(Some(OriginTypes::BottomCentre)),
-            5 => Ok(Some(OriginTypes::TopCentre)),
-            6 => Ok(Some(OriginTypes::Custom)),
-            7 => Ok(Some(OriginTypes::CentreRight)),
-            8 => Ok(Some(OriginTypes::BottomLeft)),
-            9 => Ok(Some(OriginTypes::BottomRight)),
+            0 => Ok(Some(OriginType::TopLeft)),
+            1 => Ok(Some(OriginType::Centre)),
+            2 => Ok(Some(OriginType::CentreLeft)),
+            3 => Ok(Some(OriginType::TopRight)),
+            4 => Ok(Some(OriginType::BottomCentre)),
+            5 => Ok(Some(OriginType::TopCentre)),
+            6 => Ok(Some(OriginType::Custom)),
+            7 => Ok(Some(OriginType::CentreRight)),
+            8 => Ok(Some(OriginType::BottomLeft)),
+            9 => Ok(Some(OriginType::BottomRight)),
             _ => Err(OriginTryFromIntError::UnknownVariant),
         }
     }
 }
 
-impl VersionedFrom<OriginTypes> for usize {
-    fn from(value: OriginTypes, _: Version) -> Option<Self> {
+impl VersionedFrom<OriginType> for usize {
+    fn from(value: OriginType, _: Version) -> Option<Self> {
         match value {
-            OriginTypes::TopLeft => Some(0),
-            OriginTypes::Centre => Some(1),
-            OriginTypes::CentreLeft => Some(2),
-            OriginTypes::TopRight => Some(3),
-            OriginTypes::BottomCentre => Some(4),
-            OriginTypes::TopCentre => Some(5),
-            OriginTypes::Custom => Some(6),
-            OriginTypes::CentreRight => Some(7),
-            OriginTypes::BottomLeft => Some(8),
-            OriginTypes::BottomRight => Some(9),
+            OriginType::TopLeft => Some(0),
+            OriginType::Centre => Some(1),
+            OriginType::CentreLeft => Some(2),
+            OriginType::TopRight => Some(3),
+            OriginType::BottomCentre => Some(4),
+            OriginType::TopCentre => Some(5),
+            OriginType::Custom => Some(6),
+            OriginType::CentreRight => Some(7),
+            OriginType::BottomLeft => Some(8),
+            OriginType::BottomRight => Some(9),
         }
     }
 }
