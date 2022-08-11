@@ -329,7 +329,7 @@ impl VersionedFromStr for TimingPoint {
                                     verify(success(0), |_| version <= 4),
                                     context(
                                         ParseTimingPointError::InvalidSampleIndex.into(),
-                                        cut(consume_rest_versioned_type(version)),
+                                        consume_rest_versioned_type(version),
                                     ),
                                 )
                                 .map(|sample_index| (sample_index, (volume_fallback, None, None))),
