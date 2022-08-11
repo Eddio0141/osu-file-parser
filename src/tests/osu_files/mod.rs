@@ -466,3 +466,11 @@ fn missing_effects_field() {
 
     assert_eq_osu_str(i, o.to_string());
 }
+
+#[test]
+fn oblivion_aspire() {
+    let i = include_str!("./files/oblivion_aspire.osu");
+    let o = i.parse::<OsuFile>().unwrap();
+
+    assert_eq_osu_str(i, o.to_string());
+}
