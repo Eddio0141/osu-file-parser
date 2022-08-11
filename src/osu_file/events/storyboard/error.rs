@@ -251,6 +251,17 @@ pub enum ParseSampleSetError {
 pub enum ParseOriginError {
     #[error("Unknown `Origin` variant")]
     UnknownVariant,
+    #[error(transparent)]
+    ParseIntError(#[from] ParseIntError),
+    #[error(transparent)]
+    OriginTryFromIntError(#[from] OriginTryFromIntError),
+}
+
+#[derive(Debug, Error)]
+#[non_exhaustive]
+pub enum OriginTryFromIntError {
+    #[error("Unknown `Origin` variant")]
+    UnknownVariant,
 }
 
 #[derive(Debug, Error)]

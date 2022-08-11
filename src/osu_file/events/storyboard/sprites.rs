@@ -15,6 +15,7 @@ use crate::parsers::{
     comma, comma_field, comma_field_type, comma_field_versioned_type, consume_rest_versioned_type,
     nothing,
 };
+use crate::{VersionedFrom, VersionedTryFrom};
 
 use super::cmds::*;
 use super::error::*;
@@ -287,8 +288,14 @@ pub enum ObjectType {
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+pub struct Origin {
+    pub type_: OriginTypes,
+    pub shorthand: bool,
+}
+
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 #[non_exhaustive]
-pub enum Origin {
+pub enum OriginTypes {
     TopLeft,
     Centre,
     CentreLeft,
@@ -301,41 +308,134 @@ pub enum Origin {
     BottomRight,
 }
 
+impl From<OriginTypes> for Origin {
+    fn from(type_: OriginTypes) -> Self {
+        Self {
+            type_,
+            shorthand: true,
+        }
+    }
+}
+
 impl VersionedToString for Origin {
-    fn to_string(&self, _: Version) -> Option<String> {
-        let origin = match self {
-            Origin::TopLeft => "TopLeft",
-            Origin::Centre => "Centre",
-            Origin::CentreLeft => "CentreLeft",
-            Origin::TopRight => "TopRight",
-            Origin::BottomCentre => "BottomCentre",
-            Origin::TopCentre => "TopCentre",
-            Origin::Custom => "Custom",
-            Origin::CentreRight => "CentreRight",
-            Origin::BottomLeft => "BottomLeft",
-            Origin::BottomRight => "BottomRight",
+    fn to_string(&self, version: Version) -> Option<String> {
+        let origin = if self.shorthand {
+            let origin = <usize as VersionedFrom<OriginTypes>>::from(self.type_, version).unwrap();
+
+            origin.to_string()
+        } else {
+            let origin = match self.type_ {
+                OriginTypes::TopLeft => "TopLeft",
+                OriginTypes::Centre => "Centre",
+                OriginTypes::CentreLeft => "CentreLeft",
+                OriginTypes::TopRight => "TopRight",
+                OriginTypes::BottomCentre => "BottomCentre",
+                OriginTypes::TopCentre => "TopCentre",
+                OriginTypes::Custom => "Custom",
+                OriginTypes::CentreRight => "CentreRight",
+                OriginTypes::BottomLeft => "BottomLeft",
+                OriginTypes::BottomRight => "BottomRight",
+            };
+
+            origin.to_string()
         };
 
-        Some(origin.to_string())
+        Some(origin)
     }
 }
 
 impl VersionedFromStr for Origin {
     type Err = ParseOriginError;
 
-    fn from_str(s: &str, _: Version) -> std::result::Result<Option<Self>, Self::Err> {
+    fn from_str(s: &str, version: Version) -> std::result::Result<Option<Self>, Self::Err> {
         match s {
-            "TopLeft" => Ok(Some(Origin::TopLeft)),
-            "Centre" => Ok(Some(Origin::Centre)),
-            "CentreLeft" => Ok(Some(Origin::CentreLeft)),
-            "TopRight" => Ok(Some(Origin::TopRight)),
-            "BottomCentre" => Ok(Some(Origin::BottomCentre)),
-            "TopCentre" => Ok(Some(Origin::TopCentre)),
-            "Custom" => Ok(Some(Origin::Custom)),
-            "CentreRight" => Ok(Some(Origin::CentreRight)),
-            "BottomLeft" => Ok(Some(Origin::BottomLeft)),
-            "BottomRight" => Ok(Some(Origin::BottomRight)),
-            _ => Err(ParseOriginError::UnknownVariant),
+            "TopLeft" => Ok(Some(Origin {
+                shorthand: false,
+                type_: OriginTypes::TopLeft,
+            })),
+            "Centre" => Ok(Some(Origin {
+                shorthand: false,
+                type_: OriginTypes::Centre,
+            })),
+            "CentreLeft" => Ok(Some(Origin {
+                shorthand: false,
+                type_: OriginTypes::CentreLeft,
+            })),
+            "TopRight" => Ok(Some(Origin {
+                shorthand: false,
+                type_: OriginTypes::TopRight,
+            })),
+            "BottomCentre" => Ok(Some(Origin {
+                shorthand: false,
+                type_: OriginTypes::BottomCentre,
+            })),
+            "TopCentre" => Ok(Some(Origin {
+                shorthand: false,
+                type_: OriginTypes::TopCentre,
+            })),
+            "Custom" => Ok(Some(Origin {
+                shorthand: false,
+                type_: OriginTypes::Custom,
+            })),
+            "CentreRight" => Ok(Some(Origin {
+                shorthand: false,
+                type_: OriginTypes::CentreRight,
+            })),
+            "BottomLeft" => Ok(Some(Origin {
+                shorthand: false,
+                type_: OriginTypes::BottomLeft,
+            })),
+            "BottomRight" => Ok(Some(Origin {
+                shorthand: false,
+                type_: OriginTypes::BottomRight,
+            })),
+            _ => {
+                let s = s.parse()?;
+                let type_ =
+                    <OriginTypes as VersionedTryFrom<usize>>::try_from(s, version)?.unwrap();
+
+                Ok(Some(Origin {
+                    type_,
+                    shorthand: true,
+                }))
+            }
+        }
+    }
+}
+
+impl VersionedTryFrom<usize> for OriginTypes {
+    type Error = OriginTryFromIntError;
+
+    fn try_from(value: usize, _: Version) -> Result<Option<Self>, Self::Error> {
+        match value {
+            0 => Ok(Some(OriginTypes::TopLeft)),
+            1 => Ok(Some(OriginTypes::Centre)),
+            2 => Ok(Some(OriginTypes::CentreLeft)),
+            3 => Ok(Some(OriginTypes::TopRight)),
+            4 => Ok(Some(OriginTypes::BottomCentre)),
+            5 => Ok(Some(OriginTypes::TopCentre)),
+            6 => Ok(Some(OriginTypes::Custom)),
+            7 => Ok(Some(OriginTypes::CentreRight)),
+            8 => Ok(Some(OriginTypes::BottomLeft)),
+            9 => Ok(Some(OriginTypes::BottomRight)),
+            _ => Err(OriginTryFromIntError::UnknownVariant),
+        }
+    }
+}
+
+impl VersionedFrom<OriginTypes> for usize {
+    fn from(value: OriginTypes, _: Version) -> Option<Self> {
+        match value {
+            OriginTypes::TopLeft => Some(0),
+            OriginTypes::Centre => Some(1),
+            OriginTypes::CentreLeft => Some(2),
+            OriginTypes::TopRight => Some(3),
+            OriginTypes::BottomCentre => Some(4),
+            OriginTypes::TopCentre => Some(5),
+            OriginTypes::Custom => Some(6),
+            OriginTypes::CentreRight => Some(7),
+            OriginTypes::BottomLeft => Some(8),
+            OriginTypes::BottomRight => Some(9),
         }
     }
 }
