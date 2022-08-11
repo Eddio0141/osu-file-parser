@@ -136,8 +136,6 @@ impl VersionedTryFrom<u8> for Volume {
     fn try_from(value: u8, _: Version) -> Result<Option<Self>, Self::Error> {
         if value > 100 {
             Err(VolumeSetError::VolumeTooHigh)
-        } else if value == 0 {
-            Err(VolumeSetError::VolumeTooLow)
         } else {
             Ok(Some(Volume(value)))
         }
