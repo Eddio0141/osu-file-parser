@@ -393,6 +393,16 @@ fn variable_osb() {
 }
 
 #[test]
+fn variable2_osb() {
+    let mut osu = OsuFile::default(14);
+    let osb = include_str!("./files/variable2.osb");
+
+    osu.append_osb(&osb).unwrap();
+
+    assert_eq_osu_str(osu.osb_to_string().unwrap(), osb);
+}
+
+#[test]
 fn error_line_index_osb() {
     let mut osu = OsuFile::default(14);
     let osb = include_str!("./files/error_line_index.osb");
