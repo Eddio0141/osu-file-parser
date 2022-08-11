@@ -52,7 +52,10 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
     let s = Events(vec![
         Event::StoryboardObject(Object {
             layer: Layer::Pass,
-            origin: Origin::Centre,
+            origin: Origin {
+                type_: OriginTypes::Centre,
+                shorthand: false,
+            },
             position: Position {
                 x: dec!(320).into(),
                 y: dec!(240).into(),
@@ -239,7 +242,10 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
         }),
         Event::StoryboardObject(Object {
             layer: Layer::Fail,
-            origin: Origin::BottomCentre,
+            origin: Origin {
+                type_: OriginTypes::BottomCentre,
+                shorthand: false,
+            },
             position: Position {
                 x: dec!(418).into(),
                 y: dec!(108).into(),
