@@ -1,16 +1,19 @@
 use std::str::FromStr;
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use osu_file_parser::osu_file::{
-    events::{
-        storyboard::{
-            cmds::{Command, CommandProperties},
-            sprites::{Layer, Object, ObjectType, Origin, Sprite},
+use osu_file_parser::{
+    events::storyboard::sprites::OriginType,
+    osu_file::{
+        events::{
+            storyboard::{
+                cmds::{Command, CommandProperties},
+                sprites::{Layer, Object, ObjectType, Sprite},
+            },
+            Event,
         },
-        Event,
+        hitobjects::HitObject,
+        OsuFile, Position, VersionedFromStr, VersionedToString,
     },
-    hitobjects::HitObject,
-    OsuFile, Position, VersionedFromStr, VersionedToString,
 };
 
 fn storyboard_cmds_parse(c: &mut Criterion) {
@@ -182,7 +185,7 @@ fn storyboard_loop_cmd_to_string(c: &mut Criterion) {
 
     let event = Event::StoryboardObject(Object {
         layer: Layer::Background,
-        origin: Origin::BottomCentre,
+        origin: OriginType::BottomCentre.into(),
         position: Position::default(),
         object_type: ObjectType::Sprite(Sprite {
             filepath: "".into(),

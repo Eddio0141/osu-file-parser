@@ -17,7 +17,7 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
         Event::StoryboardObject(Object {
             layer: Layer::Pass,
             origin: Origin {
-                type_: OriginTypes::Centre,
+                type_: OriginType::Centre,
                 shorthand: false,
             },
             position: Position {
@@ -32,7 +32,7 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
         Event::StoryboardObject(Object {
             layer: Layer::Fail,
             origin: Origin {
-                type_: OriginTypes::BottomCentre,
+                type_: OriginType::BottomCentre,
                 shorthand: false,
             },
             position: Position {
@@ -58,7 +58,7 @@ fn frame_file_names() {
     let animation = Object {
         layer: Layer::Background,
         origin: Origin {
-            type_: OriginTypes::BottomCentre,
+            type_: OriginType::BottomCentre,
             shorthand: false,
         },
         position: Position {
