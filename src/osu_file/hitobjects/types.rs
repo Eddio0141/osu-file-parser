@@ -149,6 +149,20 @@ pub enum SampleSet {
     SoftSet,
     /// Drum set.
     DrumSet,
+    /// There is a case where some maps have an extremely high value for this.
+    Other(usize),
+}
+
+impl VersionedFrom<SampleSet> for usize {
+    fn from(set: SampleSet, _: Version) -> Option<Self> {
+        match set {
+            SampleSet::NoCustomSampleSet => Some(0),
+            SampleSet::NormalSet => Some(1),
+            SampleSet::SoftSet => Some(2),
+            SampleSet::DrumSet => Some(3),
+            SampleSet::Other(other) => Some(other),
+        }
+    }
 }
 
 impl VersionedDefault for SampleSet {
@@ -158,8 +172,12 @@ impl VersionedDefault for SampleSet {
 }
 
 impl VersionedToString for SampleSet {
-    fn to_string(&self, _: Version) -> Option<String> {
-        Some((*self as usize).to_string())
+    fn to_string(&self, version: Version) -> Option<String> {
+        Some(
+            <usize as VersionedFrom<SampleSet>>::from(*self, version)
+                .unwrap()
+                .to_string(),
+        )
     }
 }
 
@@ -174,7 +192,7 @@ impl VersionedFromStr for SampleSet {
             1 => Ok(Some(Self::NormalSet)),
             2 => Ok(Some(Self::SoftSet)),
             3 => Ok(Some(Self::DrumSet)),
-            _ => Err(ParseSampleSetError::UnknownVariant),
+            _ => Ok(Some(Self::Other(s))),
         }
     }
 }

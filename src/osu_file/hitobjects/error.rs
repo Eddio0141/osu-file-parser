@@ -140,9 +140,7 @@ verbose_error_to_error!(ParseHitSampleError);
 #[non_exhaustive]
 /// Error used when there was a problem parsing a `str` into a [`sampleset`][super::types::SampleSet].
 pub enum ParseSampleSetError {
-    #[error("Invalid `SampleSet` variant")]
-    UnknownVariant,
-    /// There was a problem parsing a `str` as an integer first.
+    /// There was a problem parsing a `str` as an integer.
     #[error("There was a problem parsing the `str` into an integer first")]
     ParseValueError(#[from] ParseIntError),
 }
