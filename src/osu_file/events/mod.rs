@@ -39,7 +39,7 @@ impl VersionedFromStr for Events {
 }
 
 impl Events {
-    pub(crate) fn from_str_variables(
+    pub fn from_str_variables(
         s: &str,
         version: Version,
         variables: &[Variable],
@@ -111,14 +111,19 @@ impl Events {
                         None => line,
                     };
 
-                    let mut line_with_variable = None;
+                    let mut line_with_variable: Option<String> = None;
                     for variable in variables {
                         let variable_full = format!("${}", variable.name);
 
                         if line_without_header.contains(&variable_full) {
-                            line_with_variable =
-                                Some(line.replace(&variable_full, &variable.value));
-                            break;
+                            let new_line = match line_with_variable {
+                                Some(line_with_variable) => {
+                                    line_with_variable.replace(&variable_full, &variable.value)
+                                }
+                                None => line.replace(&variable_full, &variable.value),
+                            };
+
+                            line_with_variable = Some(new_line);
                         }
                     }
 
@@ -239,7 +244,7 @@ impl Events {
         Ok(Some(events))
     }
 
-    pub(crate) fn to_string_variables(
+    pub fn to_string_variables(
         &self,
         version: Version,
         variables: &[Variable],
@@ -285,11 +290,7 @@ impl VersionedToString for Event {
 }
 
 impl Event {
-    pub fn to_string_variables(
-        &self,
-        version: Version,
-        variables: &[Variable],
-    ) -> Option<String> {
+    pub fn to_string_variables(&self, version: Version, variables: &[Variable]) -> Option<String> {
         match self {
             Event::Comment(comment) => Some(format!("//{comment}")),
             Event::Background(background) => background.to_string(version),

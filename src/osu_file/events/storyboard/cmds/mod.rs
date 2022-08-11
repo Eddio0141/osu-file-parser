@@ -70,11 +70,7 @@ impl VersionedToString for Command {
 }
 
 impl Command {
-    pub(crate) fn to_string_variables(
-        &self,
-        version: Version,
-        variables: &[Variable],
-    ) -> Option<String> {
+    pub fn to_string_variables(&self, version: Version, variables: &[Variable]) -> Option<String> {
         let end_time_to_string =
             |end_time: &Option<i32>| end_time.map_or("".to_string(), |t| t.to_string());
         let variable_replace = |header, cmd: String| {
@@ -83,7 +79,6 @@ impl Command {
             for variable in variables {
                 if cmd.contains(&variable.value) {
                     cmd = cmd.replace(&variable.value, &format!("${}", variable.name));
-                    break;
                 }
             }
 
