@@ -1,6 +1,6 @@
 use crate::{
     osu_file::{Version, VersionedFromStr, VersionedToString},
-    VersionedFrom,
+    Integer, VersionedFrom,
 };
 
 use super::error::*;
@@ -239,11 +239,11 @@ pub enum Easing {
     BounceIn,
     BounceOut,
     BounceInOut,
-    Other(usize),
+    Other(Integer),
 }
 
-impl VersionedFrom<usize> for Easing {
-    fn from(value: usize, _: Version) -> Option<Self> {
+impl VersionedFrom<Integer> for Easing {
+    fn from(value: Integer, _: Version) -> Option<Self> {
         match value {
             0 => Some(Easing::Linear),
             1 => Some(Easing::EasingOut),
@@ -285,7 +285,7 @@ impl VersionedFrom<usize> for Easing {
     }
 }
 
-impl VersionedFrom<Easing> for usize {
+impl VersionedFrom<Easing> for Integer {
     fn from(value: Easing, _: Version) -> Option<Self> {
         match value {
             Easing::Linear => Some(0),
@@ -330,7 +330,7 @@ impl VersionedFrom<Easing> for usize {
 
 impl VersionedToString for Easing {
     fn to_string(&self, version: Version) -> Option<String> {
-        <usize as VersionedFrom<Easing>>::from(*self, version).map(|value| value.to_string())
+        <Integer as VersionedFrom<Easing>>::from(*self, version).map(|value| value.to_string())
     }
 }
 

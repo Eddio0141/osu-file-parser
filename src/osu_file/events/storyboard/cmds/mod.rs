@@ -375,7 +375,7 @@ impl VersionedFromStr for Command {
                 context(
                     ParseCommandError::InvalidEasing.into(),
                     map_opt(comma_field_type(), |easing| {
-                        <Easing as VersionedFrom<usize>>::from(easing, version)
+                        <Easing as VersionedFrom<Integer>>::from(easing, version)
                     }),
                 ),
             ))
