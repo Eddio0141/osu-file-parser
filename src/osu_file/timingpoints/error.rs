@@ -66,9 +66,6 @@ pub enum ParseSampleSetError {
     /// The value failed to parse from a `str`.
     #[error(transparent)]
     ParseIntError(#[from] ParseIntError),
-    /// Unknown `SampleSet` variant.
-    #[error("Unknown `SampleSet` variant")]
-    UnknownSampleSet,
 }
 
 /// There was a problem parsing `str` as [`Effects`][super::Effects].
