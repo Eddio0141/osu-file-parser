@@ -88,6 +88,8 @@ impl VersionedFromStr for Colour {
     type Err = ParseColourError;
 
     fn from_str(s: &str, version: Version) -> Result<Option<Self>, Self::Err> {
+        let s = s.trim();
+
         let separator = || tuple((space0, tag(":"), space0));
         let combo_type = tag("Combo");
         let combo_count = map_res(digit1, |s: &str| s.parse());
