@@ -157,7 +157,7 @@ impl VersionedFromStr for Mode {
 
         let mode = match version {
             3..=11 if mode != Mode::Osu && mode != Mode::Mania => None,
-            12..=13 if mode == Mode::Catch => None,
+            12 if mode == Mode::Catch => None,
             _ => Some(mode),
         };
 
