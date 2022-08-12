@@ -490,3 +490,13 @@ fn match_test2() {
 
     assert_eq_osu_str(i, o.to_string());
 }
+
+#[test]
+fn match_test_osb() {
+    let mut osu = OsuFile::default(14);
+    let osb = include_str!("./files/match_test.osb");
+
+    osu.append_osb(&osb).unwrap();
+
+    assert_eq_osu_str(osu.osb_to_string().unwrap(), osb);
+}
