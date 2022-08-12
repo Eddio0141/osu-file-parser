@@ -2,6 +2,7 @@ mod error;
 
 use std::path::Path;
 
+use either::Either;
 use rust_decimal_macros::dec;
 
 use crate::osu_file::events::storyboard::cmds::*;
@@ -54,7 +55,7 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
         Event::StoryboardObject(Object {
             layer: Layer::Pass,
             origin: Origin {
-                type_: OriginType::Centre,
+                type_: Either::Left(OriginType::Centre),
                 shorthand: false,
             },
             position: Position {
@@ -244,7 +245,7 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
         Event::StoryboardObject(Object {
             layer: Layer::Fail,
             origin: Origin {
-                type_: OriginType::BottomCentre,
+                type_: Either::Left(OriginType::BottomCentre),
                 shorthand: false,
             },
             position: Position {
