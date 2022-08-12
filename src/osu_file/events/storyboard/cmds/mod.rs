@@ -236,14 +236,19 @@ impl Command {
                 commands: _,
             } => {
                 let cmd = format!(
-                    "{},{}{}{}",
+                    "{}{}{}{}{}",
                     trigger_type.to_string(version).unwrap(),
+                    if self.start_time.is_some() || end_time.is_some() || group_number.is_some() {
+                        ",".to_string()
+                    } else {
+                        String::new()
+                    },
                     match self.start_time {
                         Some(t) =>
-                            if end_time.is_none() && group_number.is_none() {
-                                t.to_string()
-                            } else {
+                            if end_time.is_some() || group_number.is_some() {
                                 format!("{t},")
+                            } else {
+                                t.to_string()
                             },
                         None =>
                             if end_time.is_some() || group_number.is_some() {
@@ -254,10 +259,10 @@ impl Command {
                     },
                     match end_time {
                         Some(t) =>
-                            if group_number.is_none() {
-                                t.to_string()
-                            } else {
+                            if group_number.is_some() {
                                 format!("{t},")
+                            } else {
+                                t.to_string()
                             },
                         None =>
                             if group_number.is_some() {
