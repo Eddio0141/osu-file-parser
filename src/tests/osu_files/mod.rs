@@ -500,3 +500,11 @@ fn match_test_osb() {
 
     assert_eq_osu_str(osu.osb_to_string().unwrap(), osb);
 }
+
+#[test]
+fn combo_blue() {
+    let i = include_str!("./files/combo_blue.osu");
+    let o = i.parse::<OsuFile>().unwrap();
+
+    assert_eq_osu_str(i, o.to_string());
+}
