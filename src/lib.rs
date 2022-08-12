@@ -10,43 +10,74 @@ mod parsers;
 /// - Ignores all empty lines and key value pair's spacing between the key and comma.
 /// - Deletes `\u{feff}` characters.
 pub fn osu_str_trimmer(s: &str) -> String {
-    s.replace("\r\n", "\n")
-        .lines()
-        .filter_map(|s| {
-            // remove the weird \u{feff} characters
-            let s = s.trim().replace('\u{feff}', "");
+    let mut builder = Vec::new();
+    let mut section_values_inner = Vec::new();
+    let mut in_sections = false;
 
-            if s.is_empty() {
-                return None;
+    let section_values_sort_and_push =
+        |section_values_inner: &mut Vec<String>, builder: &mut Vec<String>| {
+            section_values_inner.sort();
+            builder.append(section_values_inner);
+        };
+
+    for line in s.lines() {
+        let line = line.trim().replace('\u{feff}', "");
+
+        if line.is_empty() {
+            continue;
+        }
+
+        if !in_sections {
+            if line.starts_with('[') && line.ends_with(']') {
+                in_sections = true;
             }
 
-            if s.contains(':') {
+            builder.push(line);
+
+            continue;
+        } else {
+            if line.starts_with('[') && line.ends_with(']') {
+                section_values_sort_and_push(&mut section_values_inner, &mut builder);
+                builder.push(line);
+
+                continue;
+            }
+
+            if line.contains(':') {
                 let mut header = true;
                 let mut value = false;
 
-                return Some(
-                    s.chars()
-                        .filter(|c| {
-                            if !header && !value && *c == ':' {
-                                header = false;
-                                value = true;
-                                return true;
-                            }
+                let line = line
+                    .chars()
+                    .filter(|c| {
+                        if !header && !value && *c == ':' {
+                            header = false;
+                            value = true;
+                            return true;
+                        }
 
-                            if header && c.is_whitespace() {
-                                return false;
-                            }
+                        if header && c.is_whitespace() {
+                            return false;
+                        }
 
-                            true
-                        })
-                        .collect::<String>(),
-                );
+                        true
+                    })
+                    .collect::<String>();
+
+                section_values_inner.push(line);
+
+                continue;
             }
 
-            Some(s)
-        })
-        .collect::<Vec<_>>()
-        .join("\n")
+            section_values_inner.push(line);
+
+            continue;
+        }
+    }
+
+    section_values_sort_and_push(&mut section_values_inner, &mut builder);
+
+    builder.join("\n")
 }
 
 /// Tests equality of two osu file strings.

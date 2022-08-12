@@ -482,3 +482,11 @@ fn match_test() {
 
     assert_eq_osu_str(i, o.to_string());
 }
+
+#[test]
+fn match_test2() {
+    let i = include_str!("./files/match_test2.osu");
+    let o = i.parse::<OsuFile>().unwrap();
+
+    assert_eq_osu_str(i, o.to_string());
+}
