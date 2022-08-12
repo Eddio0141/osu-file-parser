@@ -508,3 +508,11 @@ fn combo_blue() {
 
     assert_eq_osu_str(i, o.to_string());
 }
+
+#[test]
+fn object_origin_value() {
+    let i = include_str!("./files/object_origin_value.osu");
+    let o = i.parse::<OsuFile>().unwrap();
+
+    assert_eq_osu_str(i, o.to_string());
+}
