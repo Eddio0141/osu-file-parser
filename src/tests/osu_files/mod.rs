@@ -474,3 +474,11 @@ fn oblivion_aspire() {
 
     assert_eq_osu_str(i, o.to_string());
 }
+
+#[test]
+fn match_test() {
+    let i = include_str!("./files/match_test.osu");
+    let o = i.parse::<OsuFile>().unwrap();
+
+    assert_eq_osu_str(i, o.to_string());
+}
