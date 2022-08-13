@@ -24,12 +24,40 @@ impl VersionedFromStr for Osb {
             return Ok(None);
         }
 
+        let pre_section_count = s
+            .lines()
+            .take_while(|s| {
+                let s = s.trim();
+                !s.trim().starts_with('[') && !s.trim().ends_with(']')
+            })
+            .count();
+
+        for (i, line) in s.lines().take(pre_section_count).enumerate() {
+            let line = line.trim();
+
+            if line.is_empty() {
+                continue;
+            }
+
+            if line.starts_with("//") {
+                continue;
+            }
+
+            return Err(Error::new(ParseError::UnexpectedLine, i));
+        }
+
+        let s = s
+            .lines()
+            .skip(pre_section_count)
+            .collect::<Vec<_>>()
+            .join("\n");
+
         // we get sections
         // only valid sections currently are [Variables] [Events]
-        let (_, sections) = many0(square_section())(s).unwrap();
+        let (_, sections) = many0(square_section())(&s).unwrap();
 
         let mut section_parsed = Vec::with_capacity(2);
-        let mut line_number = 0;
+        let mut line_number = pre_section_count;
 
         let (mut events, mut variables) = (None, None);
 

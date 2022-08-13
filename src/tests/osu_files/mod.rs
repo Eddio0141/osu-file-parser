@@ -502,6 +502,16 @@ fn match_test_osb() {
 }
 
 #[test]
+fn match_test_osb2() {
+    let mut osu = OsuFile::default(14);
+    let osb = include_str!("./files/match_test2.osb");
+
+    osu.append_osb(&osb).unwrap();
+
+    assert_eq_osu_str(osu.osb_to_string().unwrap(), osb);
+}
+
+#[test]
 fn combo_blue() {
     let i = include_str!("./files/combo_blue.osu");
     let o = i.parse::<OsuFile>().unwrap();
