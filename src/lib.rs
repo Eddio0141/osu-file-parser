@@ -33,11 +33,12 @@ pub fn osu_str_trimmer(s: &str) -> String {
             if line.starts_with('[') && line.ends_with(']') {
                 in_sections = true;
             } else {
-                // data before the sections are irrelevant after first line
-                if first_line {
+                // data before the sections are irrelevant after first line with file format specifier
+                if first_line && line.starts_with("osu file format v") {
                     builder.push(line);
-                    first_line = false;
                 }
+
+                first_line = false;
 
                 continue;
             }
