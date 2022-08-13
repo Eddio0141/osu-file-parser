@@ -155,9 +155,15 @@ impl VersionedFromStr for Mode {
             _ => Err(ParseGameModeError::UnknownVariant),
         }?;
 
+        // earliest versions
+        // osu   3
+        // taiko 5
+        // catch 7
+        // mania 10
         let mode = match version {
-            3..=11 if mode != Mode::Osu && mode != Mode::Mania => None,
-            12 if mode == Mode::Catch => None,
+            3..=4 if mode != Mode::Osu => None,
+            5..=6 if mode != Mode::Osu && mode != Mode::Taiko => None,
+            7..=9 if mode == Mode::Mania => None,
             _ => Some(mode),
         };
 
