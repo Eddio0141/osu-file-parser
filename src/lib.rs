@@ -13,6 +13,7 @@ pub fn osu_str_trimmer(s: &str) -> String {
     let mut builder = Vec::new();
     let mut section_values_inner = Vec::new();
     let mut in_sections = false;
+    let mut first_line = true;
     let mut section_coloned = true;
 
     let section_values_sort_and_push =
@@ -31,6 +32,14 @@ pub fn osu_str_trimmer(s: &str) -> String {
         if !in_sections {
             if line.starts_with('[') && line.ends_with(']') {
                 in_sections = true;
+            } else {
+                // data before the sections are irrelevant after first line
+                if first_line {
+                    builder.push(line);
+                    first_line = false;
+                }
+
+                continue;
             }
 
             builder.push(line);
