@@ -35,6 +35,7 @@ impl Default for Position {
 }
 
 #[derive(Debug)]
+/// Error with line index.
 pub struct Error<E> {
     /// Line index of the error.
     line_index: usize,
@@ -171,21 +172,34 @@ impl<E> From<E> for Error<E> {
     }
 }
 
+/// Contains `to_string` that provides version specific output.
 pub trait VersionedToString {
+    /// Returns a string representation of the object.
+    /// - The output is version specific.
+    /// - Returns Some if the version is supported, otherwise None.
     fn to_string(&self, version: Version) -> Option<String>;
 }
 
+/// Contains `from_str` that provides version specific parsing.
 pub trait VersionedFromStr: Sized {
     type Err;
 
+    /// Parses a string into an object.
+    /// - The output of the object is version specific.
+    /// - Returns Some if the version is supported, otherwise None.
     fn from_str(s: &str, version: Version) -> std::result::Result<Option<Self>, Self::Err>;
 }
 
+/// Contains `default` that provides version specific default values.
 pub trait VersionedDefault: Sized {
+    /// Returns a default value for the object.
+    /// - The output is version specific.
+    /// - Returns Some if the version is supported, otherwise None.
     fn default(version: Version) -> Option<Self>;
 }
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
+/// File path type that is used in most of the crate.
 pub struct FilePath(PathBuf);
 
 impl FilePath {
@@ -204,6 +218,8 @@ impl FilePath {
 }
 
 impl VersionedToString for FilePath {
+    /// Returns a string representation of the file path.
+    /// - It will contain quotes if the path contains spaces.
     fn to_string(&self, _: Version) -> Option<String> {
         let quotes = {
             let path = self.0.to_string_lossy();
@@ -232,8 +248,11 @@ impl<P: AsRef<Path>> From<P> for FilePath {
 
 #[derive(Debug, Error)]
 #[error("Invalid repr value")]
+/// Error when the repr value is invalid.
+/// Used for [`VersionedFromRepr`];
 pub struct InvalidRepr;
 
+/// Contains `from_repr` that provides version specific parsing of a value.
 pub trait VersionedFromRepr: Sized {
     /// Creates an instance of `Self` from a value representation.
     /// - Will return `Err` if the representation is invalid.
@@ -241,10 +260,12 @@ pub trait VersionedFromRepr: Sized {
     fn from_repr(repr: usize, version: Version) -> Result<Option<Self>, InvalidRepr>;
 }
 
+/// Contains `from` that provides version specific type conversion.
 pub trait VersionedFrom<T>: Sized {
     fn from(value: T, version: Version) -> Option<Self>;
 }
 
+/// Contains `try_from` that provides version specific type conversion.
 pub trait VersionedTryFrom<T>: Sized {
     type Error;
 
@@ -265,6 +286,7 @@ impl Decimal {
         Self(Either::Right(value.to_owned()))
     }
 
+    /// Tries to convert the `Right` value to a `rust_decimal::Decimal`.
     pub fn try_make_decimal(&mut self) -> Result<(), rust_decimal::Error> {
         if let Either::Right(value) = &mut self.0 {
             let value = rust_decimal::Decimal::from_str(value)?;
