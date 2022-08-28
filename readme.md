@@ -22,3 +22,15 @@ osu_file.append_osb(osb_str).unwrap();
 assert_eq_osu_str(&osu_file.to_string(), osu_file_str);
 assert_eq_osu_str(&osu_file.osb_to_string().unwrap(), osb_str);
 ```
+
+# General information
+
+## Alternative traits
+- Most of the types in the crate uses the `VersionedToString`, `VersionedFromStr` and `VersionedDefault` traits as replacements for the `Display`, `FromStr` and `Default` traits.
+- Those traits take an extra `version` parameter to choose what version output to use.
+- If the type doesn't exist in certain versions, the output will be `None`.
+
+## Errors
+- Structs that takes lines of string as input can return errors containing information of where the error occurred and what the error was.
+- The error type is wrapped in `Error` in those cases.
+- `Error` has methods that tells you where the error happened in the input string and what the error was.
