@@ -45,7 +45,7 @@ pub struct Error<E> {
 
 impl<E: std::error::Error + 'static> std::error::Error for Error<E> {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        Some(&self.error)
+        self.error.source()
     }
 }
 
