@@ -377,3 +377,13 @@ fn object_origin_value() {
 
     assert_eq_osu_str(i, o.to_string());
 }
+
+#[test]
+fn legacy_event_osb() {
+    let mut osu = OsuFile::default(14);
+    let osb = include_str!("./files/legacy_event.osb");
+
+    osu.append_osb(osb).unwrap();
+
+    assert_eq_osu_str(osu.osb_to_string().unwrap(), osb);
+}

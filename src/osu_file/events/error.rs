@@ -1,9 +1,6 @@
 use thiserror::Error;
 
-use super::{
-    storyboard::error::*, ParseAudioSampleError, ParseBackgroundError, ParseBreakError,
-    ParseColourTransformationError, ParseVideoError,
-};
+use super::{storyboard::error::*, *};
 
 /// Errors used when there was a problem parsing an [`Event`][super::Event] from a `str`.
 #[derive(Debug, Error)]
@@ -26,6 +23,12 @@ pub enum ParseError {
     ParseBreakError(#[from] ParseBreakError),
     #[error(transparent)]
     ParseColourTransformationError(#[from] ParseColourTransformationError),
+    #[error(transparent)]
+    ParseSpriteLegacyError(#[from] ParseSpriteLegacyError),
+    #[error(transparent)]
+    ParseAnimationLegacyError(#[from] ParseAnimationLegacyError),
+    #[error(transparent)]
+    ParseSampleLegacyError(#[from] ParseSampleLegacyError),
     #[error(transparent)]
     CommandPushError(#[from] CommandPushError),
     #[error(transparent)]
