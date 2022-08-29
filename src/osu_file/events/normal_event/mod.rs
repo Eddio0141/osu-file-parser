@@ -1,6 +1,7 @@
 use nom::{
     branch::alt,
     bytes::complete::tag,
+    combinator::eof,
     error::context,
     sequence::{preceded, tuple},
     Parser,
@@ -8,15 +9,22 @@ use nom::{
 
 use crate::{
     osu_file::{FilePath, Integer, Position, Version, VersionedFromStr, VersionedToString},
-    parsers::{comma, comma_field_type, consume_rest_type},
+    parsers::{
+        comma, comma_field, comma_field_type, comma_field_versioned_type, consume_rest_type,
+        consume_rest_versioned_type,
+    },
+    Decimal,
 };
 
 pub use error::*;
 
-use super::{storyboard::cmds::Command, EventWithCommands, OLD_VERSION_TIME_OFFSET};
+use self::types::{LayerLegacy, OriginTypeLegacy};
+
+use super::{storyboard::cmds::Command, EventWithCommands, Volume, OLD_VERSION_TIME_OFFSET};
 
 pub mod error;
 mod parsers;
+pub mod types;
 use parsers::*;
 
 fn position_str(position: &Option<Position>) -> String {
@@ -345,71 +353,255 @@ impl VersionedToString for ColourTransformation {
 }
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
-pub struct Event4 {
-    pub field1: Integer,
-    pub field2: Integer,
+/// Legacy version of Sprite event.
+pub struct SpriteLegacy {
+    pub layer: LayerLegacy,
+    pub origin: OriginTypeLegacy,
     pub file_name: FilePath,
     pub position: Option<Position>,
     pub commands: Vec<Command>,
 }
 
-pub const EVENT4_HEADER: &str = "4";
+pub const SPRITE_LEGACY_HEADER: &str = "4";
 
-impl VersionedFromStr for Event4 {
-    type Err = ParseEvent4Error;
+impl VersionedFromStr for SpriteLegacy {
+    type Err = ParseSpriteLegacyError;
 
-    fn from_str(s: &str, _: Version) -> std::result::Result<Option<Self>, Self::Err> {
-        let (_, (field1, field2, (filename, position))) = preceded(
+    fn from_str(s: &str, version: Version) -> std::result::Result<Option<Self>, Self::Err> {
+        let (_, (layer, origin, (file_name, position))) = preceded(
             tuple((
-                context(ParseEvent4Error::WrongEventType.into(), tag(EVENT4_HEADER)),
-                context(ParseEvent4Error::MissingField1.into(), comma()),
+                context(
+                    ParseSpriteLegacyError::WrongEventType.into(),
+                    tag(SPRITE_LEGACY_HEADER),
+                ),
+                context(ParseSpriteLegacyError::MissingLayer.into(), comma()),
             )),
             tuple((
-                context(ParseEvent4Error::InvalidField1.into(), comma_field_type()),
-                preceded(
-                    context(ParseEvent4Error::MissingField2.into(), comma()),
-                    context(ParseEvent4Error::InvalidField2.into(), comma_field_type()),
+                context(
+                    ParseSpriteLegacyError::InvalidLayer.into(),
+                    comma_field_versioned_type(version),
                 ),
                 preceded(
-                    context(ParseEvent4Error::MissingFileName.into(), comma()),
+                    context(ParseSpriteLegacyError::MissingOrigin.into(), comma()),
+                    context(
+                        ParseSpriteLegacyError::InvalidOrigin.into(),
+                        comma_field_versioned_type(version),
+                    ),
+                ),
+                preceded(
+                    context(ParseSpriteLegacyError::MissingFileName.into(), comma()),
                     file_name_and_position(
-                        ParseEvent4Error::MissingX.into(),
-                        ParseEvent4Error::InvalidX.into(),
-                        ParseEvent4Error::MissingY.into(),
-                        ParseEvent4Error::InvalidY.into(),
+                        ParseSpriteLegacyError::MissingX.into(),
+                        ParseSpriteLegacyError::InvalidX.into(),
+                        ParseSpriteLegacyError::MissingY.into(),
+                        ParseSpriteLegacyError::InvalidY.into(),
                     ),
                 ),
             )),
         )(s)?;
 
-        Ok(Some(Event4 {
-            field1,
-            field2,
-            file_name: filename,
+        Ok(Some(SpriteLegacy {
+            layer,
+            origin,
+            file_name,
             position,
             commands: Vec::new(),
         }))
     }
 }
 
-impl VersionedToString for Event4 {
+impl VersionedToString for SpriteLegacy {
     fn to_string(&self, version: Version) -> Option<String> {
         Some(format!(
-            "{EVENT4_HEADER},{},{},{}{}",
-            self.field1,
-            self.field2,
+            "{SPRITE_LEGACY_HEADER},{},{},{}{}",
+            self.layer.to_string(version).unwrap(),
+            self.origin.to_string(version).unwrap(),
             self.file_name.to_string(version).unwrap(),
             position_str(&self.position),
         ))
     }
 }
 
-impl EventWithCommands for Event4 {
+impl EventWithCommands for SpriteLegacy {
     fn commands(&self) -> &[Command] {
         &self.commands
     }
 
     fn commands_mut(&mut self) -> &mut Vec<Command> {
         &mut self.commands
+    }
+
+    fn to_string_cmd(&self, version: Version) -> Option<String> {
+        self.to_string(version)
+    }
+}
+
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
+pub struct AnimationLegacy {
+    pub layer: LayerLegacy,
+    pub origin: OriginTypeLegacy,
+    pub file_name: FilePath,
+    pub position: Option<Position>,
+    pub commands: Vec<Command>,
+}
+
+pub const ANIMATION_LEGACY_HEADER: &str = "5";
+
+impl VersionedFromStr for AnimationLegacy {
+    type Err = ParseAnimationLegacyError;
+    fn from_str(s: &str, version: Version) -> std::result::Result<Option<Self>, Self::Err> {
+        let (_, (layer, origin, (file_name, position))) = preceded(
+            tuple((
+                context(
+                    ParseAnimationLegacyError::WrongEventType.into(),
+                    tag(ANIMATION_LEGACY_HEADER),
+                ),
+                context(ParseAnimationLegacyError::MissingLayer.into(), comma()),
+            )),
+            tuple((
+                context(
+                    ParseAnimationLegacyError::InvalidLayer.into(),
+                    comma_field_versioned_type(version),
+                ),
+                preceded(
+                    context(ParseAnimationLegacyError::MissingOrigin.into(), comma()),
+                    context(
+                        ParseAnimationLegacyError::InvalidOrigin.into(),
+                        comma_field_versioned_type(version),
+                    ),
+                ),
+                preceded(
+                    context(ParseAnimationLegacyError::MissingFileName.into(), comma()),
+                    file_name_and_position(
+                        ParseAnimationLegacyError::MissingX.into(),
+                        ParseAnimationLegacyError::InvalidX.into(),
+                        ParseAnimationLegacyError::MissingY.into(),
+                        ParseAnimationLegacyError::InvalidY.into(),
+                    ),
+                ),
+            )),
+        )(s)?;
+
+        Ok(Some(AnimationLegacy {
+            layer,
+            origin,
+            file_name,
+            position,
+            commands: Vec::new(),
+        }))
+    }
+}
+
+impl VersionedToString for AnimationLegacy {
+    fn to_string(&self, version: Version) -> Option<String> {
+        Some(format!(
+            "{ANIMATION_LEGACY_HEADER},{},{},{}{}",
+            self.layer.to_string(version).unwrap(),
+            self.origin.to_string(version).unwrap(),
+            self.file_name.to_string(version).unwrap(),
+            position_str(&self.position),
+        ))
+    }
+}
+
+impl EventWithCommands for AnimationLegacy {
+    fn commands(&self) -> &[Command] {
+        &self.commands
+    }
+    fn commands_mut(&mut self) -> &mut Vec<Command> {
+        &mut self.commands
+    }
+    fn to_string_cmd(&self, version: Version) -> Option<String> {
+        self.to_string(version)
+    }
+}
+
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
+pub struct SampleLegacy {
+    pub time: Decimal,
+    pub layer: LayerLegacy,
+    pub file_name: FilePath,
+    pub volume: Option<Volume>,
+    pub commands: Vec<Command>,
+}
+
+pub const SAMPLE_LEGACY_HEADER: &str = "6";
+
+impl VersionedFromStr for SampleLegacy {
+    type Err = ParseSampleLegacyError;
+    fn from_str(s: &str, version: Version) -> std::result::Result<Option<Self>, Self::Err> {
+        let (_, (time, layer, file_name, volume)) = preceded(
+            tuple((
+                context(
+                    ParseSampleLegacyError::WrongEventType.into(),
+                    tag(SAMPLE_LEGACY_HEADER),
+                ),
+                context(ParseSampleLegacyError::MissingTime.into(), comma()),
+            )),
+            tuple((
+                context(
+                    ParseSampleLegacyError::InvalidTime.into(),
+                    comma_field_type(),
+                ),
+                preceded(
+                    context(ParseSampleLegacyError::MissingLayer.into(), comma()),
+                    context(
+                        ParseSampleLegacyError::InvalidLayer.into(),
+                        comma_field_versioned_type(version),
+                    ),
+                ),
+                preceded(
+                    context(ParseSampleLegacyError::MissingFileName.into(), comma()),
+                    comma_field().map(|f| f.into()),
+                ),
+                alt((
+                    eof.map(|_| None),
+                    preceded(
+                        context(ParseSampleLegacyError::MissingVolume.into(), comma()),
+                        context(
+                            ParseSampleLegacyError::InvalidVolume.into(),
+                            consume_rest_versioned_type(version),
+                        ),
+                    )
+                    .map(Some),
+                )),
+            )),
+        )(s)?;
+
+        Ok(Some(SampleLegacy {
+            time,
+            layer,
+            file_name,
+            volume,
+            commands: Vec::new(),
+        }))
+    }
+}
+
+impl VersionedToString for SampleLegacy {
+    fn to_string(&self, version: Version) -> Option<String> {
+        Some(format!(
+            "{SAMPLE_LEGACY_HEADER},{},{},{}{}",
+            self.time,
+            self.layer.to_string(version).unwrap(),
+            self.file_name.to_string(version).unwrap(),
+            self.volume
+                .map(|v| format!(",{}", v.to_string(version).unwrap()))
+                .unwrap_or_default(),
+        ))
+    }
+}
+
+impl EventWithCommands for SampleLegacy {
+    fn commands(&self) -> &[Command] {
+        &self.commands
+    }
+
+    fn commands_mut(&mut self) -> &mut Vec<Command> {
+        &mut self.commands
+    }
+
+    fn to_string_cmd(&self, version: Version) -> Option<String> {
+        self.to_string(version)
     }
 }

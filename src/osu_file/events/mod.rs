@@ -52,7 +52,9 @@ impl Events {
             Video,
             Break,
             ColourTransformation,
-            Event4,
+            SpriteLegacy,
+            AnimationLegacy,
+            SampleLegacy,
             Other,
         }
 
@@ -91,12 +93,26 @@ impl Events {
             )))
             .map(|_| NormalEventType::ColourTransformation)
         };
-        let event4 = || {
+        let sprite_legacy = || {
             peek(tuple((
-                tag(normal_event::EVENT4_HEADER),
+                tag(normal_event::SPRITE_LEGACY_HEADER),
                 cut(alt((eof, comma()))),
             )))
-            .map(|_| NormalEventType::Event4)
+            .map(|_| NormalEventType::SpriteLegacy)
+        };
+        let animation_legacy = || {
+            peek(tuple((
+                tag(normal_event::ANIMATION_LEGACY_HEADER),
+                cut(alt((eof, comma()))),
+            )))
+            .map(|_| NormalEventType::AnimationLegacy)
+        };
+        let sample_legacy = || {
+            peek(tuple((
+                tag(normal_event::SAMPLE_LEGACY_HEADER),
+                cut(alt((eof, comma()))),
+            )))
+            .map(|_| NormalEventType::SampleLegacy)
         };
 
         for (line_index, line) in s.lines().enumerate() {
@@ -165,10 +181,26 @@ impl Events {
                                 )?
                             }
                         }
-                        Event::Event4(event4) => {
+                        Event::SpriteLegacy(sprite) => {
                             if let Some(cmd) = cmd_parse()? {
                                 Error::new_from_result_into(
-                                    event4.try_push_cmd(cmd, indent),
+                                    sprite.try_push_cmd(cmd, indent),
+                                    line_index,
+                                )?
+                            }
+                        }
+                        Event::AnimationLegacy(animation) => {
+                            if let Some(cmd) = cmd_parse()? {
+                                Error::new_from_result_into(
+                                    animation.try_push_cmd(cmd, indent),
+                                    line_index,
+                                )?
+                            }
+                        }
+                        Event::SampleLegacy(sample) => {
+                            if let Some(cmd) = cmd_parse()? {
+                                Error::new_from_result_into(
+                                    sample.try_push_cmd(cmd, indent),
                                     line_index,
                                 )?
                             }
@@ -204,7 +236,9 @@ impl Events {
                 video(),
                 break_(),
                 colour_transformation(),
-                event4(),
+                sprite_legacy(),
+                animation_legacy(),
+                sample_legacy(),
                 success(NormalEventType::Other),
             ))(line)
             .unwrap();
@@ -224,9 +258,15 @@ impl Events {
                         .map(|e| e.map(Event::ColourTransformation))
                         .map_err(ParseError::ParseColourTransformationError)
                 }
-                NormalEventType::Event4 => Event4::from_str(line, version)
-                    .map(|e| e.map(Event::Event4))
-                    .map_err(ParseError::ParseEvent4Error),
+                NormalEventType::SpriteLegacy => SpriteLegacy::from_str(line, version)
+                    .map(|e| e.map(Event::SpriteLegacy))
+                    .map_err(ParseError::ParseSpriteLegacyError),
+                NormalEventType::AnimationLegacy => AnimationLegacy::from_str(line, version)
+                    .map(|e| e.map(Event::AnimationLegacy))
+                    .map_err(ParseError::ParseAnimationLegacyError),
+                NormalEventType::SampleLegacy => SampleLegacy::from_str(line, version)
+                    .map(|e| e.map(Event::SampleLegacy))
+                    .map_err(ParseError::ParseSampleLegacyError),
                 NormalEventType::Other => {
                     // is it a storyboard object?
                     match Object::from_str(line, version) {
@@ -264,11 +304,7 @@ impl Events {
         Ok(Some(events))
     }
 
-    pub fn to_string_variables(
-        &self,
-        version: Version,
-        variables: &[Variable],
-    ) -> Option<String> {
+    pub fn to_string_variables(&self, version: Version, variables: &[Variable]) -> Option<String> {
         let mut s = self
             .0
             .iter()
@@ -299,7 +335,9 @@ pub enum Event {
     Video(Video),
     Break(Break),
     ColourTransformation(ColourTransformation),
-    Event4(Event4),
+    SpriteLegacy(SpriteLegacy),
+    AnimationLegacy(AnimationLegacy),
+    SampleLegacy(SampleLegacy),
     StoryboardObject(Object),
     AudioSample(AudioSample),
 }
@@ -318,7 +356,9 @@ impl Event {
             Event::Video(video) => video.to_string(version),
             Event::Break(break_) => break_.to_string(version),
             Event::ColourTransformation(colour_trans) => colour_trans.to_string(version),
-            Event::Event4(event4) => event4.to_string(version),
+            Event::SpriteLegacy(sprite) => sprite.to_string_variables(version, variables),
+            Event::AnimationLegacy(animation) => animation.to_string_variables(version, variables),
+            Event::SampleLegacy(sample) => sample.to_string_variables(version, variables),
             Event::StoryboardObject(object) => object.to_string_variables(version, variables),
             Event::AudioSample(audio_sample) => Some(audio_sample.to_string(version).unwrap()),
         }
