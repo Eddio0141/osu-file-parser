@@ -269,7 +269,7 @@ impl VersionedFromStr for TimingPoint {
         let meter_fallback = 4;
         let sample_set_fallback = SampleSet::Normal;
         let sample_index_fallback = <SampleIndex as VersionedFrom<u32>>::from(1, version).unwrap();
-        let volume_fallback = <Volume as VersionedFrom<i8>>::from(100, version).unwrap();
+        let volume_fallback = <Volume as VersionedFrom<Integer>>::from(100, version).unwrap();
 
         // for now we limit some fields for certain versions since we aren't sure if they are optional or not
         // could change in the future to be more flexible
@@ -329,7 +329,7 @@ impl VersionedFromStr for TimingPoint {
                                     verify(success(0), |_| version <= 4),
                                     context(
                                         ParseTimingPointError::InvalidSampleIndex.into(),
-                                        cut(consume_rest_versioned_type(version)),
+                                        consume_rest_versioned_type(version),
                                     ),
                                 )
                                 .map(|sample_index| (sample_index, (volume_fallback, None, None))),

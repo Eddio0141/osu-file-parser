@@ -6,6 +6,9 @@ use crate::{helper::macros::verbose_error_to_error, osu_file::events};
 #[derive(Debug, Error, EnumString, IntoStaticStr)]
 #[non_exhaustive]
 pub enum ParseError {
+    /// Unexpected line before any section.
+    #[error("Unexpected line before any section")]
+    UnexpectedLine,
     /// Duplicate section names defined.
     #[error("There are multiple sections defined as the same name")]
     DuplicateSections,

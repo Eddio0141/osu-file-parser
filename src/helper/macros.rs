@@ -102,7 +102,7 @@ macro_rules! versioned_field {
 
 macro_rules! general_section_inner {
     ($(#[$outer:meta])*, $section_name:ident, $($(#[$inner:meta])*, $field:ident, $field_type:ty)*, $parse_error:ty, $spacing:expr, $default_version:ident, $default_field_name:ident) => {
-        #[derive(Debug, Clone, PartialEq, Hash)]
+        #[derive(Debug, Clone, PartialEq, Eq, Hash)]
         $(#[$outer])*
         pub struct $section_name {
             $(

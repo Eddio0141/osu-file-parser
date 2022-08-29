@@ -1,7 +1,7 @@
 use std::num::NonZeroU32;
 
 use super::*;
-use crate::osu_file::{InvalidRepr, VersionedFromRepr, VersionedFromStr};
+use crate::osu_file::VersionedFromStr;
 
 /// Default sample set for hitobjects.
 #[derive(Clone, Copy, Hash, PartialEq, Eq, Debug)]
@@ -15,17 +15,35 @@ pub enum SampleSet {
     Soft,
     /// Drum.
     Drum,
+    /// Catch all.
+    Other(Integer),
 }
 
-impl VersionedFromRepr for SampleSet {
-    fn from_repr(repr: usize, _: Version) -> Result<Option<Self>, InvalidRepr> {
-        match repr {
-            0 => Ok(Some(SampleSet::BeatmapDefault)),
-            1 => Ok(Some(SampleSet::Normal)),
-            2 => Ok(Some(SampleSet::Soft)),
-            3 => Ok(Some(SampleSet::Drum)),
-            _ => Err(InvalidRepr),
-        }
+impl VersionedFrom<Integer> for SampleSet {
+    fn from(value: Integer, _: Version) -> Option<Self> {
+        let value = match value {
+            0 => SampleSet::BeatmapDefault,
+            1 => SampleSet::Normal,
+            2 => SampleSet::Soft,
+            3 => SampleSet::Drum,
+            _ => SampleSet::Other(value),
+        };
+
+        Some(value)
+    }
+}
+
+impl VersionedFrom<SampleSet> for Integer {
+    fn from(value: SampleSet, _: Version) -> Option<Self> {
+        let value = match value {
+            SampleSet::BeatmapDefault => 0,
+            SampleSet::Normal => 1,
+            SampleSet::Soft => 2,
+            SampleSet::Drum => 3,
+            SampleSet::Other(value) => value,
+        };
+
+        Some(value)
     }
 }
 
@@ -33,13 +51,20 @@ impl VersionedFromStr for SampleSet {
     type Err = ParseSampleSetError;
 
     fn from_str(s: &str, version: Version) -> Result<Option<Self>, Self::Err> {
-        SampleSet::from_repr(s.parse()?, version).map_err(|_| ParseSampleSetError::UnknownSampleSet)
+        Ok(<SampleSet as VersionedFrom<Integer>>::from(
+            s.parse()?,
+            version,
+        ))
     }
 }
 
 impl VersionedToString for SampleSet {
-    fn to_string(&self, _: Version) -> Option<String> {
-        Some((*self as u8).to_string())
+    fn to_string(&self, version: Version) -> Option<String> {
+        Some(
+            <Integer as VersionedFrom<SampleSet>>::from(*self, version)
+                .unwrap()
+                .to_string(),
+        )
     }
 }
 
@@ -177,23 +202,23 @@ impl VersionedDefault for SampleIndex {
 
 /// The volume percentage in the range of 0 ~ 100.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub struct Volume(i8);
+pub struct Volume(Integer);
 
 impl VersionedFromStr for Volume {
     type Err = VolumeError;
 
     fn from_str(s: &str, version: Version) -> Result<Option<Self>, Self::Err> {
-        Ok(<Volume as VersionedFrom<i8>>::from(s.parse()?, version))
+        Ok(<Volume as VersionedFrom<Integer>>::from(s.parse()?, version))
     }
 }
 
-impl VersionedFrom<i8> for Volume {
-    fn from(value: i8, _: Version) -> Option<Self> {
+impl VersionedFrom<Integer> for Volume {
+    fn from(value: Integer, _: Version) -> Option<Self> {
         Some(Volume(value))
     }
 }
 
-impl VersionedFrom<Volume> for i8 {
+impl VersionedFrom<Volume> for Integer {
     fn from(volume: Volume, _: Version) -> Option<Self> {
         Some(volume.0)
     }
@@ -207,17 +232,17 @@ impl VersionedToString for Volume {
 
 impl Volume {
     /// Creates a new volume instance.
-    pub fn new(volume: i8, version: Version) -> Option<Self> {
-        <Self as VersionedFrom<i8>>::from(volume, version)
+    pub fn new(volume: Integer, version: Version) -> Option<Self> {
+        <Self as VersionedFrom<Integer>>::from(volume, version)
     }
 
     /// Gets the volume percentage.
-    pub fn volume(&self) -> i8 {
+    pub fn volume(&self) -> Integer {
         self.0
     }
 
     /// Sets the volume percentage.
-    pub fn set_volume(&mut self, volume: i8) {
+    pub fn set_volume(&mut self, volume: Integer) {
         self.0 = volume;
     }
 }

@@ -4,7 +4,7 @@ pub mod types;
 use nom::{
     branch::alt,
     bytes::complete::tag,
-    character::complete::{digit1, space0},
+    character::complete::{char, digit1, space0},
     combinator::{cut, fail, map_res, rest},
     error::context,
     sequence::{preceded, tuple},
@@ -88,11 +88,13 @@ impl VersionedFromStr for Colour {
     type Err = ParseColourError;
 
     fn from_str(s: &str, version: Version) -> Result<Option<Self>, Self::Err> {
+        let s = s.trim();
+
         let separator = || tuple((space0, tag(":"), space0));
         let combo_type = tag("Combo");
         let combo_count = map_res(digit1, |s: &str| s.parse());
         let slider_track_override_type = tag("SliderTrackOverride");
-        let slider_border_type = tag("Sliderborder");
+        let slider_border_type = tuple((tag("Slider"), alt((char('B'), char('b'))), tag("order")));
         let rgb_parse_error = "rgb_parse_error";
         let rgb = || {
             context(

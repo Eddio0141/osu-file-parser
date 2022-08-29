@@ -36,7 +36,7 @@ pub use timingpoints::TimingPoints;
 pub use types::*;
 
 /// An .osu file represented as a struct.
-#[derive(Clone, Debug, Hash, PartialEq)]
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct OsuFile {
     /// Version of the file format.
@@ -203,7 +203,35 @@ impl FromStr for OsuFile {
             return Err(ParseError::InvalidFileVersion.into());
         }
 
-        let (_, sections) = many0(square_section())(s).unwrap();
+        let pre_section_count = s
+            .lines()
+            .take_while(|s| {
+                let s = s.trim();
+                !s.trim().starts_with('[') && !s.trim().ends_with(']')
+            })
+            .count();
+
+        for (i, line) in s.lines().take(pre_section_count).enumerate() {
+            let line = line.trim();
+
+            if line.is_empty() {
+                continue;
+            }
+
+            if line.starts_with("//") {
+                continue;
+            }
+
+            return Err(Error::new(ParseError::UnexpectedLine, i));
+        }
+
+        let s = s
+            .lines()
+            .skip(pre_section_count)
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        let (_, sections) = many0(square_section())(&s).unwrap();
 
         let mut section_parsed = Vec::with_capacity(8);
 
@@ -218,7 +246,7 @@ impl FromStr for OsuFile {
             mut hitobjects,
         ) = (None, None, None, None, None, None, None, None);
 
-        let mut line_number = trailing_ws.lines().count();
+        let mut line_number = trailing_ws.lines().count() + pre_section_count;
 
         for (ws, section_name, ws2, section) in sections {
             line_number += ws.lines().count();
@@ -304,6 +332,9 @@ pub enum ParseError {
     /// File version not defined in line 1.
     #[error("Found file version definition, but not defined at the first line")]
     FileVersionInWrongLine,
+    /// Unexpected line before any section.
+    #[error("Unexpected line before any section")]
+    UnexpectedLine,
     /// Duplicate section names defined.
     #[error("There are multiple sections defined as the same name")]
     DuplicateSections,

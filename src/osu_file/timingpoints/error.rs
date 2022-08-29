@@ -60,15 +60,12 @@ pub enum ParseTimingPointError {
 verbose_error_to_error!(ParseTimingPointError);
 
 /// There was some problem parsing the [`SampleSet`][super::SampleSet].
-#[derive(Debug, Error, PartialEq)]
+#[derive(Debug, Error, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum ParseSampleSetError {
     /// The value failed to parse from a `str`.
     #[error(transparent)]
     ParseIntError(#[from] ParseIntError),
-    /// Unknown `SampleSet` variant.
-    #[error("Unknown `SampleSet` variant")]
-    UnknownSampleSet,
 }
 
 /// There was a problem parsing `str` as [`Effects`][super::Effects].
@@ -84,7 +81,7 @@ pub enum ParseSampleIndexError {
 }
 
 /// Error for when there was a problem setting / parsing the volume.
-#[derive(Debug, Error, PartialEq)]
+#[derive(Debug, Error, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum VolumeError {
     /// There was a problem parsing the `str` as [`Volume`][super::Volume].

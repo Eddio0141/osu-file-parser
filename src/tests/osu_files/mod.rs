@@ -131,40 +131,10 @@ fn v14_3() {
 }
 
 #[test]
-fn acid_rain() {
-    let acid_rain = include_str!("./files/acid_rain.osu");
-    let acid_rain_osb = include_str!("./files/acid_rain.osb");
-
-    let mut osu_file = acid_rain.parse::<OsuFile>().unwrap();
-    assert_eq_osu_str(acid_rain, osu_file.to_string());
-
-    osu_file.append_osb(&acid_rain_osb).unwrap();
-    assert_eq_osu_str(acid_rain_osb, osu_file.osb_to_string().unwrap());
-}
-
-#[test]
 fn aspire_osb1() {
     let osb = include_str!("./files/aspire_osb1.osb");
     let mut osu_file = OsuFile::default(14);
-    osu_file.append_osb(&osb).unwrap();
-
-    assert_eq_osu_str(osb, osu_file.osb_to_string().unwrap());
-}
-
-#[test]
-fn aspire_osb2() {
-    let osb = include_str!("./files/aspire_osb2.osb");
-    let mut osu_file = OsuFile::default(14);
-    osu_file.append_osb(&osb).unwrap();
-
-    assert_eq_osu_str(osb, osu_file.osb_to_string().unwrap());
-}
-
-#[test]
-fn aspire_osb3() {
-    let osb = include_str!("./files/aspire_osb3.osb");
-    let mut osu_file = OsuFile::default(14);
-    osu_file.append_osb(&osb).unwrap();
+    osu_file.append_osb(osb).unwrap();
 
     assert_eq_osu_str(osb, osu_file.osb_to_string().unwrap());
 }
@@ -191,34 +161,6 @@ fn aspire3() {
 }
 
 #[test]
-fn aspire4() {
-    let i = include_str!("./files/aspire4.osu");
-    let o = i.parse::<OsuFile>().unwrap();
-    assert_eq_osu_str(i, o.to_string());
-}
-
-#[test]
-fn aspire5() {
-    let i = include_str!("./files/aspire5.osu");
-    let o = i.parse::<OsuFile>().unwrap();
-    assert_eq_osu_str(i, o.to_string());
-}
-
-#[test]
-fn aspire6() {
-    let i = include_str!("./files/aspire6.osu");
-    let o = i.parse::<OsuFile>().unwrap();
-    assert_eq_osu_str(i, o.to_string());
-}
-
-#[test]
-fn aspire7() {
-    let i = include_str!("./files/aspire7.osu");
-    let o = i.parse::<OsuFile>().unwrap();
-    assert_eq_osu_str(i, o.to_string());
-}
-
-#[test]
 fn aspire8() {
     let i = include_str!("./files/aspire8.osu");
     let o = i.parse::<OsuFile>().unwrap();
@@ -233,50 +175,8 @@ fn aspire9() {
 }
 
 #[test]
-fn aspire10() {
-    let i = include_str!("./files/aspire10.osu");
-    let o = i.parse::<OsuFile>().unwrap();
-    assert_eq_osu_str(i, o.to_string());
-}
-
-#[test]
-fn aspire11() {
-    let i = include_str!("./files/aspire11.osu");
-    let o = i.parse::<OsuFile>().unwrap();
-    assert_eq_osu_str(i, o.to_string());
-}
-
-#[test]
-fn aspire12() {
-    let i = include_str!("./files/aspire12.osu");
-    let o = i.parse::<OsuFile>().unwrap();
-    assert_eq_osu_str(i, o.to_string());
-}
-
-#[test]
-fn aspire13() {
-    let i = include_str!("./files/aspire13.osu");
-    let o = i.parse::<OsuFile>().unwrap();
-    assert_eq_osu_str(i, o.to_string());
-}
-
-#[test]
-fn aspire14() {
-    let i = include_str!("./files/aspire14.osu");
-    let o = i.parse::<OsuFile>().unwrap();
-    assert_eq_osu_str(i, o.to_string());
-}
-
-#[test]
 fn aspire15() {
     let i = include_str!("./files/aspire15.osu");
-    let o = i.parse::<OsuFile>().unwrap();
-    assert_eq_osu_str(i, o.to_string());
-}
-
-#[test]
-fn aspire16() {
-    let i = include_str!("./files/aspire16.osu");
     let o = i.parse::<OsuFile>().unwrap();
     assert_eq_osu_str(i, o.to_string());
 }
@@ -317,57 +217,8 @@ fn aspire21() {
 }
 
 #[test]
-fn aspire22() {
-    let i = include_str!("./files/aspire22.osu");
-    let o = i.parse::<OsuFile>().unwrap();
-    assert_eq_osu_str(i, o.to_string());
-}
-
-#[test]
-fn aspire23() {
-    let i = include_str!("./files/aspire23.osu");
-    let o = i.parse::<OsuFile>().unwrap();
-    assert_eq_osu_str(i, o.to_string());
-}
-
-#[test]
-fn aspire24() {
-    let i = include_str!("./files/aspire24.osu");
-    let o = i.parse::<OsuFile>().unwrap();
-    assert_eq_osu_str(i, o.to_string());
-}
-
-#[test]
-fn aspire25() {
-    let i = include_str!("./files/aspire25.osu");
-    let o = i.parse::<OsuFile>().unwrap();
-    assert_eq_osu_str(i, o.to_string());
-}
-
-#[test]
-fn aspire26() {
-    let i = include_str!("./files/aspire26.osu");
-    let o = i.parse::<OsuFile>().unwrap();
-    assert_eq_osu_str(i, o.to_string());
-}
-
-#[test]
 fn aspire27() {
     let i = include_str!("./files/aspire27.osu");
-    let o = i.parse::<OsuFile>().unwrap();
-    assert_eq_osu_str(i, o.to_string());
-}
-
-#[test]
-fn aspire28() {
-    let i = include_str!("./files/aspire28.osu");
-    let o = i.parse::<OsuFile>().unwrap();
-    assert_eq_osu_str(i, o.to_string());
-}
-
-#[test]
-fn aspire29() {
-    let i = include_str!("./files/aspire29.osu");
     let o = i.parse::<OsuFile>().unwrap();
     assert_eq_osu_str(i, o.to_string());
 }
@@ -387,7 +238,17 @@ fn variable_osb() {
     let mut osu = OsuFile::default(14);
     let osb = include_str!("./files/variable.osb");
 
-    osu.append_osb(&osb).unwrap();
+    osu.append_osb(osb).unwrap();
+
+    assert_eq_osu_str(osu.osb_to_string().unwrap(), osb);
+}
+
+#[test]
+fn variable2_osb() {
+    let mut osu = OsuFile::default(14);
+    let osb = include_str!("./files/variable2.osb");
+
+    osu.append_osb(osb).unwrap();
 
     assert_eq_osu_str(osu.osb_to_string().unwrap(), osb);
 }
@@ -434,7 +295,7 @@ fn osb() {
     let mut osu = OsuFile::default(14);
     let osb = include_str!("./files/osb.osb");
 
-    osu.append_osb(&osb).unwrap();
+    osu.append_osb(osb).unwrap();
 
     assert_eq_osu_str(osu.osb_to_string().unwrap(), osb);
 }
@@ -444,7 +305,7 @@ fn osb_2() {
     let mut osu = OsuFile::default(14);
     let osb = include_str!("./files/osb_2.osb");
 
-    osu.append_osb(&osb).unwrap();
+    osu.append_osb(osb).unwrap();
 
     assert_eq_osu_str(osu.osb_to_string().unwrap(), osb);
 }
@@ -458,8 +319,60 @@ fn missing_effects_field() {
 }
 
 #[test]
-fn event4() {
-    let i = include_str!("./files/event4.osu");
+fn oblivion_aspire() {
+    let i = include_str!("./files/oblivion_aspire.osu");
+    let o = i.parse::<OsuFile>().unwrap();
+
+    assert_eq_osu_str(i, o.to_string());
+}
+
+#[test]
+fn match_test() {
+    let i = include_str!("./files/match_test.osu");
+    let o = i.parse::<OsuFile>().unwrap();
+
+    assert_eq_osu_str(i, o.to_string());
+}
+
+#[test]
+fn match_test2() {
+    let i = include_str!("./files/match_test2.osu");
+    let o = i.parse::<OsuFile>().unwrap();
+
+    assert_eq_osu_str(i, o.to_string());
+}
+
+#[test]
+fn match_test_osb() {
+    let mut osu = OsuFile::default(14);
+    let osb = include_str!("./files/match_test.osb");
+
+    osu.append_osb(osb).unwrap();
+
+    assert_eq_osu_str(osu.osb_to_string().unwrap(), osb);
+}
+
+#[test]
+fn match_test_osb2() {
+    let mut osu = OsuFile::default(14);
+    let osb = include_str!("./files/match_test2.osb");
+
+    osu.append_osb(osb).unwrap();
+
+    assert_eq_osu_str(osu.osb_to_string().unwrap(), osb);
+}
+
+#[test]
+fn combo_blue() {
+    let i = include_str!("./files/combo_blue.osu");
+    let o = i.parse::<OsuFile>().unwrap();
+
+    assert_eq_osu_str(i, o.to_string());
+}
+
+#[test]
+fn object_origin_value() {
+    let i = include_str!("./files/object_origin_value.osu");
     let o = i.parse::<OsuFile>().unwrap();
 
     assert_eq_osu_str(i, o.to_string());

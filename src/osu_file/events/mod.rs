@@ -39,7 +39,7 @@ impl VersionedFromStr for Events {
 }
 
 impl Events {
-    pub(crate) fn from_str_variables(
+    pub fn from_str_variables(
         s: &str,
         version: Version,
         variables: &[Variable],
@@ -119,14 +119,19 @@ impl Events {
                         None => line,
                     };
 
-                    let mut line_with_variable = None;
+                    let mut line_with_variable: Option<String> = None;
                     for variable in variables {
                         let variable_full = format!("${}", variable.name);
 
                         if line_without_header.contains(&variable_full) {
-                            line_with_variable =
-                                Some(line.replace(&variable_full, &variable.value));
-                            break;
+                            let new_line = match line_with_variable {
+                                Some(line_with_variable) => {
+                                    line_with_variable.replace(&variable_full, &variable.value)
+                                }
+                                None => line.replace(&variable_full, &variable.value),
+                            };
+
+                            line_with_variable = Some(new_line);
                         }
                     }
 
@@ -259,7 +264,7 @@ impl Events {
         Ok(Some(events))
     }
 
-    pub(crate) fn to_string_variables(
+    pub fn to_string_variables(
         &self,
         version: Version,
         variables: &[Variable],
@@ -306,11 +311,7 @@ impl VersionedToString for Event {
 }
 
 impl Event {
-    pub(crate) fn to_string_variables(
-        &self,
-        version: Version,
-        variables: &[Variable],
-    ) -> Option<String> {
+    pub fn to_string_variables(&self, version: Version, variables: &[Variable]) -> Option<String> {
         match self {
             Event::Comment(comment) => Some(format!("//{comment}")),
             Event::Background(background) => background.to_string(version),
@@ -322,6 +323,83 @@ impl Event {
             Event::AudioSample(audio_sample) => Some(audio_sample.to_string(version).unwrap()),
         }
     }
+}
+
+fn commands_to_string_variables(
+    cmds: &[Command],
+    version: Version,
+    variables: &[Variable],
+) -> Option<String> {
+    let mut builder = Vec::new();
+    let mut indentation = 1usize;
+
+    for cmd in cmds {
+        builder.push(format!(
+            "{}{}",
+            " ".repeat(indentation),
+            cmd.to_string_variables(version, variables).unwrap()
+        ));
+
+        if let CommandProperties::Loop { commands, .. }
+        | CommandProperties::Trigger { commands, .. } = &cmd.properties
+        {
+            if commands.is_empty() {
+                continue;
+            }
+
+            let starting_indentation = indentation;
+            indentation += 1;
+
+            let mut current_cmds = commands;
+            let mut current_index = 0;
+            // stack of commands, index, and indentation
+            let mut cmds_stack = Vec::new();
+
+            loop {
+                let cmd = &current_cmds[current_index];
+                current_index += 1;
+
+                builder.push(format!(
+                    "{}{}",
+                    " ".repeat(indentation),
+                    cmd.to_string_variables(version, variables).unwrap()
+                ));
+                match &cmd.properties {
+                    CommandProperties::Loop { commands, .. }
+                    | CommandProperties::Trigger { commands, .. }
+                        if !commands.is_empty() =>
+                    {
+                        // save the current cmds and index
+                        // ignore if index is already at the end of the current cmds
+                        if current_index < current_cmds.len() {
+                            cmds_stack.push((current_cmds, current_index, indentation));
+                        }
+
+                        current_cmds = commands;
+                        current_index = 0;
+                        indentation += 1;
+                    }
+                    _ => {
+                        if current_index >= current_cmds.len() {
+                            // check for end of commands
+                            match cmds_stack.pop() {
+                                Some((last_cmds, last_index, last_indentation)) => {
+                                    current_cmds = last_cmds;
+                                    current_index = last_index;
+                                    indentation = last_indentation;
+                                }
+                                None => break,
+                            }
+                        }
+                    }
+                }
+            }
+
+            indentation = starting_indentation;
+        }
+    }
+
+    Some(builder.join("\n"))
 }
 
 pub trait EventWithCommands {
@@ -369,84 +447,30 @@ pub trait EventWithCommands {
 
     fn commands_mut(&mut self) -> &mut Vec<Command>;
 
-    fn commands_to_string_variables(
-        &self,
-        version: Version,
-        variables: &[Variable],
-    ) -> Option<String> {
-        let mut builder = Vec::new();
-        let mut indentation = 1usize;
+    /// Returns the command as a `String`.
+    /// - Instead of making the command into a string using `Display` or `VersionedToString`, use this to get the command as a string.
+    fn to_string_cmd(&self, version: Version) -> Option<String>;
 
-        for cmd in self.commands() {
-            builder.push(format!(
-                "{}{}",
-                " ".repeat(indentation),
-                cmd.to_string_variables(version, variables).unwrap()
-            ));
-
-            if let CommandProperties::Loop { commands, .. }
-            | CommandProperties::Trigger { commands, .. } = &cmd.properties
-            {
-                if commands.is_empty() {
-                    continue;
-                }
-
-                let starting_indentation = indentation;
-                indentation += 1;
-
-                let mut current_cmds = commands;
-                let mut current_index = 0;
-                // stack of commands, index, and indentation
-                let mut cmds_stack = Vec::new();
-
-                loop {
-                    let cmd = &current_cmds[current_index];
-                    current_index += 1;
-
-                    builder.push(format!(
-                        "{}{}",
-                        " ".repeat(indentation),
-                        cmd.to_string_variables(version, variables).unwrap()
-                    ));
-                    match &cmd.properties {
-                        CommandProperties::Loop { commands, .. }
-                        | CommandProperties::Trigger { commands, .. }
-                            if !commands.is_empty() =>
-                        {
-                            // save the current cmds and index
-                            // ignore if index is already at the end of the current cmds
-                            if current_index < current_cmds.len() {
-                                cmds_stack.push((current_cmds, current_index, indentation));
-                            }
-
-                            current_cmds = commands;
-                            current_index = 0;
-                            indentation += 1;
+    /// Returns the command as a `String`.
+    /// - Contains the commands as a string as well.
+    /// - Use this in the `to_string` method with an empty `variables` array.
+    fn to_string_variables(&self, version: Version, variables: &[Variable]) -> Option<String> {
+        match self.to_string_cmd(version) {
+            Some(s) => {
+                let cmds = match commands_to_string_variables(self.commands(), version, variables) {
+                    Some(mut cmds) => {
+                        if !cmds.is_empty() {
+                            cmds = format!("\n{cmds}");
                         }
-                        _ => {
-                            if current_index >= current_cmds.len() {
-                                // check for end of commands
-                                match cmds_stack.pop() {
-                                    Some((last_cmds, last_index, last_indentation)) => {
-                                        current_cmds = last_cmds;
-                                        current_index = last_index;
-                                        indentation = last_indentation;
-                                    }
-                                    None => break,
-                                }
-                            }
-                        }
+
+                        cmds
                     }
-                }
+                    None => return None,
+                };
 
-                indentation = starting_indentation;
+                Some(format!("{s}{cmds}"))
             }
+            None => None,
         }
-
-        Some(builder.join("\n"))
-    }
-
-    fn commands_to_string(&self, version: Version) -> Option<String> {
-        self.commands_to_string_variables(version, &[])
     }
 }

@@ -1,5 +1,6 @@
 use std::path::{Path, PathBuf};
 
+use either::Either;
 use nom::branch::alt;
 use nom::bytes::complete::tag;
 use nom::combinator::{cut, fail};
@@ -8,7 +9,6 @@ use nom::sequence::{preceded, tuple};
 use nom::Parser;
 
 use crate::events::EventWithCommands;
-use crate::osb::Variable;
 use crate::osu_file::{
     FilePath, Position, Version, VersionedDefault, VersionedFromStr, VersionedToString,
 };
@@ -16,6 +16,7 @@ use crate::parsers::{
     comma, comma_field, comma_field_type, comma_field_versioned_type, consume_rest_versioned_type,
     nothing,
 };
+use crate::{Integer, VersionedFrom, VersionedTryFrom};
 
 use super::cmds::*;
 use super::error::*;
@@ -82,17 +83,11 @@ impl EventWithCommands for Object {
     fn commands_mut(&mut self) -> &mut Vec<Command> {
         &mut self.commands
     }
-}
 
-impl Object {
-    pub(crate) fn to_string_variables(
-        &self,
-        version: Version,
-        variables: &[Variable],
-    ) -> Option<String> {
+    fn to_string_cmd(&self, version: Version) -> Option<String> {
         let pos_str = format!("{},{}", self.position.x, self.position.y);
 
-        let object_str = match &self.object_type {
+        let obj = match &self.object_type {
             ObjectType::Sprite(sprite) => format!(
                 "Sprite,{},{},{},{}",
                 self.layer.to_string(version).unwrap(),
@@ -114,15 +109,7 @@ impl Object {
             }
         };
 
-        let cmds = self.commands_to_string_variables(version, variables);
-
-        if let Some(cmds) = cmds {
-            if !cmds.is_empty() {
-                return Some(format!("{object_str}\n{cmds}"));
-            }
-        }
-
-        Some(object_str)
+        Some(obj)
     }
 }
 
@@ -302,8 +289,17 @@ pub enum ObjectType {
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+pub struct Origin {
+    /// Origin type.
+    /// - `Left` variant would be the valid enum variants.
+    /// - `Right` variant is for other variants that is used but isn't documented.
+    pub type_: Either<OriginType, Integer>,
+    pub shorthand: bool,
+}
+
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 #[non_exhaustive]
-pub enum Origin {
+pub enum OriginType {
     TopLeft,
     Centre,
     CentreLeft,
@@ -316,41 +312,145 @@ pub enum Origin {
     BottomRight,
 }
 
+impl From<OriginType> for Origin {
+    fn from(type_: OriginType) -> Self {
+        Self {
+            type_: Either::Left(type_),
+            shorthand: true,
+        }
+    }
+}
+
 impl VersionedToString for Origin {
-    fn to_string(&self, _: Version) -> Option<String> {
-        let origin = match self {
-            Origin::TopLeft => "TopLeft",
-            Origin::Centre => "Centre",
-            Origin::CentreLeft => "CentreLeft",
-            Origin::TopRight => "TopRight",
-            Origin::BottomCentre => "BottomCentre",
-            Origin::TopCentre => "TopCentre",
-            Origin::Custom => "Custom",
-            Origin::CentreRight => "CentreRight",
-            Origin::BottomLeft => "BottomLeft",
-            Origin::BottomRight => "BottomRight",
+    fn to_string(&self, version: Version) -> Option<String> {
+        let origin = if self.shorthand {
+            let origin = match self.type_ {
+                Either::Left(type_) => {
+                    <Integer as VersionedFrom<OriginType>>::from(type_, version).unwrap()
+                }
+                Either::Right(type_) => type_,
+            };
+
+            origin.to_string()
+        } else {
+            match self.type_ {
+                Either::Left(type_) => match type_ {
+                    OriginType::TopLeft => "TopLeft",
+                    OriginType::Centre => "Centre",
+                    OriginType::CentreLeft => "CentreLeft",
+                    OriginType::TopRight => "TopRight",
+                    OriginType::BottomCentre => "BottomCentre",
+                    OriginType::TopCentre => "TopCentre",
+                    OriginType::Custom => "Custom",
+                    OriginType::CentreRight => "CentreRight",
+                    OriginType::BottomLeft => "BottomLeft",
+                    OriginType::BottomRight => "BottomRight",
+                }
+                .to_string(),
+                Either::Right(type_) => type_.to_string(),
+            }
         };
 
-        Some(origin.to_string())
+        Some(origin)
     }
 }
 
 impl VersionedFromStr for Origin {
     type Err = ParseOriginError;
 
-    fn from_str(s: &str, _: Version) -> std::result::Result<Option<Self>, Self::Err> {
+    fn from_str(s: &str, version: Version) -> std::result::Result<Option<Self>, Self::Err> {
         match s {
-            "TopLeft" => Ok(Some(Origin::TopLeft)),
-            "Centre" => Ok(Some(Origin::Centre)),
-            "CentreLeft" => Ok(Some(Origin::CentreLeft)),
-            "TopRight" => Ok(Some(Origin::TopRight)),
-            "BottomCentre" => Ok(Some(Origin::BottomCentre)),
-            "TopCentre" => Ok(Some(Origin::TopCentre)),
-            "Custom" => Ok(Some(Origin::Custom)),
-            "CentreRight" => Ok(Some(Origin::CentreRight)),
-            "BottomLeft" => Ok(Some(Origin::BottomLeft)),
-            "BottomRight" => Ok(Some(Origin::BottomRight)),
-            _ => Err(ParseOriginError::UnknownVariant),
+            "TopLeft" => Ok(Some(Origin {
+                shorthand: false,
+                type_: Either::Left(OriginType::TopLeft),
+            })),
+            "Centre" => Ok(Some(Origin {
+                shorthand: false,
+                type_: Either::Left(OriginType::Centre),
+            })),
+            "CentreLeft" => Ok(Some(Origin {
+                shorthand: false,
+                type_: Either::Left(OriginType::CentreLeft),
+            })),
+            "TopRight" => Ok(Some(Origin {
+                shorthand: false,
+                type_: Either::Left(OriginType::TopRight),
+            })),
+            "BottomCentre" => Ok(Some(Origin {
+                shorthand: false,
+                type_: Either::Left(OriginType::BottomCentre),
+            })),
+            "TopCentre" => Ok(Some(Origin {
+                shorthand: false,
+                type_: Either::Left(OriginType::TopCentre),
+            })),
+            "Custom" => Ok(Some(Origin {
+                shorthand: false,
+                type_: Either::Left(OriginType::Custom),
+            })),
+            "CentreRight" => Ok(Some(Origin {
+                shorthand: false,
+                type_: Either::Left(OriginType::CentreRight),
+            })),
+            "BottomLeft" => Ok(Some(Origin {
+                shorthand: false,
+                type_: Either::Left(OriginType::BottomLeft),
+            })),
+            "BottomRight" => Ok(Some(Origin {
+                shorthand: false,
+                type_: Either::Left(OriginType::BottomRight),
+            })),
+            _ => {
+                let s = s.parse()?;
+                let type_ = match <OriginType as VersionedTryFrom<Integer>>::try_from(s, version) {
+                    Ok(type_) => Either::Left(type_.unwrap()),
+                    Err(err) => match err {
+                        OriginTryFromIntError::UnknownVariant => Either::Right(s),
+                    },
+                };
+
+                Ok(Some(Origin {
+                    type_,
+                    shorthand: true,
+                }))
+            }
+        }
+    }
+}
+
+impl VersionedTryFrom<Integer> for OriginType {
+    type Error = OriginTryFromIntError;
+
+    fn try_from(value: Integer, _: Version) -> Result<Option<Self>, Self::Error> {
+        match value {
+            0 => Ok(Some(OriginType::TopLeft)),
+            1 => Ok(Some(OriginType::Centre)),
+            2 => Ok(Some(OriginType::CentreLeft)),
+            3 => Ok(Some(OriginType::TopRight)),
+            4 => Ok(Some(OriginType::BottomCentre)),
+            5 => Ok(Some(OriginType::TopCentre)),
+            6 => Ok(Some(OriginType::Custom)),
+            7 => Ok(Some(OriginType::CentreRight)),
+            8 => Ok(Some(OriginType::BottomLeft)),
+            9 => Ok(Some(OriginType::BottomRight)),
+            _ => Err(OriginTryFromIntError::UnknownVariant),
+        }
+    }
+}
+
+impl VersionedFrom<OriginType> for Integer {
+    fn from(value: OriginType, _: Version) -> Option<Self> {
+        match value {
+            OriginType::TopLeft => Some(0),
+            OriginType::Centre => Some(1),
+            OriginType::CentreLeft => Some(2),
+            OriginType::TopRight => Some(3),
+            OriginType::BottomCentre => Some(4),
+            OriginType::TopCentre => Some(5),
+            OriginType::Custom => Some(6),
+            OriginType::CentreRight => Some(7),
+            OriginType::BottomLeft => Some(8),
+            OriginType::BottomRight => Some(9),
         }
     }
 }

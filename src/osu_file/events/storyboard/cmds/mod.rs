@@ -70,11 +70,7 @@ impl VersionedToString for Command {
 }
 
 impl Command {
-    pub(crate) fn to_string_variables(
-        &self,
-        version: Version,
-        variables: &[Variable],
-    ) -> Option<String> {
+    pub fn to_string_variables(&self, version: Version, variables: &[Variable]) -> Option<String> {
         let end_time_to_string =
             |end_time: &Option<i32>| end_time.map_or("".to_string(), |t| t.to_string());
         let variable_replace = |header, cmd: String| {
@@ -83,7 +79,6 @@ impl Command {
             for variable in variables {
                 if cmd.contains(&variable.value) {
                     cmd = cmd.replace(&variable.value, &format!("${}", variable.name));
-                    break;
                 }
             }
 
@@ -241,14 +236,19 @@ impl Command {
                 commands: _,
             } => {
                 let cmd = format!(
-                    "{},{}{}{}",
+                    "{}{}{}{}{}",
                     trigger_type.to_string(version).unwrap(),
+                    if self.start_time.is_some() || end_time.is_some() || group_number.is_some() {
+                        ",".to_string()
+                    } else {
+                        String::new()
+                    },
                     match self.start_time {
                         Some(t) =>
-                            if end_time.is_none() && group_number.is_none() {
-                                t.to_string()
-                            } else {
+                            if end_time.is_some() || group_number.is_some() {
                                 format!("{t},")
+                            } else {
+                                t.to_string()
                             },
                         None =>
                             if end_time.is_some() || group_number.is_some() {
@@ -259,10 +259,10 @@ impl Command {
                     },
                     match end_time {
                         Some(t) =>
-                            if group_number.is_none() {
-                                t.to_string()
-                            } else {
+                            if group_number.is_some() {
                                 format!("{t},")
+                            } else {
+                                t.to_string()
                             },
                         None =>
                             if group_number.is_some() {
@@ -380,7 +380,7 @@ impl VersionedFromStr for Command {
                 context(
                     ParseCommandError::InvalidEasing.into(),
                     map_opt(comma_field_type(), |easing| {
-                        <Easing as VersionedFrom<usize>>::from(easing, version)
+                        <Easing as VersionedFrom<Integer>>::from(easing, version)
                     }),
                 ),
             ))

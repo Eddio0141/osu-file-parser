@@ -86,12 +86,7 @@ impl VersionedFromStr for Background {
 
 impl VersionedToString for Background {
     fn to_string(&self, version: Version) -> Option<String> {
-        Some(format!(
-            "{BACKGROUND_HEADER},{},{}{}",
-            self.start_time,
-            self.file_name.to_string(version).unwrap(),
-            position_str(&self.position),
-        ))
+        self.to_string_variables(version, &[])
     }
 }
 
@@ -102,6 +97,15 @@ impl EventWithCommands for Background {
 
     fn commands_mut(&mut self) -> &mut Vec<Command> {
         &mut self.commands
+    }
+
+    fn to_string_cmd(&self, version: Version) -> Option<String> {
+        Some(format!(
+            "{BACKGROUND_HEADER},{},{}{}",
+            self.start_time,
+            self.file_name.to_string(version).unwrap(),
+            position_str(&self.position),
+        ))
     }
 }
 
@@ -168,6 +172,20 @@ impl VersionedFromStr for Video {
 
 impl VersionedToString for Video {
     fn to_string(&self, version: Version) -> Option<String> {
+        self.to_string_variables(version, &[])
+    }
+}
+
+impl EventWithCommands for Video {
+    fn commands(&self) -> &[Command] {
+        &self.commands
+    }
+
+    fn commands_mut(&mut self) -> &mut Vec<Command> {
+        &mut self.commands
+    }
+
+    fn to_string_cmd(&self, version: Version) -> Option<String> {
         Some(format!(
             "{},{},{}{}",
             if self.short_hand {
@@ -179,16 +197,6 @@ impl VersionedToString for Video {
             self.file_name.to_string(version).unwrap(),
             position_str(&self.position)
         ))
-    }
-}
-
-impl EventWithCommands for Video {
-    fn commands(&self) -> &[Command] {
-        &self.commands
-    }
-
-    fn commands_mut(&mut self) -> &mut Vec<Command> {
-        &mut self.commands
     }
 }
 

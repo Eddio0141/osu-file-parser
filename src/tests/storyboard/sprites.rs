@@ -1,5 +1,6 @@
 use std::path::{Path, PathBuf};
 
+use either::Either;
 use rust_decimal_macros::dec;
 
 use crate::osu_file::events::storyboard::sprites::*;
@@ -16,7 +17,10 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
     let s = Events(vec![
         Event::StoryboardObject(Object {
             layer: Layer::Pass,
-            origin: Origin::Centre,
+            origin: Origin {
+                type_: Either::Left(OriginType::Centre),
+                shorthand: false,
+            },
             position: Position {
                 x: dec!(320).into(),
                 y: dec!(240).into(),
@@ -28,7 +32,10 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
         }),
         Event::StoryboardObject(Object {
             layer: Layer::Fail,
-            origin: Origin::BottomCentre,
+            origin: Origin {
+                type_: Either::Left(OriginType::BottomCentre),
+                shorthand: false,
+            },
             position: Position {
                 x: dec!(418).into(),
                 y: dec!(108).into(),
@@ -51,7 +58,10 @@ Animation,Fail,BottomCentre,\"Other\\Play3\\explosion.png\",418,108,12,31,LoopFo
 fn frame_file_names() {
     let animation = Object {
         layer: Layer::Background,
-        origin: Origin::BottomCentre,
+        origin: Origin {
+            type_: Either::Left(OriginType::BottomCentre),
+            shorthand: false,
+        },
         position: Position {
             x: dec!(0).into(),
             y: dec!(0).into(),
