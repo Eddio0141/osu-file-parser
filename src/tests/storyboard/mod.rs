@@ -43,7 +43,7 @@ fn animation_legacy() {
 
     let s = AnimationLegacy {
         layer: LayerLegacy::Background,
-        origin: OriginTypeLegacy::BottomCentre,
+        origin: OriginTypeLegacy::Centre,
         file_name: "\"Other\\Play3\\explosion.png\"".into(),
         position: Some(Position {
             x: 418.into(),
