@@ -295,52 +295,10 @@ fn files_to_string(c: &mut Criterion) {
     group.bench_function("crazy", |b| b.iter(|| black_box(&crazy_osu).to_string()));
 }
 
-const ASPIRE_OSB1: &str = include_str!("./files/aspire_osb1.osb");
-const ASPIRE_OSB2: &str = include_str!("./files/aspire_osb2.osb");
-
-fn aspire_osb_parse(c: &mut Criterion) {
-    let mut group = c.benchmark_group("aspire_osb_parse");
-    let mut aspire_osb1_osu = OsuFile::default(14);
-    let mut aspire_osb2_osu = OsuFile::default(14);
-
-    group.bench_function("aspire_osb1", |b| {
-        b.iter(|| {
-            aspire_osb1_osu.append_osb(black_box(ASPIRE_OSB1)).unwrap();
-        })
-    });
-    group.bench_function("aspire_osb2", |b| {
-        b.iter(|| {
-            aspire_osb2_osu.append_osb(black_box(ASPIRE_OSB2)).unwrap();
-        })
-    });
-}
-
-fn aspire_osb_to_string(c: &mut Criterion) {
-    let mut aspire_osb1_osu = OsuFile::default(14);
-    aspire_osb1_osu.append_osb(ASPIRE_OSB1).unwrap();
-    let mut aspire_osb2_osu = OsuFile::default(14);
-    aspire_osb2_osu.append_osb(ASPIRE_OSB2).unwrap();
-
-    let mut group = c.benchmark_group("aspire_osb_to_string");
-
-    group.bench_function("aspire_osb1", |b| {
-        b.iter(|| black_box(&aspire_osb1_osu).osb_to_string().unwrap())
-    });
-    group.bench_function("aspire_osb2", |b| {
-        b.iter(|| black_box(&aspire_osb2_osu).osb_to_string().unwrap())
-    });
-}
-
 const ASPIRE1: &str = include_str!("./files/aspire1.osu");
 const ASPIRE2: &str = include_str!("./files/aspire2.osu");
 const ASPIRE3: &str = include_str!("./files/aspire3.osu");
 const ASPIRE4: &str = include_str!("./files/aspire4.osu");
-const ASPIRE5: &str = include_str!("./files/aspire5.osu");
-const ASPIRE6: &str = include_str!("./files/aspire6.osu");
-const ASPIRE7: &str = include_str!("./files/aspire7.osu");
-const ASPIRE8: &str = include_str!("./files/aspire8.osu");
-const ASPIRE9: &str = include_str!("./files/aspire9.osu");
-const ASPIRE10: &str = include_str!("./files/aspire10.osu");
 
 fn aspire_files_parse(c: &mut Criterion) {
     let mut group = c.benchmark_group("aspire_files_parse");
@@ -365,36 +323,6 @@ fn aspire_files_parse(c: &mut Criterion) {
             black_box(ASPIRE4).parse::<OsuFile>().unwrap();
         })
     });
-    group.bench_function("aspire5", |b| {
-        b.iter(|| {
-            black_box(ASPIRE5).parse::<OsuFile>().unwrap();
-        })
-    });
-    group.bench_function("aspire6", |b| {
-        b.iter(|| {
-            black_box(ASPIRE6).parse::<OsuFile>().unwrap();
-        })
-    });
-    group.bench_function("aspire7", |b| {
-        b.iter(|| {
-            black_box(ASPIRE7).parse::<OsuFile>().unwrap();
-        })
-    });
-    group.bench_function("aspire8", |b| {
-        b.iter(|| {
-            black_box(ASPIRE8).parse::<OsuFile>().unwrap();
-        })
-    });
-    group.bench_function("aspire9", |b| {
-        b.iter(|| {
-            black_box(ASPIRE9).parse::<OsuFile>().unwrap();
-        })
-    });
-    group.bench_function("aspire10", |b| {
-        b.iter(|| {
-            black_box(ASPIRE10).parse::<OsuFile>().unwrap();
-        })
-    });
 }
 
 fn aspire_files_to_string(c: &mut Criterion) {
@@ -402,12 +330,6 @@ fn aspire_files_to_string(c: &mut Criterion) {
     let aspire2_osu = OsuFile::from_str(ASPIRE2).unwrap();
     let aspire3_osu = OsuFile::from_str(ASPIRE3).unwrap();
     let aspire4_osu = OsuFile::from_str(ASPIRE4).unwrap();
-    let aspire5_osu = OsuFile::from_str(ASPIRE5).unwrap();
-    let aspire6_osu = OsuFile::from_str(ASPIRE6).unwrap();
-    let aspire7_osu = OsuFile::from_str(ASPIRE7).unwrap();
-    let aspire8_osu = OsuFile::from_str(ASPIRE8).unwrap();
-    let aspire9_osu = OsuFile::from_str(ASPIRE9).unwrap();
-    let aspire10_osu = OsuFile::from_str(ASPIRE10).unwrap();
 
     let mut group = c.benchmark_group("aspire_files_to_string");
 
@@ -423,24 +345,6 @@ fn aspire_files_to_string(c: &mut Criterion) {
     group.bench_function("aspire4", |b| {
         b.iter(|| black_box(&aspire4_osu).to_string())
     });
-    group.bench_function("aspire5", |b| {
-        b.iter(|| black_box(&aspire5_osu).to_string())
-    });
-    group.bench_function("aspire6", |b| {
-        b.iter(|| black_box(&aspire6_osu).to_string())
-    });
-    group.bench_function("aspire7", |b| {
-        b.iter(|| black_box(&aspire7_osu).to_string())
-    });
-    group.bench_function("aspire8", |b| {
-        b.iter(|| black_box(&aspire8_osu).to_string())
-    });
-    group.bench_function("aspire9", |b| {
-        b.iter(|| black_box(&aspire9_osu).to_string())
-    });
-    group.bench_function("aspire10", |b| {
-        b.iter(|| black_box(&aspire10_osu).to_string())
-    });
 }
 
 criterion_group!(
@@ -452,8 +356,6 @@ criterion_group!(
     hitobject_to_string,
     files_parse,
     files_to_string,
-    aspire_osb_parse,
-    aspire_osb_to_string,
     aspire_files_parse,
     aspire_files_to_string,
 );
