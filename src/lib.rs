@@ -9,7 +9,7 @@
 //! // parse the .osu file
 //! let mut osu_file = osu_file_str.parse::<OsuFile>().unwrap();
 //!
-//! let osb_str = include_str!("./tests/osu_files/files/acid_rain.osb");
+//! let osb_str = include_str!("./tests/osu_files/files/aspire_osb1.osb");
 //! // .osb file can also be parsed and appended to the `OsuFile` instance
 //! osu_file.append_osb(osb_str).unwrap();
 //!
