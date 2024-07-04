@@ -543,11 +543,7 @@ impl VersionedToString for HitObject {
                 });
 
                 let hitsample = if let Some(hitsample) = &self.hitsample {
-                    if let Some(hitsample) = hitsample.to_string(version) {
-                        hitsample
-                    } else {
-                        String::new()
-                    }
+                    hitsample.to_string(version).unwrap_or_default()
                 } else {
                     String::new()
                 };

@@ -41,7 +41,7 @@ impl VersionedFromStr for TimingPoints {
             )?);
         }
 
-        if let Some(s) = timing_points.get(0) {
+        if let Some(s) = timing_points.first() {
             if s.is_some() {
                 Ok(Some(TimingPoints(
                     timing_points
