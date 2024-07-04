@@ -14,14 +14,14 @@ readme = "readme.md"
 rust_decimal = "1.25.0"
 rust_decimal_macros = "1.25.0"
 thiserror = "1.0.31"
-strum = "0.24.1"
-strum_macros = "0.24.0"
+strum = "0.26.3"
+strum_macros = "0.26.4"
 nom = "7.1.1"
 either = "1.7.0"
 pretty_assertions = "1.2.1"
 
 [dev-dependencies]
-criterion = { version = "0.3.5", features = ["html_reports"] }
+criterion = { version = "0.5.1", features = ["html_reports"] }
 
 [[bench]]
 name = "bench"
