@@ -25,6 +25,8 @@
               xdg-open "${inputs'.fenix.packages.stable.rust-docs}/share/doc/rust/html/index.html"
             '';
           };
+
+          rust = pkgs.rust-bin.stable.latest.default;
         in
         {
           _module.args.pkgs = import nixpkgs {
@@ -36,7 +38,9 @@
 
           devShells.default = pkgs.mkShell {
             packages = with pkgs; [
-              rust-bin.stable.latest.default
+              (rust.override {
+                extensions = [ "rust-analyzer" ];
+              })
               rust-doc
             ];
           };
